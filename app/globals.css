@@ -1,26 +1,80 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #000000;
+  --foreground: #ededed;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    "Noto Sans SC",
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+}
+
+/* ===== Preview 专用 Scrollbar ===== */
+
+.preview-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.preview-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+.preview-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.preview-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.95);
+  background-clip: content-box;
+}
+
+/* ===== Admin Button System ===== */
+
+.admin-btn {
+  @apply px-6 py-3 rounded-xl font-semibold transition duration-200;
+}
+
+.admin-btn-primary {
+  @apply bg-white text-black hover:opacity-80;
+}
+
+.admin-btn-secondary {
+  @apply bg-zinc-900 border border-zinc-700 text-white hover:border-white hover:bg-zinc-800;
+}
+
+.admin-btn-success {
+  @apply bg-green-500 text-black hover:opacity-80;
+}
+
+.admin-btn-danger {
+  @apply border border-red-500 text-red-400 hover:bg-red-500 hover:text-white;
+}
+
+/* ===== Admin Empty State ===== */
+
+.admin-empty {
+  @apply border border-dashed border-zinc-800 rounded-3xl p-10 text-center bg-zinc-950/60;
+}
+
+.admin-empty-icon {
+  @apply text-5xl mb-4;
+}
+
+.admin-empty-title {
+  @apply text-2xl font-bold mb-2;
+}
+
+.admin-empty-text {
+  @apply text-zinc-400 mb-6;
 }
