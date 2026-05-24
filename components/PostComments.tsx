@@ -52,9 +52,31 @@ export default function PostComments({
       data: { user },
     } = await supabase.auth.getUser();
 
+    
     if (!user) {
       alert("请先登录");
       setLoading(false);
+      return;
+    }
+
+    // ===== 检查用户状态 =====
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.status === "muted") {
+      alert("你目前已被禁言，无法发表评论。");
+      return;
+    }
+
+    if (profile?.status === "banned") {
+      alert("你的账号已被封禁。");
+
+      await supabase.auth.signOut();
+
+      window.location.href = "/";
       return;
     }
 

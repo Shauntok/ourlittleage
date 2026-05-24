@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { supabase } from "@/lib/supabase";
 
 // ===== 前台外壳：Admin 页面不显示前台 Navbar =====
 export default function SiteShell({
@@ -11,7 +13,34 @@ export default function SiteShell({
 }) {
   const pathname = usePathname();
 
-  const isAdminPage = pathname.startsWith("/admin");
+  const isAdminPage =
+    pathname.startsWith("/admin");
+
+  useEffect(() => {
+    async function checkBanned() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.status === "banned") {
+        alert("你的账号已被封禁。");
+
+        await supabase.auth.signOut();
+
+        window.location.href = "/";
+      }
+    }
+
+    checkBanned();
+  }, []);
 
   return (
     <>

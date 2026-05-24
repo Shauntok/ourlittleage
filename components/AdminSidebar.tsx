@@ -123,18 +123,23 @@ export default function AdminSidebar() {
     },
   ];
 
-  const ownerLinks: AdminLink[] = [
-    {
-      href: "/admin/roles",
-      label: "权限管理",
-      icon: "👑",
-    },
-    {
-      href: "/admin/logs",
-      label: "操作日志",
-      icon: "📜",
-    },
-  ];
+    const ownerLinks: AdminLink[] = [
+      {
+        href: "/admin/roles",
+        label: "权限管理",
+        icon: "👑",
+      },
+      {
+        href: "/admin/logs",
+        label: "操作日志",
+        icon: "📜",
+      },
+      {
+        href: "/admin/announcements",
+        label: "世界公告",
+        icon: "📢",
+      },
+    ];
 
   // ===== 系统 =====
   const systemLinks: AdminLink[] = [

@@ -54,8 +54,21 @@ export default function AdminPage() {
             role: "user",
           },
         ]);
-    }
 
+      // ===== 创建欢迎信 =====
+      await supabase
+        .from("notifications")
+        .insert([
+          {
+            user_id: user.id,
+            title: "欢迎来到小时代 🌙",
+            content:
+              "这里是一个可以慢慢生活、写故事、留下回忆的小世界。\n\n希望你能在这里找到属于自己的角落。",
+            type: "system",
+          },
+        ]);
+    }
+    
     alert("注册成功，请登录");
   }
 

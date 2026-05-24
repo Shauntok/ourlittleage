@@ -8,11 +8,39 @@ import { supabase } from "@/lib/supabase";
 export default function Navbar() {
   const [profile, setProfile] =
     useState<any>(null);
+    
     const [menuOpen, setMenuOpen] =
       useState(false);
 
     const menuRef =
       useRef<HTMLDivElement>(null);
+
+      const [unreadCount, setUnreadCount] =
+        useState(0);
+
+      useEffect(() => {
+        fetchUnread();
+      }, []);
+
+      async function fetchUnread() {
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        const { count } = await supabase
+          .from("notifications")
+          .select("*", {
+            count: "exact",
+            head: true,
+          })
+          .eq("user_id", user.id)
+          .eq("is_read", false);
+
+        setUnreadCount(count || 0);
+      }
 
   // ===== 获取当前用户资料 =====
   useEffect(() => {
@@ -30,10 +58,78 @@ export default function Navbar() {
         .single();
 
       setProfile(data);
+
+      // ===== 自动清理过期状态 =====
+      if (
+        data?.status_expires_at &&
+        new Date(
+          data.status_expires_at
+        ).getTime() < Date.now()
+      ) {
+
+        await supabase
+          .from("profiles")
+          .update({
+            mood_emoji: null,
+            status_message: null,
+            status_expires_at: null,
+          })
+          .eq("id", data.id);
+
+        data.mood_emoji = null;
+        data.status_message = null;
+        data.status_expires_at = null;
+      }
     }
 
     getProfile();
+
+    fetchUnreadCount();
+
+    const channel = supabase
+      .channel("navbar-notifications")
+
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+
+    async function fetchUnreadCount() {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { count } = await supabase
+      .from("notifications")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("user_id", user.id)
+      .eq("is_read", false)
+      .is("deleted_at", null);
+
+    setUnreadCount(count || 0);
+  }
   }, []);
+
+  
 
   // ===== 点击外面关闭菜单 =====
   useEffect(() => {
@@ -90,6 +186,33 @@ export default function Navbar() {
           >
             搜索
           </Link>
+
+          <Link
+          href="/write"
+          className="hover:text-white transition"
+        >
+          ✍️ 写故事
+        </Link>
+
+          {profile && (
+          <Link
+            href="/notifications"
+            className="relative flex items-center justify-center hover:scale-105 transition"
+          >
+
+            <span className="text-xl">
+              {unreadCount > 0
+                ? "📬"
+                : "📪"}
+            </span>
+
+            {unreadCount > 0 && (
+              <span className="absolute -right-2 -top-2 flex min-w-[20px] h-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-lg shadow-red-500/50">
+                {unreadCount}
+              </span>
+            )}
+          </Link>
+        )}
 
           {/* ===== 已登录用户 ===== */}
           {profile ? (
@@ -164,7 +287,7 @@ export default function Navbar() {
             </div>
           ) : (
             <Link
-              href="/admin"
+              href="/login"
               className="px-4 py-2 rounded-xl border border-zinc-700 hover:border-white hover:text-white transition"
             >
               登录

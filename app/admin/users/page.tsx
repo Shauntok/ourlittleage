@@ -117,6 +117,20 @@ export default function AdminUsersPage() {
                 {profile.role}
               </span>
 
+              <span
+              className={`rounded-full border px-3 py-1 text-sm ${
+                profile.status === "active"
+                  ? "border-green-500/30 bg-green-500/10 text-green-300"
+                  : profile.status === "warned"
+                  ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+                  : profile.status === "muted"
+                  ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
+                  : "border-red-500/30 bg-red-500/10 text-red-300"
+              }`}
+            >
+              {profile.status || "active"}
+            </span>
+
             </div>
           </div>
         ))}
