@@ -47,7 +47,7 @@ export default async function HomePage() {
 
         {/* ===== 网站标题 ===== */}
         <h1 className="text-4xl font-bold mb-4">
-          <TranslatedText text="卓卓啰嗦吹水站" />
+          <span>卓卓啰嗦吹水站</span>
         </h1>
 
         {/* ===== 网站简介 ===== */}
