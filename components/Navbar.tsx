@@ -4,111 +4,15 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-// ===== 前台网站导航栏 =====
 export default function Navbar() {
-  const [profile, setProfile] =
-    useState<any>(null);
-    
-    const [menuOpen, setMenuOpen] =
-      useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [currentRole, setCurrentRole] = useState("user");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-    const menuRef =
-      useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-      const [unreadCount, setUnreadCount] =
-        useState(0);
-
-      useEffect(() => {
-        fetchUnread();
-      }, []);
-
-      async function fetchUnread() {
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) return;
-
-        const { count } = await supabase
-          .from("notifications")
-          .select("*", {
-            count: "exact",
-            head: true,
-          })
-          .eq("user_id", user.id)
-          .eq("is_read", false);
-
-        setUnreadCount(count || 0);
-      }
-
-  // ===== 获取当前用户资料 =====
-  useEffect(() => {
-    async function getProfile() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      setProfile(data);
-
-      // ===== 自动清理过期状态 =====
-      if (
-        data?.status_expires_at &&
-        new Date(
-          data.status_expires_at
-        ).getTime() < Date.now()
-      ) {
-
-        await supabase
-          .from("profiles")
-          .update({
-            mood_emoji: null,
-            status_message: null,
-            status_expires_at: null,
-          })
-          .eq("id", data.id);
-
-        data.mood_emoji = null;
-        data.status_message = null;
-        data.status_expires_at = null;
-      }
-    }
-
-    getProfile();
-
-    fetchUnreadCount();
-
-    const channel = supabase
-      .channel("navbar-notifications")
-
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-        },
-        () => {
-          fetchUnreadCount();
-        }
-      )
-
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-
-    async function fetchUnreadCount() {
-
+  async function fetchUnreadCount() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -127,106 +31,127 @@ export default function Navbar() {
 
     setUnreadCount(count || 0);
   }
+
+  useEffect(() => {
+    async function getProfile() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (
+        data?.status_expires_at &&
+        new Date(data.status_expires_at).getTime() < Date.now()
+      ) {
+        await supabase
+          .from("profiles")
+          .update({
+            mood_emoji: null,
+            status_message: null,
+            status_expires_at: null,
+          })
+          .eq("id", data.id);
+
+        data.mood_emoji = null;
+        data.status_message = null;
+        data.status_expires_at = null;
+      }
+
+      setProfile(data);
+      setCurrentRole(data?.role || "user");
+    }
+
+    getProfile();
+    fetchUnreadCount();
+
+    const channel = supabase
+      .channel("navbar-notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+        },
+        () => fetchUnreadCount()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  
-
-  // ===== 点击外面关闭菜单 =====
   useEffect(() => {
-    function handleClickOutside(
-      event: MouseEvent
-    ) {
+    function handleClickOutside(event: MouseEvent) {
       if (
         menuRef.current &&
-        !menuRef.current.contains(
-          event.target as Node
-        )
+        !menuRef.current.contains(event.target as Node)
       ) {
         setMenuOpen(false);
       }
     }
 
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
+    document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   return (
-    <header className="border-b border-zinc-900 bg-black/80 backdrop-blur-xl sticky top-0 z-50">
-      <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-        
-        {/* ===== 网站 Logo ===== */}
-        <Link
-          href="/"
-          className="font-bold text-xl"
-        >
+    <header className="sticky top-0 z-50 border-b border-zinc-900 bg-black/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <Link href="/" className="text-xl font-bold">
           小时代
         </Link>
 
-        {/* ===== 导航 ===== */}
         <nav className="flex items-center gap-6 text-sm text-zinc-400">
-          <Link
-            href="/"
-            className="hover:text-white transition"
-          >
+          <Link href="/" className="hover:text-white transition">
             首页
           </Link>
 
-          <Link
-            href="/search"
-            className="hover:text-white transition"
-          >
+          <Link href="/search" className="hover:text-white transition">
             搜索
           </Link>
 
-          <Link
-          href="/write"
-          className="hover:text-white transition"
-        >
-          ✍️ 写故事
-        </Link>
+          {profile && (
+            <Link href="/write" className="hover:text-white transition">
+              ✍️ 写故事
+            </Link>
+          )}
 
           {profile && (
-          <Link
-            href="/notifications"
-            className="relative flex items-center justify-center hover:scale-105 transition"
-          >
-
-            <span className="text-xl">
-              {unreadCount > 0
-                ? "📬"
-                : "📪"}
-            </span>
-
-            {unreadCount > 0 && (
-              <span className="absolute -right-2 -top-2 flex min-w-[20px] h-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-lg shadow-red-500/50">
-                {unreadCount}
-              </span>
-            )}
-          </Link>
-        )}
-
-          {/* ===== 已登录用户 ===== */}
-          {profile ? (
-            <div
-              className="relative"
-              ref={menuRef}
+            <Link
+              href="/notifications"
+              className="relative flex items-center justify-center hover:scale-105 transition"
             >
+              <span className="text-xl">
+                {unreadCount > 0 ? "📬" : "📪"}
+              </span>
+
+              {unreadCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-lg shadow-red-500/50">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
+
+          {profile ? (
+            <div className="relative" ref={menuRef}>
               <button
-                onClick={() =>
-                  setMenuOpen(!menuOpen)
-                }
+                onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-3 hover:text-white transition"
               >
-                <div className="h-9 w-9 rounded-full overflow-hidden border border-zinc-700 bg-zinc-900">
+                <div className="h-9 w-9 overflow-hidden rounded-full border border-zinc-700 bg-zinc-900">
                   {profile.avatar ? (
                     <img
                       src={profile.avatar}
@@ -234,61 +159,148 @@ export default function Navbar() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-sm">
+                    <div className="flex h-full w-full items-center justify-center text-sm">
                       👤
                     </div>
                   )}
                 </div>
 
-                <span>
-                  {profile.username}
-                </span>
+                <span>{profile.username}</span>
               </button>
 
-              {/* ===== 用户菜单 ===== */}
               {menuOpen && (
-                <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/40 overflow-hidden">
-                  
-                  <Link
-                    href={`/u/${encodeURIComponent(
-                      profile.username
-                    )}`}
-                    className="block px-5 py-4 hover:bg-zinc-900 transition"
-                  >
-                    我的主页
-                  </Link>
+                <div className="absolute right-0 mt-3 w-72 overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl">
 
-                  <Link
-                    href="/admin/profile"
-                    className="block px-5 py-4 hover:bg-zinc-900 transition"
-                  >
-                    我的资料
-                  </Link>
+                  {/* ===== 用户头部 ===== */}
+                  <div className="border-b border-zinc-800 px-5 py-5">
 
-                  <Link
-                    href="/admin/dashboard"
-                    className="block px-5 py-4 hover:bg-zinc-900 transition"
-                  >
-                    后台管理
-                  </Link>
+                    <div className="flex items-center gap-4">
 
-                  <button
-                    onClick={async () => {
-                      await supabase.auth.signOut();
+                      <div className="h-14 w-14 overflow-hidden rounded-full border border-zinc-700 bg-zinc-900">
+                        {profile.avatar ? (
+                          <img
+                            src={profile.avatar}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-xl">
+                            👤
+                          </div>
+                        )}
+                      </div>
 
-                      window.location.href = "/";
-                    }}
-                    className="w-full text-left px-5 py-4 text-red-400 hover:bg-zinc-900 transition"
-                  >
-                    登出
-                  </button>
+                      <div className="min-w-0 flex-1">
+
+                        <p className="truncate text-lg font-bold text-white">
+                          {profile.username}
+                        </p>
+
+                        {(profile.status_message ||
+                          profile.mood_emoji) && (
+
+                          <div className="mt-1 flex items-center gap-2 text-sm text-zinc-400">
+
+                            <span>
+                              {profile.mood_emoji || "🌙"}
+                            </span>
+
+                            <span className="truncate">
+                              {profile.status_message}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ===== 主菜单 ===== */}
+                  <div className="py-2">
+
+                    <Link
+                      href={`/u/${encodeURIComponent(
+                        profile.username
+                      )}`}
+                      className="flex items-center gap-3 px-5 py-4 text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+                    >
+                      <span>🏠</span>
+                      <span>我的房间</span>
+                    </Link>
+
+                    <Link
+                      href="/write"
+                      className="flex items-center gap-3 px-5 py-4 text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+                    >
+                      <span>✍️</span>
+                      <span>写故事</span>
+                    </Link>
+
+                    <Link
+                      href="/notifications"
+                      className="flex items-center gap-3 px-5 py-4 text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+                    >
+                      <span>📬</span>
+
+                      <span className="flex-1">
+                        邮箱
+                      </span>
+
+                      {unreadCount > 0 && (
+                        <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </Link>
+
+                    <Link
+                      href="/admin/profile"
+                      className="flex items-center gap-3 px-5 py-4 text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+                    >
+                      <span>⚙️</span>
+                      <span>我的资料</span>
+                    </Link>
+                  </div>
+
+                  {/* ===== 管理员区域 ===== */}
+                  {[
+                    "owner",
+                    "admin",
+                    "moderator",
+                  ].includes(currentRole) && (
+                    <div className="border-t border-zinc-800 py-2">
+
+                      <Link
+                        href="/admin"
+                        className="flex items-center gap-3 px-5 py-4 text-violet-300 transition hover:bg-zinc-900"
+                      >
+                        <span>🛠</span>
+                        <span>后台管理</span>
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* ===== 登出 ===== */}
+                  <div className="border-t border-zinc-800 py-2">
+
+                    <button
+                      onClick={async () => {
+                        await supabase.auth.signOut();
+
+                        window.location.href = "/";
+                      }}
+                      className="flex w-full items-center gap-3 px-5 py-4 text-left text-red-400 transition hover:bg-zinc-900"
+                    >
+                      <span>🚪</span>
+                      <span>登出</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           ) : (
             <Link
               href="/login"
-              className="px-4 py-2 rounded-xl border border-zinc-700 hover:border-white hover:text-white transition"
+              className="rounded-xl border border-zinc-700 px-4 py-2 hover:border-white hover:text-white transition"
             >
               登录
             </Link>
