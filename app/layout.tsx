@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "卓卓啰嗦吹水站",
-  description: "一个半夜想到什么就写什么的地方。",
+  title: "小时代",
+  description: "世界已经睡了，但这里还有一些人，静静留下今天。",
 };
 
 export const viewport = {
