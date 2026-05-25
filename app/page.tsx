@@ -1,147 +1,614 @@
-// ===== Next Link =====
-import Link from "next/link";
+"use client";
 
-// ===== Supabase =====
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
-import TranslatedText from "@/components/TranslatedText";
+export default function Page() {
+  const router = useRouter();
 
-// ===== 提取文章内最多 3 张图片 =====
-function getImages(content: string) {
-  return Array.from(
-    content.matchAll(/!\[[^\]]*\]\((.*?)\)/g)
-  )
-    .map((match) => match[1])
-    .slice(0, 3);
-}
+  const [scrollY, setScrollY] = useState(0);
+  const [showLoginDock, setShowLoginDock] = useState(true);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [musicOpen, setMusicOpen] = useState(false);
 
-// ===== 提取文章摘要 =====
-function getExcerpt(content: string) {
-  return content
-    .replace(
-      /!\[[^\]]*\]\(.*?\)/g,
-      ""
-    )
-    .trim()
-    .slice(0, 120);
-}
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-// ===== 首页 =====
-export default async function HomePage() {
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  // ===== 获取已发布文章 =====
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("*")
-    .eq("status", "published")
-    .eq("visibility", "public")
-    .order("created_at", {
-      ascending: false,
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
+
+  async function handleEnter() {
+    if (!email || !password) {
+      alert("请输入邮箱和密码。");
+      return;
+    }
+
+    setLoginLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
+    if (error) {
+      alert("登录失败，请检查邮箱或密码。");
+      setLoginLoading(false);
+      return;
+    }
+
+    router.push("/home");
+    }
+
+    async function handleRegister() {
+    if (!registerEmail || !registerPassword || !confirmPassword) {
+      alert("请完整填写邮箱、密码和确认密码。");
+      return;
+    }
+
+    if (registerPassword !== confirmPassword) {
+      alert("两次输入的密码不一样。");
+      return;
+    }
+
+    setLoginLoading(true);
+
+    const { data, error } = await supabase.auth.signUp({
+      email: registerEmail,
+      password: registerPassword,
+    });
+
+    console.log("注册 data:", data);
+    console.error("注册 error:", error);
+
+    if (error) {
+      alert(error.message);
+      setLoginLoading(false);
+      return;
+    }
+
+    setLoginLoading(false);
+    router.push("/home");
+  }
+
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+
+    window.scrollTo(0, 0);
+    setShowLoginDock(true);
+  }, []);
+
+  useEffect(() => {
+    function handleScroll() {
+      const y = window.scrollY;
+      const h = window.innerHeight;
+
+      setScrollY(y);
+
+      const portalCard = document.getElementById("portal-card");
+      const portalCardRect = portalCard?.getBoundingClientRect();
+
+      const isPortalCardTooClose =
+        portalCardRect &&
+        portalCardRect.top < h * 0.78 &&
+        portalCardRect.bottom > h * 0.18;
+
+      setShowLoginDock(!isPortalCardTooClose);
+    }
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
   return (
-    <main className="min-h-screen bg-black text-white px-6 py-20">
+    <main className="w-full overflow-x-clip bg-black text-white">
+      {/* ===== 第一屏：世界入口 ===== */}
+      <section
+        className="relative flex h-screen items-center justify-center overflow-hidden transition-all duration-300"
+        style={{
+          opacity: Math.max(1 - scrollY / 900, 0),
+          transform: `scale(${1 + scrollY * 0.00012})`,
+          filter: `brightness(${1 - scrollY * 0.00025})`,
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-zinc-950 to-black" />
 
-      {/* ===== 页面宽度 ===== */}
-      <div className="max-w-2xl mx-auto">
+        <div
+          className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-500/10 blur-3xl"
+          style={{
+            transform: `translate(-50%, -50%) scale(${1 + scrollY * 0.00025})`,
+            opacity: Math.max(0.45 - scrollY / 1800, 0.08),
+          }}
+        />
 
-        {/* ===== 网站标题 ===== */}
-        <h1 className="text-4xl font-bold mb-4">
-          <span>卓卓啰嗦吹水站</span>
-        </h1>
+        <div
+          className="absolute bottom-16 right-16 h-[280px] w-[280px] rounded-full bg-blue-500/10 blur-3xl"
+          style={{
+            transform: `translateY(${scrollY * 0.08}px)`,
+            opacity: Math.max(0.35 - scrollY / 1600, 0),
+          }}
+        />
 
-        {/* ===== 网站简介 ===== */}
-        <p className="text-zinc-400 mb-16">
-          <TranslatedText text="一个半夜想到什么就写什么的地方。" />
-        </p>
-
-        {/* ===== 文章列表 ===== */}
-        <div className="space-y-12">
-
-          {posts?.map((post) => {
-
-            // ===== 获取第一张图片 =====
-            const imageUrls = getImages(post.content);
-
-            // ===== 获取文章摘要 =====
-            const excerpt =
-              getExcerpt(post.content);
-
-            return (
-
-              <article key={post.id}>
-
-                {/* ===== 点击整块进入文章 ===== */}
-                <Link
-                  href={`/posts/${post.slug}`}
-                  className="block group"
-                >
-
-                  {/* ===== 最多显示 3 张图片预览 ===== */}
-                  {imageUrls.length > 0 && (
-                    <div className="grid grid-cols-3 gap-3 mt-5">
-                    {imageUrls.map((url) => (
-                  <img
-                    key={url}
-                    src={url}
-                    alt=""
-                    className="aspect-square w-full object-cover rounded-2xl border border-zinc-800"
-                  />
-                ))}
-  </div>
-)}
-
-                  {/* ===== 文章标题 ===== */}
-                  <h2 className="text-2xl font-semibold group-hover:text-zinc-400 transition">
-                    <TranslatedText text={post.title} />
-                  </h2>
-
-                  {/* ===== 日期 ===== */}
-                  <p className="text-sm text-zinc-500 mt-2 mb-3">
-                  发布于 {new Date(post.created_at).toLocaleString()}
-
-                  {post.edited_at && (
-                    <>
-                      {" · "}
-                      已编辑 {new Date(post.edited_at).toLocaleString()}
-                    </>
-                  )}
-                </p>
-
-                  {/* ===== 文章摘要 ===== */}
-                  {excerpt && (
-                    <p className="text-zinc-400 mt-3 leading-7">
-                      <TranslatedText text={`${excerpt}...`} />
-                    </p>
-                  )}
-
-                  {/* ===== Tags ===== */}
-                  {post.tags && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {String(post.tags)
-                        .split(/[,，]/)
-                        .map((tag) => tag.trim())
-                        .filter(Boolean)
-                        .map((tag) => (
-                          <Link
-                            key={tag}
-                            href={`/tags/${encodeURIComponent(tag)}`}
-                            className="text-xs px-3 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-300 hover:border-white transition"
-                          >
-                            {tag}
-                          </Link>
-                        ))}
-                    </div>
-                  )}
-
-                </Link>
-
-              </article>
-
-            );
-          })}
-
+        <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden">
+          {[
+            {
+              text: "你还在吗？",
+              className: "left-[9%] top-[24%]",
+              rotate: "-6deg",
+              duration: "8s",
+            },
+            {
+              text: "我只是突然想起以前。",
+              className: "right-[10%] top-[30%]",
+              rotate: "5deg",
+              duration: "10s",
+            },
+            {
+              text: "如果那时候，我们都慢一点就好了。",
+              className: "left-[17%] bottom-[20%]",
+              rotate: "3deg",
+              duration: "12s",
+            },
+            {
+              text: "有些话，好像只能留在凌晨。",
+              className: "left-[34%] top-[16%]",
+              rotate: "4deg",
+              duration: "13s",
+            },
+            {
+              text: "晚安。可是我还没睡。",
+              className: "left-[70%] bottom-[14%]",
+              rotate: "-5deg",
+              duration: "14s",
+            },
+          ].map((item) => (
+            <div
+              key={item.text}
+              className={`
+                absolute ${item.className}
+                rounded-3xl border border-white/15 bg-white/[0.055]
+                px-5 py-4 text-sm text-white/45 backdrop-blur-md
+                shadow-[0_0_40px_rgba(255,255,255,0.035)]
+              `}
+              style={
+                {
+                  "--rotate": item.rotate,
+                  animation: `memoryFloat ${item.duration} ease-in-out infinite`,
+                } as React.CSSProperties
+              }
+            >
+              {item.text}
+            </div>
+          ))}
         </div>
+
+        <div className="pointer-events-none absolute inset-0 z-[3]">
+          {[
+            "left-[18%] top-[22%] h-1 w-1 bg-white/35",
+            "left-[72%] top-[28%] h-1 w-1 bg-white/30",
+            "left-[64%] top-[68%] h-1 w-1 bg-white/25",
+            "left-[30%] top-[74%] h-1 w-1 bg-white/20",
+            "left-[48%] top-[18%] h-[3px] w-[3px] bg-white/25",
+            "left-[82%] top-[61%] h-[3px] w-[3px] bg-white/20",
+            "left-[12%] top-[58%] h-[3px] w-[3px] bg-white/25",
+            "left-[38%] top-[42%] h-[2px] w-[2px] bg-white/30",
+            "left-[57%] top-[76%] h-[2px] w-[2px] bg-white/25",
+            "left-[88%] top-[22%] h-[2px] w-[2px] bg-white/20",
+            "left-[24%] top-[36%] h-[2px] w-[2px] bg-white/30",
+            "left-[70%] top-[82%] h-[2px] w-[2px] bg-white/25",
+            "left-[44%] top-[63%] h-[2px] w-[2px] bg-white/20",
+            "left-[7%] top-[78%] h-[2px] w-[2px] bg-white/25",
+          ].map((item, index) => (
+            <div
+              key={index}
+              className={`
+                absolute rounded-full
+                ${item}
+                animate-[starBreath_4s_ease-in-out_infinite]
+              `}
+              style={{
+                animationDelay: `${index * 0.35}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        <div
+          className="absolute left-20 top-32 z-[4] text-2xl text-white/30"
+          style={{
+            transform: `translateY(${scrollY * -0.08}px)`,
+            opacity: Math.max(0.55 - scrollY / 1000, 0),
+          }}
+        >
+          🌙 我想你了
+        </div>
+
+        <div
+          className="absolute right-32 bottom-40 z-[4] text-lg text-zinc-700"
+          style={{
+            transform: `translateY(${scrollY * 0.06}px)`,
+            opacity: Math.max(0.45 - scrollY / 900, 0),
+          }}
+        >
+          ☕ 凌晨 3:44
+        </div>
+
+        <div
+          className="relative z-10 space-y-6 text-center"
+          style={{
+            transform: `translateY(${scrollY * -0.12}px)`,
+          }}
+        >
+          <p className="text-xs tracking-[0.5em] text-white/25">
+            WELCOME TO
+          </p>
+
+          <h1
+            className="
+              text-7xl font-black tracking-tight md:text-8xl
+              animate-[titleBreath_7s_ease-in-out_infinite]
+            "
+          >
+            小时代
+          </h1>
+
+          <p className="text-xl text-zinc-500">
+            一个允许人慢慢生活的地方。
+          </p>
+
+          <p className="pt-8 text-sm uppercase tracking-[0.3em] text-zinc-700">
+            Scroll To Enter
+          </p>
+        </div>
+      </section>
+
+      {/* ===== 第二屏：进入世界过渡 ===== */}
+      <section className="relative h-[160vh] bg-black">
+        <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
+          <div
+            className="absolute left-1/2 top-1/2 h-[460px] w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.035] blur-3xl"
+            style={{
+              opacity: Math.min(Math.max((scrollY - 600) / 600, 0), 0.45),
+              transform: `translate(-50%, -50%) scale(${
+                1 + Math.max(scrollY - 700, 0) * 0.00025
+              })`,
+            }}
+          />
+
+          <div
+            className="space-y-8 text-center transition-all duration-700"
+            style={{
+              opacity: Math.min(Math.max((scrollY - 520) / 500, 0), 1),
+              transform: `translateY(${Math.max(
+                80 - (scrollY - 500) * 0.12,
+                0
+              )}px)`,
+              filter: `blur(${Math.max(10 - (scrollY - 520) * 0.02, 0)}px)`,
+            }}
+          >
+            <p className="text-xs tracking-[0.5em] text-white/25">
+              STEP INTO
+            </p>
+
+            <h2 className="text-5xl font-black tracking-tight text-white md:text-7xl">
+              进入世界
+            </h2>
+
+            <p className="mx-auto max-w-md text-sm leading-7 text-zinc-500">
+              继续往下。这里不是普通首页，
+              <br />
+              而是一个慢慢靠近自己的地方。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== 第三屏：居民入口 ===== */}
+      <section
+        id="portal"
+        className="relative flex min-h-[130vh] items-center justify-center overflow-hidden px-6"
+      >
+        <div
+          className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.035] blur-3xl"
+          style={{
+            opacity: Math.min(Math.max((scrollY - 1500) / 700, 0), 0.5),
+            transform: `translate(-50%, -50%) scale(${
+              1 + Math.max(scrollY - 1600, 0) * 0.00018
+            })`,
+          }}
+        />
+
+        <div
+          id="portal-card"
+          className="
+            relative z-10 grid w-full max-w-5xl gap-6 transition-all duration-1000
+            md:grid-cols-2
+          "
+          style={{
+            opacity: Math.min(Math.max((scrollY - 1550) / 500, 0), 1),
+            transform: `
+              translateY(${Math.max(70 - (scrollY - 1500) * 0.12, 0)}px)
+              scale(${
+                0.96 +
+                Math.min(Math.max((scrollY - 1500) / 900, 0), 1) * 0.04
+              })
+            `,
+            filter: `blur(${Math.max(10 - (scrollY - 1500) * 0.02, 0)}px)`,
+          }}
+        >
+          {/* 登录卡片 */}
+          <div
+            className={`
+              rounded-[2rem] border border-white/10 bg-white/[0.035]
+              p-10 text-white backdrop-blur-2xl
+              shadow-[0_0_80px_rgba(255,255,255,0.06)]
+              transition-all duration-1000 ease-out
+              ${
+                authMode === "register"
+                  ? "md:translate-x-0"
+                  : "md:translate-x-[50%]"
+              }
+            `}
+          >
+            <p className="mb-3 text-xs tracking-[0.35em] text-white/35">
+              小时代居民入口
+            </p>
+
+            <h2 className="text-3xl font-light tracking-tight">
+              进入你的深夜小屋
+            </h2>
+
+            <p className="mt-5 text-sm leading-7 text-white/45 transition duration-700">
+              游客可以短暂经过这里，但只有居民才能留下自己的故事、收藏、评论和生活痕迹。
+            </p>
+
+            <div className="mt-9 space-y-4">
+              <input
+                type="email"
+                placeholder="邮箱"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="
+                  w-full rounded-2xl border border-white/10
+                  bg-white/[0.07] px-5 py-4 text-sm text-white
+                  placeholder:text-white/25 outline-none
+                  shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
+                  transition-all duration-500
+                  focus:border-white/35 focus:bg-white/[0.12]
+                  focus:shadow-[0_0_30px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]
+                "
+              />
+
+              <input
+                type="password"
+                placeholder="密码"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="
+                  w-full rounded-2xl border border-white/10
+                  bg-white/[0.07] px-5 py-4 text-sm text-white
+                  placeholder:text-white/25 outline-none
+                  shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
+                  transition-all duration-500
+                  focus:border-white/35 focus:bg-white/[0.12]
+                  focus:shadow-[0_0_30px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]
+                "
+              />
+
+              <button
+                onClick={handleEnter}
+                disabled={loginLoading}
+                className="
+                  w-full rounded-2xl bg-white py-4
+                  text-sm font-semibold text-black
+                  shadow-[0_0_40px_rgba(255,255,255,0.12)]
+                  transition-all duration-500
+                  hover:scale-[1.01] hover:bg-white/90
+                  hover:shadow-[0_0_60px_rgba(255,255,255,0.18)]
+                  active:scale-[0.99]
+                  disabled:cursor-not-allowed disabled:opacity-60
+                "
+              >
+                {loginLoading ? "进入中..." : "进入小时代"}
+              </button>
+
+              <button
+                onClick={() => setAuthMode("register")}
+                className="w-full pt-2 text-xs text-white/35 transition hover:text-white/60"
+              >
+                还没有房间？创建居民账号
+              </button>
+            </div>
+          </div>
+
+          {/* 注册卡片 */}
+          <div
+            className={`
+              overflow-hidden rounded-[2rem] border border-white/10
+              bg-white/[0.035] text-white backdrop-blur-2xl
+              shadow-[0_0_80px_rgba(255,255,255,0.06)]
+              transition-all duration-1000 ease-out
+              ${
+                authMode === "register"
+                  ? "max-h-[760px] opacity-100 blur-0"
+                  : "pointer-events-none max-h-[760px] opacity-0 blur-md md:translate-x-8"
+              }
+            `}
+          >
+            <div className="p-10">
+              <p className="mb-3 text-xs tracking-[0.35em] text-white/35">
+                创建居民账号
+              </p>
+
+              <h2 className="text-3xl font-light tracking-tight">
+                留下你的第一盏灯
+              </h2>
+
+              <p className="mt-5 text-sm leading-7 text-white/45">
+                确认邮箱和密码后，我们会为你创建属于自己的深夜小屋。
+              </p>
+
+              <div className="mt-9 space-y-4">
+                <input
+                  type="email"
+                  placeholder="邮箱"
+                  value={registerEmail}
+                  onChange={(e) => setRegisterEmail(e.target.value)}
+                  className="
+                    w-full rounded-2xl border border-white/10
+                    bg-white/[0.07] px-5 py-4 text-sm text-white
+                    placeholder:text-white/25 outline-none
+                    transition-all duration-500
+                    focus:border-white/35 focus:bg-white/[0.12]
+                  "
+                />
+
+                <input
+                  type="password"
+                  placeholder="密码"
+                  value={registerPassword}
+                  onChange={(e) => setRegisterPassword(e.target.value)}
+                  className="
+                    w-full rounded-2xl border border-white/10
+                    bg-white/[0.07] px-5 py-4 text-sm text-white
+                    placeholder:text-white/25 outline-none
+                    transition-all duration-500
+                    focus:border-white/35 focus:bg-white/[0.12]
+                  "
+                />
+
+                <input
+                  type="password"
+                  placeholder="确认密码"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="
+                    w-full rounded-2xl border border-white/10
+                    bg-white/[0.07] px-5 py-4 text-sm text-white
+                    placeholder:text-white/25 outline-none
+                    transition-all duration-500
+                    focus:border-white/35 focus:bg-white/[0.12]
+                  "
+                />
+
+                <button
+                  onClick={handleRegister}
+                  disabled={registerLoading}
+                  className="
+                    w-full rounded-2xl bg-white py-4
+                    text-sm font-semibold text-black
+                    transition hover:bg-white/90
+                    disabled:cursor-not-allowed disabled:opacity-60
+                  "
+                >
+                  {registerLoading ? "创建中..." : "创建并进入小时代"}
+                </button>
+
+                <button
+                  onClick={() => setAuthMode("login")}
+                  className="w-full pt-2 text-xs text-white/35 transition hover:text-white/60"
+                >
+                  已经是居民？返回登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== 吸附式居民入口按钮 ===== */}
+      <div
+        className={`
+          fixed left-1/2 z-40 -translate-x-1/2 transition-all duration-1000 ease-out
+          ${
+            showLoginDock
+              ? "bottom-10 opacity-100 scale-100"
+              : "-bottom-24 opacity-0 scale-95"
+          }
+        `}
+      >
+        <button
+          onClick={() => {
+            document.getElementById("portal-card")?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          }}
+          className="
+            rounded-full border border-white/10 bg-white/[0.055]
+            px-5 py-2.5 text-xs font-medium tracking-wide text-white/70
+            backdrop-blur-2xl
+            shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_34px_rgba(255,255,255,0.08)]
+            transition-all duration-500
+            hover:border-white/20 hover:bg-white/[0.09] hover:text-white/90
+          "
+        >
+          进入居民入口
+        </button>
+      </div>
+
+      {/* ===== 深夜音乐小碟 ===== */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => setMusicOpen(!musicOpen)}
+          className="
+            group flex items-center gap-3 rounded-full
+            border border-white/10 bg-white/[0.055]
+            px-4 py-3 text-white/70 backdrop-blur-2xl
+            shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_34px_rgba(255,255,255,0.08)]
+            transition-all duration-500
+            hover:bg-white/[0.09] hover:text-white/90
+          "
+        >
+          <span
+            className={`
+              h-8 w-8 rounded-full border border-white/20
+              bg-[radial-gradient(circle,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0.08)_38%,rgba(255,255,255,0.02)_70%)]
+              shadow-[0_0_24px_rgba(255,255,255,0.12)]
+              ${musicOpen ? "animate-[spin_8s_linear_infinite]" : ""}
+            `}
+          />
+
+          <span className="hidden text-xs md:block">
+            玻璃 · 深夜播放
+          </span>
+        </button>
+
+        {musicOpen && (
+          <div
+            className="
+              absolute bottom-16 right-0 w-[280px] overflow-hidden
+              rounded-3xl border border-white/10 bg-black/80
+              p-3 backdrop-blur-2xl
+              shadow-[0_0_70px_rgba(255,255,255,0.08)]
+              animate-in fade-in slide-in-from-bottom-4 duration-500
+            "
+          >
+            <p className="mb-3 px-2 text-xs tracking-[0.25em] text-white/35">
+              NOW PLAYING
+            </p>
+
+            <div className="overflow-hidden rounded-2xl">
+              <iframe
+                className="h-[158px] w-full"
+                src="https://www.youtube.com/embed/FB5-rPa5wBA?si=dcULcKAKg5wgMegl"
+                title="玻璃"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

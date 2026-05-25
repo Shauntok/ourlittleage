@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 
-// ===== 前台外壳：Admin 页面不显示前台 Navbar =====
 export default function SiteShell({
   children,
 }: {
@@ -13,8 +12,9 @@ export default function SiteShell({
 }) {
   const pathname = usePathname();
 
-  const isAdminPage =
-    pathname.startsWith("/admin");
+  const isAdminPage = pathname.startsWith("/admin");
+  const isLandingPage = pathname === "/";
+  const isResidentHomePage = pathname === "/home";
 
   useEffect(() => {
     async function checkBanned() {
@@ -44,7 +44,7 @@ export default function SiteShell({
 
   return (
     <>
-      {!isAdminPage && <Navbar />}
+      {!isAdminPage && !isLandingPage && !isResidentHomePage && <Navbar />}
 
       {children}
     </>

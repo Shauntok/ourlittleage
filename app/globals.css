@@ -1,22 +1,70 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* =========================================================
+   Base Theme
+   全站基础主题
+========================================================= */
+
 :root {
   --background: #000000;
   --foreground: #ededed;
 }
 
+html,
 body {
+  max-width: 100%;
+  overflow-x: clip;
   background: var(--background);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
   color: var(--foreground);
   font-family:
     "Noto Sans SC",
     "PingFang SC",
     "Microsoft YaHei",
     sans-serif;
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
-/* ===== Preview 专用 Scrollbar ===== */
+/* =========================================================
+   Global Scrollbar
+   全站滚动条：隐藏横向，竖向细透明
+========================================================= */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 0;
+}
+
+::-webkit-scrollbar-horizontal {
+  display: none;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* =========================================================
+   Preview Scrollbar
+   预览区专用滚动条
+========================================================= */
 
 .preview-scrollbar::-webkit-scrollbar {
   width: 8px;
@@ -39,10 +87,13 @@ body {
   background-clip: content-box;
 }
 
-/* ===== Admin Button System ===== */
+/* =========================================================
+   Admin Button System
+   后台按钮系统
+========================================================= */
 
 .admin-btn {
-  @apply px-6 py-3 rounded-xl font-semibold transition duration-200;
+  @apply rounded-xl px-6 py-3 font-semibold transition duration-200;
 }
 
 .admin-btn-primary {
@@ -50,7 +101,7 @@ body {
 }
 
 .admin-btn-secondary {
-  @apply bg-zinc-900 border border-zinc-700 text-white hover:border-white hover:bg-zinc-800;
+  @apply border border-zinc-700 bg-zinc-900 text-white hover:border-white hover:bg-zinc-800;
 }
 
 .admin-btn-success {
@@ -61,20 +112,133 @@ body {
   @apply border border-red-500 text-red-400 hover:bg-red-500 hover:text-white;
 }
 
-/* ===== Admin Empty State ===== */
+/* =========================================================
+   Admin Empty State
+   后台空状态
+========================================================= */
 
 .admin-empty {
-  @apply border border-dashed border-zinc-800 rounded-3xl p-10 text-center bg-zinc-950/60;
+  @apply rounded-3xl border border-dashed border-zinc-800 bg-zinc-950/60 p-10 text-center;
 }
 
 .admin-empty-icon {
-  @apply text-5xl mb-4;
+  @apply mb-4 text-5xl;
 }
 
 .admin-empty-title {
-  @apply text-2xl font-bold mb-2;
+  @apply mb-2 text-2xl font-bold;
 }
 
 .admin-empty-text {
-  @apply text-zinc-400 mb-6;
+  @apply mb-6 text-zinc-400;
+}
+
+/* =========================================================
+   Landing Page Animations
+   首页沉浸式动画
+========================================================= */
+
+/* 光晕呼吸 */
+@keyframes softPulse {
+  0% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.08);
+  }
+
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+}
+
+/* 漂浮文字 */
+@keyframes floatSlow {
+  0% {
+    transform: translateY(0);
+    opacity: 0.25;
+  }
+
+  50% {
+    transform: translateY(-18px);
+    opacity: 0.55;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 0.25;
+  }
+}
+
+/* 聊天记忆碎片 */
+@keyframes memoryFloat {
+  0% {
+    transform: translateY(0) rotate(var(--rotate));
+    opacity: 0.18;
+  }
+
+  50% {
+    transform: translateY(-14px) rotate(var(--rotate));
+    opacity: 0.38;
+  }
+
+  100% {
+    transform: translateY(0) rotate(var(--rotate));
+    opacity: 0.18;
+  }
+}
+
+/* 星空轻微呼吸 */
+@keyframes starBreath {
+  0% {
+    opacity: 0.18;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.75;
+    transform: scale(1.7);
+  }
+
+  100% {
+    opacity: 0.18;
+    transform: scale(1);
+  }
+}
+
+/* 主标题呼吸 */
+@keyframes titleBreath {
+  0% {
+    opacity: 0.82;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.035);
+  }
+
+  100% {
+    opacity: 0.82;
+    transform: scale(1);
+  }
+}
+
+/* 底部居民入口按钮呼吸光 */
+@keyframes dockGlow {
+  0% {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+  }
+
+  50% {
+    box-shadow: 0 0 38px rgba(255, 255, 255, 0.12);
+  }
+
+  100% {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+  }
 }
