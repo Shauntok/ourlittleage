@@ -249,9 +249,9 @@ export default function AdminUserDetailPage() {
     <div className="space-y-8">
       <div className="flex items-center gap-5">
         <div className="h-24 w-24 overflow-hidden rounded-full border border-zinc-800 bg-zinc-900">
-          {profile.avatar ? (
+          {profile.avatar_url ? (
             <img
-              src={profile.avatar}
+              src={profile.avatar_url}
               alt={profile.username}
               className="h-full w-full object-cover"
             />
