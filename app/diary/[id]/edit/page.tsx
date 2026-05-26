@@ -191,7 +191,7 @@ export default function EditDiaryPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/");
+        router.push("/home");;
         return;
       }
 

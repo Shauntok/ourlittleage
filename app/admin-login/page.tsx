@@ -67,7 +67,7 @@ export default function AdminLoginPage() {
 
       await supabase.auth.signOut();
 
-      router.push("/");
+      router.push("/home");
       return;
     }
 

@@ -1,0 +1,367 @@
+# 小时代 Project Map
+
+## 项目定位
+
+小时代不是普通博客，而是一个“居民可以长期居住的故事社区”。
+
+核心感觉：
+- 温柔
+- 深夜
+- 有房间感
+- 有居民身份
+- 有日记、文章、广场、个人主页
+- 未来会有等级、徽章、通知、评论、关系系统
+
+正式域名：
+- https://www.ourlittleage.com
+
+---
+
+## 当前正式路线
+
+游客：
+- `/` Landing Page
+
+居民：
+- `/home` 居民首页
+- `/diary` 我的日记
+- `/diary/new` 写日记
+- `/diary/[id]` 查看日记
+- `/diary/edit/[id]` 编辑日记
+- `/space` 深夜广场
+- `/space/diaries` 日记广场
+- `/space/articles` 文章广场
+- `/posts/[slug]` 文章阅读页
+- `/write` 写文章
+- `/u/[username]` 公开居民房间
+- `/settings/profile` 房间资料设置
+
+后台：
+- `/admin`
+- `/admin/users`
+- `/admin/users/[id]`
+- `/admin/reports`
+- `/admin/logs`
+- `/admin/settings`
+
+---
+
+## 首页系统
+
+文件：
+- `app/home/page.tsx`
+
+功能：
+- 居民首页
+- 动态氛围
+- 星空粒子
+- 鼠标光晕
+- 最新公开日记
+- 最新公开文章
+- 深夜广播
+- 我的房间入口
+- 房间设置入口
+
+依赖：
+- `profiles`
+- `posts`
+- `src/lib/getHomeAtmosphere.ts`
+- `src/lib/getNightBroadcast.ts`
+- `src/components/FloatingParticles.tsx`
+- `src/components/MouseGlow.tsx`
+- `src/components/PageTransition.tsx`
+
+注意：
+- Logo / 首页按钮应该去 `/home`
+- Landing Page 只给游客入口使用
+
+---
+
+## Profile / 居民房间系统
+
+正式设置页：
+- `app/settings/profile/page.tsx`
+
+公开居民房间：
+- `app/u/[username]/page.tsx`
+
+旧后台资料页：
+- `app/admin/profile/page.tsx`
+- 未来不继续扩展，功能应迁移到 `/settings/profile`
+
+主要字段：
+- `username`
+- `bio`
+- `avatar_url`
+- `banner_url`
+- `mood_emoji`
+- `status_message`
+- `status_expires_at`
+- `show_level`
+- `show_exp`
+- `show_trust_score`
+- `show_joined_days`
+- `level`
+- `exp`
+- `trust_score`
+- `role`
+- `status`
+
+重要规范：
+- 头像统一用 `avatar_url`
+- 不再使用旧字段 `avatar`
+- Banner 统一用 `banner_url`
+
+---
+
+## 日记系统
+
+文件：
+- `app/diary/page.tsx`
+- `app/diary/new/page.tsx`
+- `app/diary/[id]/page.tsx`
+- `app/diary/edit/[id]/page.tsx`
+
+功能：
+- 写日记
+- 日记默认 private
+- 用户可选择 public
+- 最低 11 字
+- 每日发布限制
+- 编辑日记不自动保存
+- 只有手动保存才更新 edited_at / edit_count
+
+规则：
+- 草稿系统暂时不用于日记
+- 日记日期以发布时刻为准
+- 过了 12 点发布就属于新一天
+
+---
+
+## 文章系统
+
+文件：
+- `app/write/page.tsx` 或旧文章发布页
+- `app/posts/[slug]/page.tsx`
+- `app/space/articles/page.tsx`
+
+功能：
+- 写文章
+- Markdown
+- 图片上传
+- slug
+- tags
+- visibility
+- draft / published
+
+注意：
+- 文章和日记不要混成一个流
+- 文章适合长文、故事、作品
+- 日记适合碎片、情绪、今天
+
+---
+
+## 广场系统
+
+文件：
+- `app/space/page.tsx`
+- `app/space/diaries/page.tsx`
+- `app/space/articles/page.tsx`
+
+定位：
+- `/space` 是总广场入口
+- `/space/diaries` 是日记广场
+- `/space/articles` 是文章广场
+
+规则：
+- 日记流：轻、慢、碎片感
+- 文章流：像书架、阅读感更强
+- 不要把日记和文章完全混在一起
+
+---
+
+## Admin 系统
+
+文件：
+- `app/admin/users/page.tsx`
+- `app/admin/users/[id]/page.tsx`
+
+功能：
+- 居民管理
+- 修改 role
+- 修改 status
+- 写 admin_logs
+- 被警告 / 禁言 / 封禁时发送 notifications
+
+角色：
+- owner
+- admin
+- moderator
+- user
+
+规则：
+- moderator 不能改身份 / 状态
+- admin 不能管理 owner
+- admin 不能创建 owner
+- owner 不应被别人降级
+- owner 不应误降级自己
+
+---
+
+## Supabase Tables
+
+### profiles
+
+用途：
+- 用户身份资料
+- 房间资料
+- 状态
+- 权限
+- 隐私设置
+
+重要字段：
+- id
+- username
+- bio
+- avatar_url
+- banner_url
+- role
+- status
+- level
+- exp
+- trust_score
+- mood_emoji
+- status_message
+- status_expires_at
+- show_level
+- show_exp
+- show_trust_score
+- show_joined_days
+- created_at
+
+### posts
+
+用途：
+- 文章和日记共用内容表
+
+重要字段：
+- id
+- type: `article` / `diary`
+- title
+- slug
+- content
+- status: `draft` / `published`
+- visibility: `public` / `private` / `hidden` / `unlisted`
+- author_id
+- published_at
+- edited_at
+- edit_count
+- tags
+- notes
+
+### badges
+
+用途：
+- 徽章定义
+
+### user_badges
+
+用途：
+- 用户拥有的徽章
+
+### admin_logs
+
+用途：
+- 后台操作记录
+
+### notifications
+
+用途：
+- 系统通知
+
+---
+
+## Supabase Storage
+
+Buckets:
+- `images`：文章 / 日记图片
+- `avatars`：头像
+- `banners`：个人房间背景图
+
+规则：
+- avatars public
+- banners public
+- images public
+
+---
+
+## UI 氛围组件
+
+文件：
+- `src/components/FloatingParticles.tsx`
+- `src/components/MouseGlow.tsx`
+- `src/components/PageTransition.tsx`
+- `src/components/PageRouterTransition.tsx`
+
+功能：
+- 星空粒子
+- 鼠标光晕
+- 页面淡入
+- 路由切换动画
+
+注意：
+- FloatingParticles 不要在 render 里直接用 `Math.random()`
+- 否则会造成 hydration mismatch
+
+---
+
+## 当前重要技术债
+
+1. `/admin/profile` 和 `/settings/profile` 已经重复  
+   方向：保留 `/settings/profile`，废弃 `/admin/profile`
+
+2. `avatar` 与 `avatar_url` 曾经混用  
+   方向：全部统一为 `avatar_url`
+
+3. `/articles` 和 `/space/articles` 曾经混用  
+   方向：
+   - 公共文章广场：`/space/articles`
+   - 未来我的文章：建议 `/me/articles`
+
+4. `/posts/[slug]` 是文章阅读页  
+   日记跳转应该用 `/diary/[id]`
+
+5. 首页所有“首页 / Logo”应该去 `/home`  
+   `/` 只保留 Landing Page
+
+---
+
+## 下一步计划
+
+优先顺序：
+
+1. 完成 `/settings/profile` 与 `/u/[username]` 的整合测试
+2. 清理 `/admin/profile`
+3. Navbar 统一成居民版
+4. 首页真实动态广播
+5. 在线居民系统
+6. 评论系统
+7. 通知系统
+8. 收藏 / 点赞
+9. 关注系统
+10. 世界事件 / 称号 / 成长系统
+
+---
+
+## 开发原则
+
+以后每加功能之前，先判断它属于：
+
+- 前台居民系统
+- 后台管理系统
+- 公共广场系统
+- 用户设置系统
+- 世界氛围系统
+
+不要重复造系统。  
+能融合就融合，能统一字段就统一字段。

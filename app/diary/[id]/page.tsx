@@ -52,7 +52,7 @@ export default function DiaryDetailPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/");
+        router.push("/home");;
         return;
       }
 

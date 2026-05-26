@@ -64,7 +64,7 @@ export default function ProfileSettingsPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/");
+        router.push("/home");;
         return;
       }
 

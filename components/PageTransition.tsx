@@ -9,6 +9,7 @@ export default function PageTransition({
 }) {
   return (
     <motion.div
+      className="relative z-0 pointer-events-auto"
       initial={{
         opacity: 0,
         y: 24,

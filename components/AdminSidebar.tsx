@@ -139,12 +139,17 @@ export default function AdminSidebar() {
         label: "世界公告",
         icon: "📢",
       },
+      {
+        href: "/admin/broadcast",
+        label: "全站信件",
+        icon: "📬",
+      },
     ];
 
   // ===== 系统 =====
   const systemLinks: AdminLink[] = [
     {
-      href: "/",
+      href: "/home",
       label: "回首页",
       icon: "🏠",
     },

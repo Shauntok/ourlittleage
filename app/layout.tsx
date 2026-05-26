@@ -5,6 +5,7 @@ import "./globals.css";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import SiteShell from "@/components/SiteShell";
 import PageRouterTransition from "@/components/PageRouterTransition";
+import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,8 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-black text-white">
+        <PresenceHeartbeat />
+
         <LanguageProvider>
           <SiteShell>
             <PageRouterTransition>

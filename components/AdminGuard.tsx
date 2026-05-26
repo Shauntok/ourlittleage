@@ -26,7 +26,7 @@ export default function AdminGuard({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/");
+        router.push("/home");;
         return;
       }
 
@@ -49,7 +49,7 @@ export default function AdminGuard({
           profile.role
         )
       ) {
-        router.push("/");
+        router.push("/home");;
         return;
       }
 

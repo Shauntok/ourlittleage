@@ -78,7 +78,7 @@ export default function NewDiaryPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/");
+        router.push("/home");;
         return;
       }
 
@@ -272,6 +272,56 @@ export default function NewDiaryPage() {
                 分割线
               </button>
 
+              <button
+                type="button"
+                onClick={() =>
+                  insertTextAtCursor("\n## 今天的小标题\n")
+                }
+                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
+              >
+                H2
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  insertTextAtCursor("\n```text\n写在这里\n```\n")
+                }
+                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
+              >
+                Code
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  insertTextAtCursor("[想留下的链接](https://example.com)")
+                }
+                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
+              >
+                链接
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  insertTextAtCursor("\n- 今天发生的事\n- 我想到的事\n- 想记住的事\n")
+                }
+                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
+              >
+                清单
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  insertTextAtCursor("\n> 💡 我想提醒未来的自己：\n")
+                }
+                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
+              >
+                提示
+              </button>
+
               <label className="cursor-pointer rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white">
                 📸 图片
                 <input
@@ -290,12 +340,33 @@ export default function NewDiaryPage() {
             </div>
 
             <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="我今天过得很好，别担心。"
-              rows={24}
-              className="
+                ref={textareaRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+
+                onKeyDown={(e) => {
+                  if (
+                    e.ctrlKey &&
+                    e.key.toLowerCase() === "b"
+                  ) {
+                    e.preventDefault();
+
+                    insertTextAtCursor("**", "**");
+                  }
+
+                  if (
+                    e.ctrlKey &&
+                    e.key.toLowerCase() === "s"
+                  ) {
+                    e.preventDefault();
+
+                    publishDiary();
+                  }
+                }}
+
+                placeholder="我今天过得很好，别担心。"
+                rows={24}
+                className="
                 preview-scrollbar min-h-[760px]
                 w-full resize-none rounded-[2.4rem]
                 border border-white/10 bg-white/[0.045]

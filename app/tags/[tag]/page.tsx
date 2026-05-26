@@ -68,7 +68,7 @@ export default async function TagPage({ params }: Props) {
         </h1>
 
         <Link
-          href="/"
+          href="/home"
           className="inline-block text-zinc-400 hover:text-white mb-12"
         >
           ← 回首页

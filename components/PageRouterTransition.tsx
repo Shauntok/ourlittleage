@@ -14,6 +14,7 @@ export default function PageRouterTransition({
     <AnimatePresence mode="wait">
       <motion.div
         key={pathname}
+        className="relative z-0 pointer-events-auto"
         initial={{
           opacity: 0,
           y: 18,

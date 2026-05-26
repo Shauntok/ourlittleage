@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getHomeAtmosphere } from "@/lib/getHomeAtmosphere";
+import { getNightBroadcast } from "@/lib/getNightBroadcast";
 import FloatingParticles from "@/components/FloatingParticles";
 import PageTransition from "@/components/PageTransition";
 import MouseGlow from "@/components/MouseGlow";
@@ -12,18 +13,45 @@ import MouseGlow from "@/components/MouseGlow";
 export default function HomePage() {
   const router = useRouter();
   const atmosphere = getHomeAtmosphere();
-
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [onlineResidents, setOnlineResidents] =useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState("居民");
-
-  const [latestDiary, setLatestDiary] = useState("今晚还没有新的痕迹。");
-  const [latestArticle, setLatestArticle] = useState("还没有新的故事。");
-  const [latestDiaryId, setLatestDiaryId] = useState<number | null>(null);
-  const [latestArticleSlug, setLatestArticleSlug] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [latestDiary, setLatestDiary] =useState("今晚还没有新的痕迹。");
+  const [latestArticle, setLatestArticle] =useState("还没有新的故事。");
+  const [latestDiaryId, setLatestDiaryId] =useState<number | null>(null);
+  const [latestArticleSlug, setLatestArticleSlug] =useState("");
+  const [nightBroadcast, setNightBroadcast] =useState("今晚似乎有很多人睡不着。");
 
   useEffect(() => {
     async function checkUser() {
       const { data } = await supabase.auth.getUser();
+
+      const fiveMinutesAgo = new Date(
+        Date.now() - 5 * 60 * 1000
+      ).toISOString();
+
+      const { count: onlineResidentsCount } = await supabase
+        .from("profiles")
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
+        .gte("last_seen_at", fiveMinutesAgo);
+
+      setOnlineCount(onlineResidentsCount || 0);
+
+      const { data: onlineProfiles } = await supabase
+        .from("profiles")
+        .select("id, username, avatar_url, mood_emoji, status_message, last_seen_at")
+        .gte("last_seen_at", fiveMinutesAgo)
+        .order("last_seen_at", {
+          ascending: false,
+        })
+        .limit(6);
+
+      setOnlineResidents(onlineProfiles || []);
 
       if (!data.user) {
         router.push("/");
@@ -32,13 +60,17 @@ export default function HomePage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username")
+        .select("username, avatar_url")
         .eq("id", data.user.id)
         .single();
 
-      setDisplayName(
-        profile?.username || data.user.email?.split("@")[0] || "居民"
-      );
+      const finalDisplayName =
+        profile?.username ||
+        data.user.email?.split("@")[0] ||
+        "居民";
+
+      setDisplayName(finalDisplayName);
+      setAvatarUrl(profile?.avatar_url || "");
 
       const { data: latestDiaryPost } = await supabase
         .from("posts")
@@ -53,7 +85,10 @@ export default function HomePage() {
         .maybeSingle();
 
       if (latestDiaryPost?.content) {
-        setLatestDiary(latestDiaryPost.content.slice(0, 28));
+        setLatestDiary(
+          latestDiaryPost.content.slice(0, 28)
+        );
+
         setLatestDiaryId(latestDiaryPost.id);
       }
 
@@ -74,6 +109,30 @@ export default function HomePage() {
         setLatestArticleSlug(latestArticlePost.slug);
       }
 
+      const broadcasts: string[] = [];
+
+      if (latestArticlePost?.title) {
+        broadcasts.push(
+          `有人刚刚写下了《${latestArticlePost.title}》。`
+        );
+      }
+
+      if (latestDiaryPost?.content) {
+        broadcasts.push(
+          "有人刚刚留下了一篇新的日记。"
+        );
+      }
+
+      setNightBroadcast(
+        broadcasts.length > 0
+          ? broadcasts[
+              Math.floor(
+                Math.random() * broadcasts.length
+              )
+            ]
+          : getNightBroadcast(onlineCount)
+      );
+
       setLoading(false);
     }
 
@@ -92,30 +151,39 @@ export default function HomePage() {
     );
   }
 
+  const profileHref =
+    displayName && displayName !== "居民"
+      ? `/u/${encodeURIComponent(displayName)}`
+      : "/settings/profile";
+
   const lifeCards = [
     {
-      label: "今日氛围",
-      title: atmosphere.label,
-      desc: atmosphere.quote,
-      href: "/home",
+      label: "深夜灯火",
+      title: `🌙 ${onlineCount} 位居民还醒着`,
+      desc: "有人正在房间里，慢慢留下今天。",
+      href: "/space",
     },
     {
       label: "最新故事",
       title: "📝 " + latestArticle,
       desc: "有人刚刚留下了一篇新的故事。",
-      href: latestArticleSlug ? `/posts/${latestArticleSlug}` : "/space/articles",
+      href: latestArticleSlug
+        ? `/posts/${latestArticleSlug}`
+        : "/space/articles",
     },
     {
       label: "今晚动态",
       title: "🌙 " + latestDiary,
       desc: "有人刚刚留下了新的日记。",
-      href: latestDiaryId ? `/diary/${latestDiaryId}` : "/space/diaries",
+      href: latestDiaryId
+        ? `/diary/${latestDiaryId}`
+        : "/space/diaries",
     },
     {
-      label: "今日状态",
-      title: "☕ 今天也辛苦了",
-      desc: "不需要每天都完美，能走到这里已经很好了。",
-      href: "/home",
+      label: "我的房间",
+      title: "👤 " + displayName,
+      desc: "看看别人眼中的你。",
+      href: profileHref,
     },
   ];
 
@@ -127,10 +195,10 @@ export default function HomePage() {
       href: "/diary",
     },
     {
-      icon: "📝",
-      title: "我的文章",
-      desc: "慢慢写下完整的故事。",
-      href: "/space/articles",
+      icon: "⚙️",
+      title: "房间设置",
+      desc: "头像、简介、状态和背景。",
+      href: "/settings/profile",
     },
     {
       icon: "🕯️",
@@ -139,10 +207,10 @@ export default function HomePage() {
       href: "/space",
     },
     {
-      icon: "🎧",
-      title: "今晚状态",
-      desc: "给这个夜晚一点声音。",
-      href: "/home",
+      icon: "👤",
+      title: "我的房间",
+      desc: "回到属于你的角落。",
+      href: profileHref,
     },
   ];
 
@@ -152,7 +220,6 @@ export default function HomePage() {
         <MouseGlow />
         <FloatingParticles />
 
-        {/* 背景 */}
         <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
 
         <div
@@ -165,22 +232,30 @@ export default function HomePage() {
           `}
         />
 
-        {/* Navbar */}
         <nav className="fixed left-1/2 top-5 z-50 flex w-[92%] max-w-6xl -translate-x-1/2 items-center justify-between rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 backdrop-blur-2xl">
-          <div className="text-sm font-semibold tracking-wide text-white/80">
+          <Link
+            href="/home"
+            className="text-sm font-semibold tracking-wide text-white/80 transition hover:text-white"
+          >
             小时代
-          </div>
+          </Link>
 
           <div className="hidden items-center gap-6 text-xs text-white/45 md:flex">
             <Link href="/home" className="text-white/80">
               首页
             </Link>
 
-            <Link href="/space" className="transition hover:text-white/80">
+            <Link
+              href="/space"
+              className="transition hover:text-white/80"
+            >
               广场
             </Link>
 
-            <Link href="/diary" className="transition hover:text-white/80">
+            <Link
+              href="/diary"
+              className="transition hover:text-white/80"
+            >
               日记
             </Link>
 
@@ -191,25 +266,70 @@ export default function HomePage() {
               文章
             </Link>
 
-            <span>我的房间</span>
+            <Link
+              href={profileHref}
+              className="transition hover:text-white/80"
+            >
+              我的房间
+            </Link>
           </div>
 
-          <div className="text-xs text-white/40">{atmosphere.label}</div>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/settings/profile"
+              className="hidden text-xs text-white/40 transition hover:text-white/75 sm:block"
+            >
+              编辑房间
+            </Link>
+
+            <Link
+              href={profileHref}
+              className="h-9 w-9 overflow-hidden rounded-full border border-white/10 bg-white/[0.05] transition hover:border-white/25"
+              title="我的房间"
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-sm">
+                  🌙
+                </div>
+              )}
+            </Link>
+
+            <div className="hidden text-xs text-white/40 lg:block">
+              {atmosphere.label}
+            </div>
+          </div>
         </nav>
 
-        {/* Hero */}
-        <PageTransition>
         <section className="relative z-10 flex min-h-[78vh] items-center justify-center px-6 pt-28">
           <div className="mx-auto max-w-5xl text-center">
+            <div
+              className="
+                mx-auto mb-8 inline-flex items-center gap-3
+                rounded-full border border-violet-500/20
+                bg-violet-500/10
+                px-5 py-3
+                text-sm text-violet-100
+                backdrop-blur-xl
+              "
+            >
+              <span className="animate-pulse">
+                🌙
+              </span>
+
+              <span>{nightBroadcast}</span>
+            </div>
+
             <p className="mb-5 text-xs tracking-[0.45em] text-white/25">
               RESIDENT HOME
             </p>
 
-            <h1 className="
-                text-5xl font-light leading-tight tracking-tight
-                md:text-7xl
-                animate-pulse
-            ">
+            <h1 className="text-5xl font-light leading-tight tracking-tight md:text-7xl">
               欢迎回来，{displayName}.
             </h1>
 
@@ -249,9 +369,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-        </PageTransition>
 
-        {/* 生活碎片 */}
         <section className="relative z-10 px-6 pb-16">
           <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 xl:grid-cols-4">
             {lifeCards.map((item) => (
@@ -259,16 +377,16 @@ export default function HomePage() {
                 key={item.label}
                 href={item.href}
                 className="
-                    rounded-[2rem] border border-white/10
-                    bg-white/[0.035] p-6 backdrop-blur-2xl
-                    shadow-[0_0_50px_rgba(255,255,255,0.04)]
-                    transition-all duration-700 ease-out
-                    hover:-translate-y-2
-                    hover:scale-[1.015]
-                    hover:border-white/20
-                    hover:bg-white/[0.055]
-                    hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]
-                    "
+                  rounded-[2rem] border border-white/10
+                  bg-white/[0.035] p-6 backdrop-blur-2xl
+                  shadow-[0_0_50px_rgba(255,255,255,0.04)]
+                  transition-all duration-700 ease-out
+                  hover:-translate-y-2
+                  hover:scale-[1.015]
+                  hover:border-white/20
+                  hover:bg-white/[0.055]
+                  hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]
+                "
               >
                 <p className="text-xs tracking-[0.3em] text-white/30">
                   {item.label}
@@ -286,6 +404,90 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* 在线居民 */}
+        {onlineResidents.length > 0 && (
+          <section className="relative z-10 px-6 pb-16">
+            <div className="mx-auto max-w-6xl rounded-[2.5rem] border border-white/10 bg-white/[0.035] p-8 backdrop-blur-2xl shadow-[0_0_70px_rgba(255,255,255,0.035)]">
+              <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
+                <div>
+                  <p className="text-xs tracking-[0.35em] text-white/25">
+                    AWAKE RESIDENTS
+                  </p>
+
+                  <h2 className="mt-4 text-3xl font-light">
+                    深夜还亮着灯的房间
+                  </h2>
+
+                  <p className="mt-4 max-w-xl text-sm leading-7 text-white/35">
+                    有些居民还没有睡，正在这个世界里慢慢经过。
+                  </p>
+                </div>
+
+                <Link
+                  href="/space"
+                  className="text-sm text-white/35 transition hover:text-white/70"
+                >
+                  去广场看看 →
+                </Link>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-4">
+                {onlineResidents.map((resident) => {
+                  const href = resident.username
+                    ? `/u/${encodeURIComponent(resident.username)}`
+                    : "/space";
+
+                  return (
+                    <Link
+                      key={resident.id}
+                      href={href}
+                      className="
+                        group flex items-center gap-4 rounded-2xl
+                        border border-white/10 bg-black/35
+                        px-5 py-4
+                        transition-all duration-500
+                        hover:-translate-y-1
+                        hover:border-white/20
+                        hover:bg-white/[0.055]
+                      "
+                    >
+                      <div className="relative">
+                        <div className="h-12 w-12 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
+                          {resident.avatar_url ? (
+                            <img
+                              src={resident.avatar_url}
+                              alt={resident.username || "居民"}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-lg">
+                              🌙
+                            </div>
+                          )}
+                        </div>
+
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border border-black bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-white/75">
+                          {resident.username || "无名居民"}
+                        </p>
+
+                        <p className="mt-1 truncate text-xs text-white/35">
+                          {resident.mood_emoji
+                            ? `${resident.mood_emoji} ${resident.status_message || "还醒着"}`
+                            : "还醒着"}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Home Cards */}
         <section className="relative z-10 px-6 pb-32">
           <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-4">
@@ -294,18 +496,20 @@ export default function HomePage() {
                 key={item.title}
                 href={item.href}
                 className="
-                    rounded-[2rem] border border-white/10
-                    bg-white/[0.035] p-6 backdrop-blur-2xl
-                    shadow-[0_0_50px_rgba(255,255,255,0.04)]
-                    transition-all duration-700 ease-out
-                    hover:-translate-y-2
-                    hover:scale-[1.015]
-                    hover:border-white/20
-                    hover:bg-white/[0.055]
-                    hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]
-                    "
+                  rounded-[2rem] border border-white/10
+                  bg-white/[0.035] p-6 backdrop-blur-2xl
+                  shadow-[0_0_50px_rgba(255,255,255,0.04)]
+                  transition-all duration-700 ease-out
+                  hover:-translate-y-2
+                  hover:scale-[1.015]
+                  hover:border-white/20
+                  hover:bg-white/[0.055]
+                  hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]
+                "
               >
-                <div className="mb-8 text-3xl">{item.icon}</div>
+                <div className="mb-8 text-3xl">
+                  {item.icon}
+                </div>
 
                 <h2 className="text-lg font-light text-white/85">
                   {item.title}
