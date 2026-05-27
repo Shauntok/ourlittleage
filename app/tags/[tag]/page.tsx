@@ -89,7 +89,7 @@ export default async function TagPage({ params }: Props) {
             return (
               <article key={post.id}>
                 <Link
-                  href={`/posts/${post.slug}`}
+                  href={`/articles/${post.id}`}
                   className="block group"
                 >
                   <h2 className="text-2xl font-semibold group-hover:text-zinc-400 transition">

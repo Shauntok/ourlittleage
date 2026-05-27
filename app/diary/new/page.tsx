@@ -183,19 +183,29 @@ export default function NewDiaryPage() {
       return;
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const { error } = await supabase.from("posts").insert([
-      {
-        type: "diary",
-        content,
-        visibility,
-        status: "published",
-        author_id: currentUser.id,
-        published_at: now,
-      },
-    ]);
+    const diaryTitle =
+      `日记 · ${formatDate(now)}`;
 
+    const diarySlug =
+      `diary-${Date.now()}`;
+
+    const { error } = await supabase
+      .from("posts")
+      .insert([
+        {
+          type: "diary",
+          title: diaryTitle,
+          slug: diarySlug,
+          content,
+          visibility,
+          status: "published",
+          author_id: currentUser.id,
+          published_at: now.toISOString(),
+        },
+      ]);
+      
     setPublishing(false);
 
     if (error) {

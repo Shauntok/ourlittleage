@@ -18,7 +18,7 @@ export default function Page() {
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
+  const [username, setUsername] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
 
@@ -45,8 +45,13 @@ export default function Page() {
     }
 
     async function handleRegister() {
-    if (!registerEmail || !registerPassword || !confirmPassword) {
-      alert("请完整填写邮箱、密码和确认密码。");
+    if (
+        !username ||
+        !registerEmail ||
+        !registerPassword ||
+        !confirmPassword
+      ) {
+      alert("请填写居民名字、邮箱和密码。");
       return;
     }
 
@@ -71,9 +76,19 @@ export default function Page() {
       return;
     }
 
+    if (data.user) {
+      await supabase.from("profiles").insert([
+        {
+          id: data.user.id,
+          username: username.trim(),
+        },
+      ]);
+    }
+
     setLoginLoading(false);
     router.push("/home");
   }
+  
 
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
@@ -372,7 +387,7 @@ export default function Page() {
               游客可以短暂经过这里，但只有居民才能留下自己的故事、收藏、评论和生活痕迹。
             </p>
 
-            <div className="mt-9 space-y-4">
+            <div className="mt-14 space-y-4">
               <input
                 type="email"
                 placeholder="邮箱"
@@ -455,10 +470,26 @@ export default function Page() {
               </h2>
 
               <p className="mt-5 text-sm leading-7 text-white/45">
-                确认邮箱和密码后，我们会为你创建属于自己的深夜小屋。
+                留下一个名字后，这个世界会开始记得你。
               </p>
 
+
               <div className="mt-9 space-y-4">
+
+                <input
+                  type="text"
+                  placeholder="你想在小时代叫什么名字？"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="
+                    w-full rounded-2xl border border-white/10
+                    bg-white/[0.07] px-5 py-4 text-sm text-white
+                    placeholder:text-white/25 outline-none
+                    transition-all duration-500
+                    focus:border-white/35 focus:bg-white/[0.12]
+                  "
+                />
+
                 <input
                   type="email"
                   placeholder="邮箱"

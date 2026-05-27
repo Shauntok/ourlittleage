@@ -152,7 +152,7 @@ export default function Navbar() {
           </Link>
 
           <Link
-            href="/space/articles"
+            href="/articles"
             className="transition hover:text-white"
           >
             文章

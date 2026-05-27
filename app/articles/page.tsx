@@ -208,12 +208,15 @@ export default function ArticlesPage() {
             return (
               <Link
                 key={article.id}
-                href={
-                  article.status === "published"
-                    ? `/posts/${article.slug}`
-                    : `/articles/edit/${article.id}`
-                }
-                className="group overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
+                href={`/articles/${article.id}`}
+                className="group overflow-hidden rounded-[2rem]
+                  border border-white/10
+                  bg-white/[0.035]
+                  backdrop-blur-2xl transition-all
+                  duration-500 hover:-translate-y-1
+                  hover:border-white/20
+                  hover:bg-white/[0.055]
+                "
               >
                 {image && (
                   <div className="h-56 overflow-hidden border-b border-white/10 bg-white/[0.03]">

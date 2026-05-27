@@ -200,21 +200,25 @@ export default function NewArticlePage() {
     const finalSlug =
       slug.trim();
 
-    const { error } =
-      await supabase.from("posts").insert([
-        {
-          type: "article",
-          title: title.trim(),
-          slug: finalSlug,
-          content,
-          status: "published",
-          visibility,
-          author_id: currentUser.id,
-          tags,
-          notes,
-          published_at: new Date().toISOString(),
-        },
-      ]);
+    const { data: newPost, error } =
+      await supabase
+        .from("posts")
+        .insert([
+          {
+            type: "article",
+            title: title.trim(),
+            slug: finalSlug,
+            content,
+            status: "published",
+            visibility,
+            author_id: currentUser.id,
+            tags,
+            notes,
+            published_at: new Date().toISOString(),
+          },
+        ])
+        .select("id")
+        .single();
 
     setLoading(false);
 
@@ -225,7 +229,7 @@ export default function NewArticlePage() {
 
     alert("文章发布成功 🔥");
 
-    router.push(`/posts/${finalSlug}`);
+    router.push(`/articles/${newPost.id}`);
   }
 
   async function saveDraft() {

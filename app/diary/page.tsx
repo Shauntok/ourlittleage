@@ -42,7 +42,7 @@ export default function DiaryPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/home");;
+        router.push("/home");
         return;
       }
 
@@ -50,15 +50,27 @@ export default function DiaryPage() {
         .from("posts")
         .select("*")
         .eq("author_id", user.id)
-        .eq("type", "diary")
-        .order("published_at", {
-          ascending: false,
-        });
+        .or("type.eq.diary,type.is.null");
 
-      if (!error && data) {
-        setDiaries(data);
+      if (error) {
+        alert(error.message);
+        setLoading(false);
+        return;
       }
 
+      const sortedDiaries = (data || []).sort((a, b) => {
+        const dateA = new Date(
+          a.published_at || a.created_at
+        ).getTime();
+
+        const dateB = new Date(
+          b.published_at || b.created_at
+        ).getTime();
+
+        return dateB - dateA;
+      });
+
+      setDiaries(sortedDiaries);
       setLoading(false);
     }
 
@@ -77,12 +89,10 @@ export default function DiaryPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-
-      <div className="fixed left-1/2 top-1/3 -z-10 h-[580px] w-[580px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
+      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[580px] w-[580px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
       <div className="mx-auto max-w-3xl">
-        {/* Header */}
         <header className="mb-20">
           <p className="text-xs tracking-[0.45em] text-white/25">
             DIARY
@@ -98,7 +108,6 @@ export default function DiaryPage() {
           </p>
         </header>
 
-        {/* Empty */}
         {diaries.length === 0 && (
           <div className="rounded-[2.5rem] border border-white/10 bg-white/[0.03] p-10 text-center backdrop-blur-2xl">
             <p className="text-sm leading-8 text-white/40">
@@ -114,7 +123,6 @@ export default function DiaryPage() {
           </div>
         )}
 
-        {/* Diary Cards */}
         <section className="space-y-8">
           {diaries.map((diary) => {
             const diaryDate =
@@ -136,15 +144,9 @@ export default function DiaryPage() {
                 "
               >
                 <div className="flex flex-wrap items-center gap-3 text-xs text-white/35">
-                  <span>
-                    {formatWeekday(diaryDate)}
-                  </span>
-
+                  <span>{formatWeekday(diaryDate)}</span>
                   <span>·</span>
-
-                  <span>
-                    {getMoodLabel(diaryDate)}
-                  </span>
+                  <span>{getMoodLabel(diaryDate)}</span>
 
                   {diary.visibility === "public" && (
                     <>
@@ -164,7 +166,7 @@ export default function DiaryPage() {
 
                 <div className="mt-10 flex items-center justify-between">
                   <p className="text-sm text-white/25">
-                    {diary.edit_count > 0
+                    {(diary.edit_count || 0) > 0
                       ? `后来回来补写过 ${diary.edit_count} 次`
                       : "那一天留下的原始记录"}
                   </p>

@@ -52,7 +52,7 @@ export default function DiaryDetailPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/home");;
+        router.push("/home");
         return;
       }
 
@@ -90,15 +90,16 @@ export default function DiaryDetailPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-      <div className="fixed left-1/2 top-1/3 -z-10 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
+
+      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
       <article className="mx-auto max-w-3xl">
         <Link
           href="/diary"
           className="text-sm text-white/35 transition hover:text-white/70"
         >
-          ← 回到日记
+          ← 回到总日记
         </Link>
 
         <header className="mt-14 rounded-[2.3rem] border border-white/10 bg-white/[0.035] p-9 backdrop-blur-2xl shadow-[0_0_80px_rgba(255,255,255,0.045)]">
@@ -120,7 +121,7 @@ export default function DiaryDetailPage() {
               {diary.visibility === "public" ? "🌍 已公开" : "🔒 私密"}
             </span>
 
-            {diary.edit_count > 0 && (
+            {(diary.edit_count || 0) > 0 && (
               <span className="rounded-full border border-yellow-500/15 bg-yellow-500/[0.06] px-4 py-2 text-yellow-100/60">
                 后来补写过 {diary.edit_count} 次
               </span>
@@ -147,12 +148,13 @@ export default function DiaryDetailPage() {
             {diary.edited_at ? (
               <>
                 <p>后来又回来补写了一些东西。</p>
+
                 <p className="mt-2 text-white/25">
                   补写于：{new Date(diary.edited_at).toLocaleString()}
                 </p>
               </>
             ) : (
-              <p>这是那天留下的原始记录。</p>
+              <p>这是那天留下的原始痕迹。</p>
             )}
           </div>
 

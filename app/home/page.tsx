@@ -21,7 +21,7 @@ export default function HomePage() {
   const [latestDiary, setLatestDiary] =useState("今晚还没有新的痕迹。");
   const [latestArticle, setLatestArticle] =useState("还没有新的故事。");
   const [latestDiaryId, setLatestDiaryId] =useState<number | null>(null);
-  const [latestArticleSlug, setLatestArticleSlug] =useState("");
+  const [latestArticleId, setLatestArticleId] =useState<number | null>(null);
   const [nightBroadcast, setNightBroadcast] =useState("今晚似乎有很多人睡不着。");
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function HomePage() {
 
       const { data: latestArticlePost } = await supabase
         .from("posts")
-        .select("slug, title")
+        .select("id, slug, title")
         .eq("type", "article")
         .eq("visibility", "public")
         .eq("status", "published")
@@ -106,7 +106,7 @@ export default function HomePage() {
 
       if (latestArticlePost?.title) {
         setLatestArticle(latestArticlePost.title);
-        setLatestArticleSlug(latestArticlePost.slug);
+        setLatestArticleId(latestArticlePost.id);
       }
 
       const broadcasts: string[] = [];
@@ -167,9 +167,9 @@ export default function HomePage() {
       label: "最新故事",
       title: "📝 " + latestArticle,
       desc: "有人刚刚留下了一篇新的故事。",
-      href: latestArticleSlug
-        ? `/posts/${latestArticleSlug}`
-        : "/space/articles",
+      href: latestArticleId
+        ? `/articles/${latestArticleId}`
+        : "/articles",
     },
     {
       label: "今晚动态",
@@ -260,7 +260,7 @@ export default function HomePage() {
             </Link>
 
             <Link
-              href="/space/articles"
+              href="/articles"
               className="transition hover:text-white/80"
             >
               文章

@@ -328,7 +328,7 @@ export default function SearchPage() {
                   className="group border border-zinc-800 rounded-2xl p-6 space-y-3 transition duration-300 hover:-translate-y-1 hover:border-zinc-500 hover:bg-zinc-950 hover:shadow-2xl hover:shadow-black/50"
                 >
                   <Link
-                    href={`/posts/${post.slug}`}
+                    href={`/articles/${post.id}`}
                     className="block group"
                   >
                     <h2 className="text-2xl font-bold group-hover:text-zinc-400 transition">
