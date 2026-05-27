@@ -88,7 +88,7 @@ export default function AdminPostActions({
           </Link>
 
           <Link
-            href={`/posts/${slug}`}
+            href={`/articles/${slug}`}
             className="block rounded-xl px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white transition"
           >
             查看文章
@@ -129,7 +129,7 @@ export default function AdminPostActions({
             type="button"
             onClick={() => {
               navigator.clipboard.writeText(
-                `${window.location.origin}/posts/${slug}`
+                `${window.location.origin}/articles/${slug}`
               );
 
               setOpen(false);

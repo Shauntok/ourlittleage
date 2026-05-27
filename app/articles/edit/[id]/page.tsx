@@ -6,57 +6,32 @@ import {
   useRef,
   useState,
 } from "react";
-
+import { useParams, useRouter } from "next/navigation";
+import { pinyin } from "pinyin-pro";
 import { supabase } from "@/lib/supabase";
-
-import {
-  useParams,
-  useRouter,
-} from "next/navigation";
-
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
 
 export default function EditArticlePage() {
   const params = useParams();
   const router = useRouter();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const id = String(params.id);
 
-  const textareaRef =
-    useRef<HTMLTextAreaElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [article, setArticle] = useState<any>(null);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [content, setContent] = useState("");
+  const [tags, setTags] = useState("");
+  const [notes, setNotes] = useState("");
+  const [visibility, setVisibility] = useState("public");
 
-  const [uploading, setUploading] =
-    useState(false);
-
-  const [article, setArticle] =
-    useState<any>(null);
-
-  const [title, setTitle] =
-    useState("");
-
-  const [slug, setSlug] =
-    useState("");
-
-  const [content, setContent] =
-    useState("");
-
-  const [tags, setTags] =
-    useState("");
-
-  const [notes, setNotes] =
-    useState("");
-
-  const [visibility, setVisibility] =
-    useState("public");
-
-  const [originalSnapshot, setOriginalSnapshot] =
-    useState("");
+  const [originalSnapshot, setOriginalSnapshot] = useState("");
 
   useEffect(() => {
     async function fetchArticle() {
@@ -65,18 +40,17 @@ export default function EditArticlePage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        window.location.href = "/";
+        router.push("/");
         return;
       }
 
-      const { data, error } =
-        await supabase
-          .from("posts")
-          .select("*")
-          .eq("id", id)
-          .eq("author_id", user.id)
-          .eq("type", "article")
-          .single();
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("id", id)
+        .eq("author_id", user.id)
+        .eq("type", "article")
+        .single();
 
       if (error || !data) {
         router.push("/articles");
@@ -84,33 +58,41 @@ export default function EditArticlePage() {
       }
 
       setArticle(data);
-
       setTitle(data.title || "");
       setSlug(data.slug || "");
       setContent(data.content || "");
       setTags(data.tags || "");
       setNotes(data.notes || "");
-      setVisibility(
-        data.visibility || "public"
+      setVisibility(data.visibility || "public");
+
+      setOriginalSnapshot(
+        JSON.stringify({
+          title: data.title || "",
+          slug: data.slug || "",
+          content: data.content || "",
+          tags: data.tags || "",
+          notes: data.notes || "",
+          visibility: data.visibility || "public",
+        })
       );
-
-      const snapshot = JSON.stringify({
-        title: data.title || "",
-        slug: data.slug || "",
-        content: data.content || "",
-        tags: data.tags || "",
-        notes: data.notes || "",
-        visibility:
-          data.visibility || "public",
-      });
-
-      setOriginalSnapshot(snapshot);
 
       setLoading(false);
     }
 
     fetchArticle();
   }, [id, router]);
+
+  function generateSlug(value: string) {
+    return pinyin(value, {
+      toneType: "none",
+      nonZh: "consecutive",
+    })
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w-]/g, "")
+      .replace(/--+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
 
   function makeSnapshot() {
     return JSON.stringify({
@@ -123,67 +105,37 @@ export default function EditArticlePage() {
     });
   }
 
-  const hasChanged =
-    makeSnapshot() !== originalSnapshot;
+  const hasChanged = makeSnapshot() !== originalSnapshot;
 
-  function insertTextAtCursor(
-    beforeText: string,
-    afterText = ""
-  ) {
+  function insertTextAtCursor(beforeText: string, afterText = "") {
     const textarea = textareaRef.current;
-
     if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
+    const selectedText = textarea.value.slice(start, end);
+    const insertText = beforeText + selectedText + afterText;
 
-    const selectedText =
-      textarea.value.slice(start, end);
-
-    const insertText =
-      beforeText +
-      selectedText +
-      afterText;
-
-    textarea.setRangeText(
-      insertText,
-      start,
-      end,
-      "end"
-    );
-
+    textarea.setRangeText(insertText, start, end, "end");
     setContent(textarea.value);
 
-    const newPosition =
-      start + insertText.length;
-
+    const newPosition = start + insertText.length;
     textarea.focus();
-
-    textarea.setSelectionRange(
-      newPosition,
-      newPosition
-    );
+    textarea.setSelectionRange(newPosition, newPosition);
   }
 
-  async function uploadImage(
-    e: ChangeEvent<HTMLInputElement>
-  ) {
+  async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     setUploading(true);
 
-    const cleanName =
-      file.name.replace(/\s+/g, "-");
+    const cleanName = file.name.replace(/\s+/g, "-");
+    const fileName = `${Date.now()}-${cleanName}`;
 
-    const fileName =
-      `${Date.now()}-${cleanName}`;
-
-    const { error } =
-      await supabase.storage
-        .from("images")
-        .upload(fileName, file);
+    const { error } = await supabase.storage
+      .from("images")
+      .upload(fileName, file);
 
     setUploading(false);
 
@@ -194,47 +146,56 @@ export default function EditArticlePage() {
 
     const {
       data: { publicUrl },
-    } = supabase.storage
-      .from("images")
-      .getPublicUrl(fileName);
+    } = supabase.storage.from("images").getPublicUrl(fileName);
 
-    insertTextAtCursor(
-      `\n\n![](${publicUrl})\n\n`
-    );
+    insertTextAtCursor(`\n\n![](${publicUrl})\n\n`);
   }
 
   async function saveArticle() {
-    if (
-      !title.trim() ||
-      !slug.trim() ||
-      !content.trim()
-    ) {
+    if (!title.trim() || !slug.trim() || !content.trim()) {
       alert("标题、slug 和内容不能为空。");
       return;
     }
 
+    const finalSlug = generateSlug(slug.trim()) || generateSlug(title.trim());
+
+    if (!finalSlug) {
+      alert("slug 无法生成，请换一个标题或手动填写。");
+      return;
+    }
+
     if (!hasChanged) {
-      window.location.href =
-        `/articles/${id}`;
+      router.push(`/articles/${article.slug}`);
       return;
     }
 
     setSaving(true);
 
-    const { error } =
-      await supabase
-        .from("posts")
-        .update({
-          title,
-          slug,
-          content,
-          tags,
-          notes,
-          visibility,
-          edited_at:
-            new Date().toISOString(),
-        })
-        .eq("id", id);
+    const { data: existing } = await supabase
+      .from("posts")
+      .select("id")
+      .eq("slug", finalSlug)
+      .neq("id", id)
+      .maybeSingle();
+
+    if (existing) {
+      alert("这个 slug 已经存在，请修改。");
+      setSaving(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        title: title.trim(),
+        slug: finalSlug,
+        content,
+        tags,
+        notes,
+        visibility,
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", id);
 
     setSaving(false);
 
@@ -243,43 +204,31 @@ export default function EditArticlePage() {
       return;
     }
 
-    window.location.href =
-      `/articles/${id}`;
+    router.push(`/articles/${finalSlug}`);
   }
 
   async function deleteArticle() {
-    const confirmed = confirm(
-      "确定删除这篇文章吗？"
-    );
+    const confirmed = confirm("确定删除这篇文章吗？");
 
     if (!confirmed) return;
 
-    const { error } =
-      await supabase
-        .from("posts")
-        .delete()
-        .eq("id", id);
+    const { error } = await supabase.from("posts").delete().eq("id", id);
 
     if (error) {
       alert(error.message);
       return;
     }
 
-    window.location.href =
-      "/articles";
+    router.push("/articles");
   }
 
   function leaveWithoutSaving() {
     if (hasChanged) {
-      const confirmed = confirm(
-        "你还有没保存的修改，确定离开吗？"
-      );
-
+      const confirmed = confirm("你还有没保存的修改，确定离开吗？");
       if (!confirmed) return;
     }
 
-    window.location.href =
-      `/articles/${id}`;
+    router.push(`/articles/${article.slug}`);
   }
 
   const toolbarButtonClass =
@@ -296,9 +245,7 @@ export default function EditArticlePage() {
   return (
     <main className="min-h-screen bg-black px-6 py-20 text-white">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-[minmax(680px,1.5fr)_minmax(420px,0.9fr)]">
-
         <section className="space-y-6">
-
           <button
             onClick={leaveWithoutSaving}
             className="text-sm text-white/35 transition hover:text-white/70"
@@ -314,14 +261,19 @@ export default function EditArticlePage() {
             <h1 className="mt-5 text-5xl font-light">
               修改文章
             </h1>
+
+            <p className="mt-4 text-sm leading-7 text-white/40">
+              慢慢整理这篇故事。修改会在保存后才真正生效。
+            </p>
           </div>
 
           <input
             type="text"
             value={title}
-            onChange={(e) =>
-              setTitle(e.target.value)
-            }
+            onChange={(e) => {
+              const value = e.target.value;
+              setTitle(value);
+            }}
             placeholder="文章标题"
             className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition focus:border-white/40"
           />
@@ -329,20 +281,14 @@ export default function EditArticlePage() {
           <input
             type="text"
             value={slug}
-            onChange={(e) =>
-              setSlug(e.target.value)
-            }
-            placeholder="slug"
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="slug，例如 my-night-story"
             className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition focus:border-white/40"
           />
 
           <div>
             <label className="inline-flex cursor-pointer items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-white/70 transition hover:border-white/25 hover:text-white">
-              <span>
-                {uploading
-                  ? "上传中..."
-                  : "📸 上传图片"}
-              </span>
+              <span>{uploading ? "上传中..." : "📸 上传图片"}</span>
 
               <input
                 type="file"
@@ -354,14 +300,9 @@ export default function EditArticlePage() {
           </div>
 
           <div className="sticky top-4 z-20 flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-black/80 p-4 backdrop-blur-xl">
-
             <button
               type="button"
-              onClick={() =>
-                insertTextAtCursor(
-                  "\n# 标题\n"
-                )
-              }
+              onClick={() => insertTextAtCursor("\n# 标题\n")}
               className={toolbarButtonClass}
             >
               H1
@@ -369,11 +310,7 @@ export default function EditArticlePage() {
 
             <button
               type="button"
-              onClick={() =>
-                insertTextAtCursor(
-                  "\n## 小标题\n"
-                )
-              }
+              onClick={() => insertTextAtCursor("\n## 小标题\n")}
               className={toolbarButtonClass}
             >
               H2
@@ -381,30 +318,80 @@ export default function EditArticlePage() {
 
             <button
               type="button"
-              onClick={() =>
-                insertTextAtCursor(
-                  "**",
-                  "**"
-                )
-              }
+              onClick={() => insertTextAtCursor("**", "**")}
               className={toolbarButtonClass}
             >
               粗体
             </button>
 
+            <button
+              type="button"
+              onClick={() => insertTextAtCursor("\n> 引用内容\n")}
+              className={toolbarButtonClass}
+            >
+              引用
+            </button>
+
+            <button
+              type="button"
+              onClick={() => insertTextAtCursor("\n---\n")}
+              className={toolbarButtonClass}
+            >
+              分割线
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                insertTextAtCursor("\n```js\n// 在这里写代码\n```\n")
+              }
+              className={toolbarButtonClass}
+            >
+              Code
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                insertTextAtCursor("[链接文字](https://example.com)")
+              }
+              className={toolbarButtonClass}
+            >
+              链接
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                insertTextAtCursor("\n- 项目一\n- 项目二\n- 项目三\n")
+              }
+              className={toolbarButtonClass}
+            >
+              清单
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                insertTextAtCursor("\n> 💡 提示：这里写重点内容\n")
+              }
+              className={toolbarButtonClass}
+            >
+              提示
+            </button>
           </div>
 
           <textarea
             ref={textareaRef}
             value={content}
-            onChange={(e) =>
-              setContent(e.target.value)
-            }
+            onChange={(e) => setContent(e.target.value)}
             onKeyDown={(e) => {
-              if (
-                e.ctrlKey &&
-                e.key.toLowerCase() === "s"
-              ) {
+              if (e.ctrlKey && e.key.toLowerCase() === "b") {
+                e.preventDefault();
+                insertTextAtCursor("**", "**");
+              }
+
+              if (e.ctrlKey && e.key.toLowerCase() === "s") {
                 e.preventDefault();
                 saveArticle();
               }
@@ -413,18 +400,13 @@ export default function EditArticlePage() {
             className="w-full min-h-[560px] rounded-2xl border border-white/10 bg-white/[0.04] p-5 leading-8 outline-none transition focus:border-white/40"
           />
 
-          <div className="flex flex-wrap gap-4">
-
+          <div className="flex flex-wrap gap-4 pt-4">
             <button
               onClick={saveArticle}
               disabled={saving}
               className="rounded-full bg-white px-8 py-4 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-40"
             >
-              {saving
-                ? "保存中..."
-                : hasChanged
-                ? "保存修改"
-                : "回到文章"}
+              {saving ? "保存中..." : hasChanged ? "保存修改" : "回到文章"}
             </button>
 
             <button
@@ -440,92 +422,112 @@ export default function EditArticlePage() {
             >
               删除
             </button>
-
           </div>
         </section>
 
         <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start lg:pt-24">
-
           <div className="rounded-[1.7rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-2xl">
-
             <p className="text-xs tracking-[0.3em] text-white/30">
               可见性
             </p>
 
             <div className="mt-4 grid gap-2.5">
-
               {[
                 {
                   key: "public",
-                  label: "🌍 公开发布",
+                  icon: "🌍",
+                  title: "公开发布",
+                  desc: "所有居民都可以看到。",
                 },
                 {
                   key: "hidden",
-                  label: "🙈 隐藏文章",
+                  icon: "🙈",
+                  title: "隐藏文章",
+                  desc: "不会主动出现在公开列表。",
                 },
                 {
                   key: "unlisted",
-                  label: "🔗 链接可见",
+                  icon: "🔗",
+                  title: "仅链接可见",
+                  desc: "有链接的人才能进入。",
                 },
                 {
                   key: "private",
-                  label: "🔒 只给自己看",
+                  icon: "🔒",
+                  title: "只给自己看",
+                  desc: "只有你自己能看到。",
                 },
               ].map((item) => (
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() =>
-                    setVisibility(item.key)
-                  }
+                  onClick={() => setVisibility(item.key)}
                   className={`rounded-xl border px-4 py-3 text-left transition ${
                     visibility === item.key
                       ? "border-white/25 bg-white/[0.09] text-white"
-                      : "border-white/10 bg-white/[0.035] text-white/45"
+                      : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
                   }`}
                 >
-                  {item.label}
+                  <div className="flex items-center gap-2.5">
+                    <span>{item.icon}</span>
+                    <span className="text-sm font-medium">{item.title}</span>
+                  </div>
+
+                  <p className="mt-1.5 text-[11px] leading-5 text-white/30">
+                    {item.desc}
+                  </p>
                 </button>
               ))}
-
             </div>
-
           </div>
 
           <input
             type="text"
+            placeholder="标签，用逗号隔开"
             value={tags}
-            onChange={(e) =>
-              setTags(e.target.value)
-            }
-            placeholder="标签"
+            onChange={(e) => setTags(e.target.value)}
             className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition focus:border-white/40"
           />
 
           <textarea
+            placeholder="想法 / 大纲（只有自己看得到）"
             value={notes}
-            onChange={(e) =>
-              setNotes(e.target.value)
-            }
-            rows={6}
-            placeholder="私密笔记"
-            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 leading-7 outline-none transition focus:border-white/40"
+            onChange={(e) => setNotes(e.target.value)}
+            rows={7}
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 leading-7 text-yellow-100 outline-none transition focus:border-white/40"
           />
 
           <div className="h-[520px] overflow-y-auto rounded-[2rem] border border-white/10 bg-white/[0.03] p-6">
-
             <p className="mb-5 text-sm text-white/35">
               Markdown 预览
             </p>
 
-            <article className="prose prose-invert max-w-none prose-p:leading-[2.2]">
-              <TranslatedMarkdown
-                content={content}
-              />
-            </article>
+            {content ? (
+              <article className="prose prose-invert max-w-none prose-p:leading-[2.2]">
+                <TranslatedMarkdown content={content} />
+              </article>
+            ) : (
+              <div className="space-y-6">
+                <p className="text-sm leading-7 text-white/35">
+                  这里会显示文章预览。
+                </p>
 
+                <div className="flex justify-center py-4">
+                  <div className="relative h-20 w-16 rounded-sm border border-violet-400/50 bg-white/[0.025] shadow-[0_0_35px_rgba(139,92,246,0.18)]">
+                    <div className="absolute left-3 top-5 h-[2px] w-6 rounded-full bg-violet-300/60" />
+                    <div className="absolute left-3 top-8 h-[2px] w-7 rounded-full bg-white/25" />
+                    <div className="absolute left-3 top-11 h-[2px] w-5 rounded-full bg-white/20" />
+                    <div className="absolute -right-2 top-4 h-12 w-2 rounded-r-full border-y border-r border-violet-400/45" />
+                    <div className="absolute -bottom-3 left-1/2 h-[1px] w-20 -translate-x-1/2 bg-violet-400/30 blur-sm" />
+                  </div>
+                </div>
+
+                <p className="text-sm leading-7 text-white/30">
+                  写下一个会被未来某个人读见的故事。
+                </p>
+              </div>
+            )}
           </div>
-
         </aside>
       </div>
     </main>

@@ -22,19 +22,29 @@
 游客：
 - `/` Landing Page
 
-居民：
-- `/home` 居民首页
-- `/diary` 我的日记
-- `/diary/new` 写日记
-- `/diary/[id]` 查看日记
-- `/diary/edit/[id]` 编辑日记
-- `/space` 深夜广场
-- `/space/diaries` 日记广场
-- `/space/articles` 文章广场
-- `/posts/[slug]` 文章阅读页
-- `/write` 写文章
-- `/u/[username]` 公开居民房间
-- `/settings/profile` 房间资料设置
+居民首页：
+- `/home`
+
+日记系统：
+- `/diary`
+- `/diary/new`
+- `/diary/[id]`
+- `/diary/edit/[id]`
+
+文章系统：
+- `/articles`
+- `/articles/new`
+- `/articles/[id]`
+- `/articles/edit/[id]`
+
+广场系统：
+- `/space`
+- `/space/diaries`
+- `/space/articles`
+
+居民房间：
+- `/u/[username]`
+- `/settings/profile`
 
 后台：
 - `/admin`
@@ -43,6 +53,7 @@
 - `/admin/reports`
 - `/admin/logs`
 - `/admin/settings`
+- `/admin/broadcast`
 
 ---
 
@@ -61,6 +72,7 @@
 - 深夜广播
 - 我的房间入口
 - 房间设置入口
+- 在线居民系统
 
 依赖：
 - `profiles`
@@ -70,6 +82,16 @@
 - `src/components/FloatingParticles.tsx`
 - `src/components/MouseGlow.tsx`
 - `src/components/PageTransition.tsx`
+
+动态广播：
+- 最新公开日记
+- 最新公开文章
+- 广播随机显示
+- 日记与文章分离
+
+规则：
+- 日记广播跳转 `/diary/[id]`
+- 文章广播跳转 `/articles/[id]`
 
 注意：
 - Logo / 首页按钮应该去 `/home`
@@ -87,7 +109,10 @@
 
 旧后台资料页：
 - `app/admin/profile/page.tsx`
-- 未来不继续扩展，功能应迁移到 `/settings/profile`
+
+方向：
+- 未来不继续扩展
+- 功能迁移到 `/settings/profile`
 
 主要字段：
 - `username`
@@ -108,9 +133,9 @@
 - `status`
 
 重要规范：
-- 头像统一用 `avatar_url`
+- 头像统一使用 `avatar_url`
 - 不再使用旧字段 `avatar`
-- Banner 统一用 `banner_url`
+- Banner 统一使用 `banner_url`
 
 ---
 
@@ -124,40 +149,81 @@
 
 功能：
 - 写日记
+- Markdown
+- 图片上传
 - 日记默认 private
-- 用户可选择 public
-- 最低 11 字
-- 每日发布限制
-- 编辑日记不自动保存
-- 只有手动保存才更新 edited_at / edit_count
+- 用户可切换 public
+- 编辑日记
+- 日记预览
 
 规则：
 - 草稿系统暂时不用于日记
 - 日记日期以发布时刻为准
-- 过了 12 点发布就属于新一天
+- 过了 12 点发布属于新一天
+- 编辑日记不自动保存
+- 只有手动保存才更新：
+  - `edited_at`
+  - `edit_count`
+
+定位：
+- 日记适合：
+  - 情绪
+  - 今天
+  - 深夜碎片
+  - 没来得及说出口的话
 
 ---
 
 ## 文章系统
 
 文件：
-- `app/write/page.tsx` 或旧文章发布页
-- `app/posts/[slug]/page.tsx`
+- `app/articles/page.tsx`
+- `app/articles/new/page.tsx`
+- `app/articles/[id]/page.tsx`
+- `app/articles/edit/[id]/page.tsx`
 - `app/space/articles/page.tsx`
 
 功能：
 - 写文章
 - Markdown
 - 图片上传
-- slug
 - tags
 - visibility
-- draft / published
+- 草稿系统
+- 编辑文章
+- 文章预览
 
-注意：
-- 文章和日记不要混成一个流
-- 文章适合长文、故事、作品
-- 日记适合碎片、情绪、今天
+结构：
+- `/articles` = 我的文章
+- `/articles/[id]` = 阅读文章
+- `/articles/edit/[id]` = 编辑文章
+- `/space/articles` = 公共文章广场
+
+状态：
+- `draft`
+- `published`
+
+visibility：
+- `public`
+- `private`
+- `hidden`
+- `unlisted`
+
+规则：
+- 新结构统一使用 `[id]`
+- 不再继续扩展旧 slug route
+- 文章和日记共用 `posts` table
+- `type` 区分：
+  - `article`
+  - `diary`
+
+定位：
+- 文章适合：
+  - 长文
+  - 故事
+  - 世界观
+  - 认真表达
+  - 作品
 
 ---
 
@@ -174,8 +240,16 @@
 - `/space/articles` 是文章广场
 
 规则：
-- 日记流：轻、慢、碎片感
-- 文章流：像书架、阅读感更强
+- 日记流：
+  - 轻
+  - 慢
+  - 碎片感
+
+- 文章流：
+  - 更像书架
+  - 阅读感更强
+
+注意：
 - 不要把日记和文章完全混在一起
 
 ---
@@ -185,12 +259,14 @@
 文件：
 - `app/admin/users/page.tsx`
 - `app/admin/users/[id]/page.tsx`
+- `app/admin/broadcast/page.tsx`
 
 功能：
 - 居民管理
 - 修改 role
 - 修改 status
 - 写 admin_logs
+- 群发系统信件
 - 被警告 / 禁言 / 封禁时发送 notifications
 
 角色：
@@ -205,6 +281,12 @@
 - admin 不能创建 owner
 - owner 不应被别人降级
 - owner 不应误降级自己
+
+Broadcast：
+- 使用 `/admin/broadcast`
+- `announcement` 旧系统未来废弃
+- broadcast 仅发送给当前 active 用户
+- 新注册用户不应收到历史广播
 
 ---
 
@@ -238,20 +320,23 @@
 - show_trust_score
 - show_joined_days
 - created_at
+- last_seen_at
+
+---
 
 ### posts
 
 用途：
-- 文章和日记共用内容表
+- 日记与文章共用内容表
 
 重要字段：
 - id
-- type: `article` / `diary`
+- type
 - title
 - slug
 - content
-- status: `draft` / `published`
-- visibility: `public` / `private` / `hidden` / `unlisted`
+- status
+- visibility
 - author_id
 - published_at
 - edited_at
@@ -259,34 +344,68 @@
 - tags
 - notes
 
+type：
+- `article`
+- `diary`
+
+status：
+- `draft`
+- `published`
+
+visibility：
+- `public`
+- `private`
+- `hidden`
+- `unlisted`
+
+---
+
 ### badges
 
 用途：
 - 徽章定义
+
+---
 
 ### user_badges
 
 用途：
 - 用户拥有的徽章
 
+---
+
 ### admin_logs
 
 用途：
 - 后台操作记录
 
+---
+
 ### notifications
 
 用途：
 - 系统通知
+- broadcast 信件
+- 系统提醒
 
 ---
 
 ## Supabase Storage
 
-Buckets:
-- `images`：文章 / 日记图片
-- `avatars`：头像
-- `banners`：个人房间背景图
+Buckets：
+- `images`
+- `avatars`
+- `banners`
+
+用途：
+- `images`
+  - 文章 / 日记图片
+
+- `avatars`
+  - 用户头像
+
+- `banners`
+  - 房间背景图
 
 规则：
 - avatars public
@@ -310,29 +429,60 @@ Buckets:
 - 路由切换动画
 
 注意：
-- FloatingParticles 不要在 render 里直接用 `Math.random()`
+- FloatingParticles 不要在 render 内直接使用 `Math.random()`
 - 否则会造成 hydration mismatch
 
 ---
 
 ## 当前重要技术债
 
-1. `/admin/profile` 和 `/settings/profile` 已经重复  
-   方向：保留 `/settings/profile`，废弃 `/admin/profile`
+1. `/admin/profile` 与 `/settings/profile` 重复
 
-2. `avatar` 与 `avatar_url` 曾经混用  
-   方向：全部统一为 `avatar_url`
+方向：
+- 保留 `/settings/profile`
+- 废弃 `/admin/profile`
 
-3. `/articles` 和 `/space/articles` 曾经混用  
-   方向：
-   - 公共文章广场：`/space/articles`
-   - 未来我的文章：建议 `/me/articles`
+---
 
-4. `/posts/[slug]` 是文章阅读页  
-   日记跳转应该用 `/diary/[id]`
+2. avatar 与 avatar_url 曾混用
 
-5. 首页所有“首页 / Logo”应该去 `/home`  
-   `/` 只保留 Landing Page
+方向：
+- 全部统一为 `avatar_url`
+
+---
+
+3. 旧 `/posts/[slug]` route 残留
+
+方向：
+- 全部迁移到：
+  - `/articles/[id]`
+
+---
+
+4. Navbar 存在旧 route hardcode
+
+方向：
+- `/articles` = 我的文章
+- `/space/articles` = 文章广场
+
+---
+
+5. Home / Space / Articles 仍可能存在旧 `/posts/` hardcode
+
+方向：
+- 全项目搜索：
+  - `/posts/`
+  - `/write`
+
+进行统一清理
+
+---
+
+6. `/write` 与 `/articles/new` 存在重复倾向
+
+方向：
+- 未来统一到：
+  - `/articles/new`
 
 ---
 
@@ -340,12 +490,12 @@ Buckets:
 
 优先顺序：
 
-1. 完成 `/settings/profile` 与 `/u/[username]` 的整合测试
-2. 清理 `/admin/profile`
-3. Navbar 统一成居民版
-4. 首页真实动态广播
-5. 在线居民系统
-6. 评论系统
+1. 完成 `/articles/[id]`
+2. 完成 `/u/[username]`
+3. 清理旧 `/posts/[slug]`
+4. 清理 `/write`
+5. 清理 `/admin/profile`
+6. 评论系统统一
 7. 通知系统
 8. 收藏 / 点赞
 9. 关注系统
@@ -363,5 +513,18 @@ Buckets:
 - 用户设置系统
 - 世界氛围系统
 
-不要重复造系统。  
-能融合就融合，能统一字段就统一字段。
+不要重复造系统。
+
+能融合就融合。
+能统一字段就统一字段。
+
+新增功能优先复用：
+- `posts`
+- `profiles`
+- `notifications`
+
+不要轻易新增重复 table。
+
+小时代现在已经进入：
+- 平台架构阶段
+而不再只是单页面开发阶段。

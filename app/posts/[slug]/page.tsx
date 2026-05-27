@@ -182,6 +182,8 @@ export default async function PostPage({
               </article>
             </section>
 
+            <PostComments postId={post.id} />
+
             <section className="mt-8">
               <PostComments postId={post.id} />
             </section>

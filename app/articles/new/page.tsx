@@ -197,8 +197,7 @@ export default function NewArticlePage() {
       return;
     }
 
-    const finalSlug =
-      slug.trim();
+    const finalSlug = generateSlug(slug.trim());
 
     const { data: newPost, error } =
       await supabase
@@ -229,7 +228,7 @@ export default function NewArticlePage() {
 
     alert("文章发布成功 🔥");
 
-    router.push(`/articles/${newPost.id}`);
+    router.push(`/articles/${finalSlug}`);
   }
 
   async function saveDraft() {
@@ -243,7 +242,7 @@ export default function NewArticlePage() {
     setLoading(true);
 
     const finalSlug =
-      slug.trim() ||
+      generateSlug(slug.trim()) ||
       generateSlug(title.trim()) ||
       `${Date.now()}`;
 

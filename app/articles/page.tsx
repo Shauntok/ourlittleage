@@ -208,7 +208,7 @@ export default function ArticlesPage() {
             return (
               <Link
                 key={article.id}
-                href={`/articles/${article.id}`}
+                href={`/articles/${article.slug}`}
                 className="group overflow-hidden rounded-[2rem]
                   border border-white/10
                   bg-white/[0.035]

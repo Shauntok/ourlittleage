@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
+import PostComments from "@/components/PostComments";
 
 function getVisibilityLabel(visibility: string) {
   switch (visibility) {
@@ -24,10 +25,11 @@ function getVisibilityLabel(visibility: string) {
 export default function ArticleDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = String(params.id);
+  const slug = String(params.slug);
 
   const [loading, setLoading] = useState(true);
   const [article, setArticle] = useState<any>(null);
+  const [currentUserId, setCurrentUserId] = useState("");
 
   useEffect(() => {
     async function fetchArticle() {
@@ -40,15 +42,21 @@ export default function ArticleDetailPage() {
         return;
       }
 
+      setCurrentUserId(user.id);
+
       const { data, error } = await supabase
         .from("posts")
         .select("*")
-        .eq("id", id)
-        .eq("author_id", user.id)
+        .eq("slug", slug)
         .eq("type", "article")
         .single();
 
       if (error || !data) {
+        router.push("/articles");
+        return;
+      }
+
+      if (data.visibility === "private" && data.author_id !== user.id) {
         router.push("/articles");
         return;
       }
@@ -58,7 +66,7 @@ export default function ArticleDetailPage() {
     }
 
     fetchArticle();
-  }, [id, router]);
+  }, [slug, router]);
 
   if (loading) {
     return (
@@ -70,8 +78,8 @@ export default function ArticleDetailPage() {
     );
   }
 
-  const articleDate =
-    article.published_at || article.created_at;
+  const articleDate = article.published_at || article.created_at;
+  const isAuthor = article.author_id === currentUserId;
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
@@ -101,9 +109,7 @@ export default function ArticleDetailPage() {
 
           <div className="mt-7 flex flex-wrap gap-3 text-xs text-white/40">
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-              {article.status === "published"
-                ? "已发布"
-                : "草稿"}
+              {article.status === "published" ? "已发布" : "草稿"}
             </span>
 
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
@@ -135,7 +141,7 @@ export default function ArticleDetailPage() {
           </article>
         </section>
 
-        {article.notes && (
+        {isAuthor && article.notes && (
           <section className="mt-8 rounded-[2rem] border border-yellow-500/15 bg-yellow-500/[0.05] p-6 text-sm leading-8 text-yellow-100/60">
             <p className="mb-3 text-xs tracking-[0.3em] text-yellow-100/35">
               作者私密笔记
@@ -146,12 +152,16 @@ export default function ArticleDetailPage() {
         )}
 
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-4">
-          <Link
-            href={`/articles/edit/${article.id}`}
-            className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
-          >
-            编辑文章
-          </Link>
+          {isAuthor ? (
+            <Link
+              href={`/articles/edit/${article.id}`}
+              className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
+            >
+              编辑文章
+            </Link>
+          ) : (
+            <span />
+          )}
 
           <Link
             href="/articles"
@@ -160,6 +170,8 @@ export default function ArticleDetailPage() {
             回到文章页
           </Link>
         </footer>
+
+        <PostComments postId={article.id} />
       </article>
     </main>
   );
