@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
+import Cropper, { Area } from "react-easy-crop";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
@@ -35,6 +36,58 @@ function PrivacySwitch({
   );
 }
 
+function createImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", reject);
+    image.src = url;
+  });
+}
+
+async function getCroppedImage(
+  imageSrc: string,
+  cropPixels: Area
+): Promise<Blob> {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("无法处理图片。");
+  }
+
+  canvas.width = cropPixels.width;
+  canvas.height = cropPixels.height;
+
+  ctx.drawImage(
+    image,
+    cropPixels.x,
+    cropPixels.y,
+    cropPixels.width,
+    cropPixels.height,
+    0,
+    0,
+    cropPixels.width,
+    cropPixels.height
+  );
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("裁剪图片失败。"));
+          return;
+        }
+
+        resolve(blob);
+      },
+      "image/jpeg",
+      0.9
+    );
+  });
+}
+
 export default function ProfileSettingsPage() {
   const router = useRouter();
 
@@ -58,6 +111,13 @@ export default function ProfileSettingsPage() {
   const [moodEmoji, setMoodEmoji] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [statusSaving, setStatusSaving] = useState(false);
+
+  const [bannerPreviewUrl, setBannerPreviewUrl] = useState("");
+  const [cropOpen, setCropOpen] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] =
+    useState<Area | null>(null);
 
   useEffect(() => {
     async function getProfile() {
@@ -257,10 +317,12 @@ export default function ProfileSettingsPage() {
       data: { publicUrl },
     } = supabase.storage.from("avatars").getPublicUrl(fileName);
 
+    const freshAvatarUrl = `${publicUrl}?v=${Date.now()}`;
+
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
-        avatar_url: publicUrl,
+        avatar_url: freshAvatarUrl,
       })
       .eq("id", user.id);
 
@@ -273,58 +335,98 @@ export default function ProfileSettingsPage() {
 
     setProfile((current: any) => ({
       ...current,
-      avatar_url: publicUrl,
+      avatar_url: freshAvatarUrl,
     }));
 
     alert("头像上传成功。");
   }
 
-  async function uploadBanner(e: ChangeEvent<HTMLInputElement>) {
+  function chooseBannerFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
 
-    if (!file || !user) return;
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+
+    setBannerPreviewUrl(previewUrl);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setCropOpen(true);
+
+    e.target.value = "";
+  }
+
+  function closeCropModal() {
+    if (bannerPreviewUrl) {
+      URL.revokeObjectURL(bannerPreviewUrl);
+    }
+
+    setBannerPreviewUrl("");
+    setCropOpen(false);
+    setCroppedAreaPixels(null);
+    setZoom(1);
+    setCrop({ x: 0, y: 0 });
+  }
+
+  async function confirmCropAndUpload() {
+    if (!user || !bannerPreviewUrl || !croppedAreaPixels) return;
 
     setBannerUploading(true);
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${user.id}.${fileExt}`;
+    try {
+      const croppedBlob = await getCroppedImage(
+        bannerPreviewUrl,
+        croppedAreaPixels
+      );
 
-    const { error: uploadError } = await supabase.storage
-      .from("banners")
-      .upload(fileName, file, {
-        upsert: true,
-      });
+      const fileName = `${user.id}.jpg`;
 
-    if (uploadError) {
-      alert(uploadError.message);
-      setBannerUploading(false);
-      return;
+      const { error: uploadError } = await supabase.storage
+        .from("banners")
+        .upload(fileName, croppedBlob, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        alert(uploadError.message);
+        setBannerUploading(false);
+        return;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("banners").getPublicUrl(fileName);
+
+      const freshBannerUrl = `${publicUrl}?v=${Date.now()}`;
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          banner_url: freshBannerUrl,
+        })
+        .eq("id", user.id);
+
+      if (profileError) {
+        alert(profileError.message);
+        setBannerUploading(false);
+        return;
+      }
+
+      setProfile((current: any) => ({
+        ...current,
+        banner_url: freshBannerUrl,
+      }));
+
+      closeCropModal();
+
+      alert("横幅已更新。");
+    } catch (error: any) {
+      alert(error.message || "裁剪图片失败。");
     }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("banners").getPublicUrl(fileName);
-
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({
-        banner_url: publicUrl,
-      })
-      .eq("id", user.id);
 
     setBannerUploading(false);
-
-    if (profileError) {
-      alert(profileError.message);
-      return;
-    }
-
-    setProfile((current: any) => ({
-      ...current,
-      banner_url: publicUrl,
-    }));
-
-    alert("背景图上传成功。");
   }
 
   if (loading) {
@@ -344,6 +446,7 @@ export default function ProfileSettingsPage() {
     <div className="w-full overflow-hidden text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+
       <div className="grid w-full max-w-full gap-10 xl:grid-cols-[minmax(760px,1fr)_380px] 2xl:grid-cols-[minmax(900px,1fr)_420px]">
         <section className="space-y-8">
           <div>
@@ -379,7 +482,7 @@ export default function ProfileSettingsPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={uploadBanner}
+                  onChange={chooseBannerFile}
                   className="hidden"
                 />
               </label>
@@ -722,6 +825,73 @@ export default function ProfileSettingsPage() {
           </div>
         </aside>
       </div>
+
+      {cropOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-5 backdrop-blur-xl">
+          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl">
+            <div className="border-b border-white/10 px-6 py-5">
+              <p className="text-xs tracking-[0.35em] text-white/25">
+                CROP BANNER
+              </p>
+
+              <h2 className="mt-3 text-2xl font-light">
+                调整横幅显示范围
+              </h2>
+            </div>
+
+            <div className="relative h-[420px] bg-black">
+              <Cropper
+                image={bannerPreviewUrl}
+                crop={crop}
+                zoom={zoom}
+                aspect={16 / 5}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(_, croppedPixels) =>
+                  setCroppedAreaPixels(croppedPixels)
+                }
+              />
+            </div>
+
+            <div className="space-y-5 border-t border-white/10 px-6 py-5">
+              <div>
+                <p className="mb-3 text-sm text-white/40">
+                  缩放
+                </p>
+
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.05}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeCropModal}
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
+                >
+                  取消
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmCropAndUpload}
+                  disabled={bannerUploading}
+                  className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
+                >
+                  {bannerUploading ? "上传中..." : "确认使用"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

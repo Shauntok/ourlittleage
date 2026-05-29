@@ -110,25 +110,24 @@ export default async function UserPage({
       ascending: false,
     });
 
-    const publicDiaries =
-      posts?.filter((post) => post.type === "diary") || [];
+  const publicDiaries =
+    posts?.filter((post) => post.type === "diary") || [];
 
-    const publicArticles =
-      posts?.filter((post) => post.type === "article") || [];
+  const publicArticles =
+    posts?.filter((post) => post.type === "article") || [];
 
-    const profilePath =
-  `/u/${encodeURIComponent(decodedUsername)}`;
+  const profilePath =
+    `/u/${encodeURIComponent(decodedUsername)}`;
 
-    const showDiaries =
-      activeTab === "all" || activeTab === "diary";
+  const showDiaries =
+    activeTab === "all" || activeTab === "diary";
 
-    const showArticles =
-      activeTab === "all" || activeTab === "article";
+  const showArticles =
+    activeTab === "all" || activeTab === "article";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-20 text-white">
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-
       <div className="fixed left-1/2 top-1/3 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
       <div className="mx-auto max-w-6xl space-y-12">
@@ -139,9 +138,7 @@ export default async function UserPage({
           ← 回到深夜广场
         </Link>
 
-        {/* 房间头部 */}
         <section className="overflow-hidden rounded-[2.8rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
-          {/* Banner */}
           <div className="relative h-[300px] w-full">
             {profile.banner_url ? (
               <img
@@ -177,8 +174,10 @@ export default async function UserPage({
               )}
           </div>
 
-          {/* 用户资料 */}
-          <div id="about-user" className="relative px-8 pb-10 scroll-mt-28">
+          <div
+            id="about-user"
+            className="relative px-8 pb-10 scroll-mt-28"
+          >
             <div className="-mt-16 h-32 w-32 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_55px_rgba(255,255,255,0.12)]">
               {profile.avatar_url ? (
                 <img
@@ -246,7 +245,6 @@ export default async function UserPage({
                 <div className="max-w-xl space-y-2">
                   <div className="flex items-center justify-between text-sm text-white/35">
                     <span>成长进度</span>
-
                     <span>{profile.exp || 0} / 100 EXP</span>
                   </div>
 
@@ -296,216 +294,214 @@ export default async function UserPage({
           </div>
         </section>
 
-        {/* 房间小档案 */}
-          <section className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
-              <p className="text-xs tracking-[0.3em] text-white/25">
-                RESIDENT
-              </p>
+        <section className="grid gap-4 md:grid-cols-4">
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
+            <p className="text-xs tracking-[0.3em] text-white/25">
+              RESIDENT
+            </p>
 
-              <h3 className="mt-4 text-2xl font-light text-white/85">
-                {residentTitle}
+            <h3 className="mt-4 text-2xl font-light text-white/85">
+              {residentTitle}
+            </h3>
+
+            <p className="mt-3 text-sm leading-6 text-white/35">
+              这个房间的当前身份。
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
+            <p className="text-xs tracking-[0.3em] text-white/25">
+              DAYS
+            </p>
+
+            <h3 className="mt-4 text-2xl font-light text-white/85">
+              {joinedDays} 天
+            </h3>
+
+            <p className="mt-3 text-sm leading-6 text-white/35">
+              在小时代慢慢住下来的时间。
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
+            <p className="text-xs tracking-[0.3em] text-white/25">
+              ARTICLES
+            </p>
+
+            <h3 className="mt-4 text-2xl font-light text-white/85">
+              {publicArticles.length} 篇
+            </h3>
+
+            <p className="mt-3 text-sm leading-6 text-white/35">
+              公开留下的故事和作品。
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
+            <p className="text-xs tracking-[0.3em] text-white/25">
+              DIARIES
+            </p>
+
+            <h3 className="mt-4 text-2xl font-light text-white/85">
+              {publicDiaries.length} 篇
+            </h3>
+
+            <p className="mt-3 text-sm leading-6 text-white/35">
+              愿意公开给世界看见的日常。
+            </p>
+          </div>
+        </section>
+
+        <section id="public-writings" className="space-y-10 scroll-mt-28">
+          <div>
+            <p className="text-xs tracking-[0.4em] text-white/25">
+              PUBLIC WRITINGS
+            </p>
+
+            <h2 className="mt-4 text-3xl font-light">
+              公开留下的东西
+            </h2>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href={`${profilePath}?tab=all#public-writings`}
+                className={`rounded-full border px-4 py-2 text-sm transition ${
+                  activeTab === "all"
+                    ? "border-white bg-white text-black"
+                    : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
+                }`}
+              >
+                全部 {posts?.length || 0}
+              </Link>
+
+              <Link
+                href={`${profilePath}?tab=article#public-writings`}
+                className={`rounded-full border px-4 py-2 text-sm transition ${
+                  activeTab === "article"
+                    ? "border-white bg-white text-black"
+                    : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
+                }`}
+              >
+                文章 {publicArticles.length}
+              </Link>
+
+              <Link
+                href={`${profilePath}?tab=diary#public-writings`}
+                className={`rounded-full border px-4 py-2 text-sm transition ${
+                  activeTab === "diary"
+                    ? "border-white bg-white text-black"
+                    : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
+                }`}
+              >
+                日记 {publicDiaries.length}
+              </Link>
+            </div>
+          </div>
+
+          {posts?.length === 0 && (
+            <div className="rounded-[2.2rem] border border-white/10 bg-white/[0.03] p-10 text-white/35">
+              这个房间暂时还没有公开内容。
+            </div>
+          )}
+
+          {showArticles && publicArticles.length > 0 && (
+            <div id="public-articles" className="space-y-5 scroll-mt-28">
+              <h3 className="text-xl font-light text-white/75">
+                文章
               </h3>
 
-              <p className="mt-3 text-sm leading-6 text-white/35">
-                这个房间的当前身份。
-              </p>
+              {publicArticles.map((post) => {
+                const imageUrls = getImages(post.content || "");
+                const excerpt = getExcerpt(post.content || "");
+                const title = getPostTitle(post);
+
+                return (
+                  <Link
+                    key={post.id}
+                    href={`/articles/${post.slug}`}
+                    className="group block rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
+                  >
+                    <p className="text-xs text-white/30">
+                      文章 ·{" "}
+                      {new Date(
+                        post.published_at || post.created_at
+                      ).toLocaleString("zh-CN")}
+                    </p>
+
+                    <h3 className="mt-5 text-2xl font-light text-white/85">
+                      <TranslatedText text={title} />
+                    </h3>
+
+                    {imageUrls.length > 0 && (
+                      <div className="mt-5 grid grid-cols-3 gap-3">
+                        {imageUrls.map((url) => (
+                          <img
+                            key={url}
+                            src={url}
+                            alt=""
+                            className="aspect-square w-full rounded-2xl border border-white/10 object-cover"
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {excerpt && (
+                      <p className="mt-5 text-sm leading-8 text-white/42">
+                        <TranslatedText text={`${excerpt}...`} />
+                      </p>
+                    )}
+
+                    <p className="mt-7 text-sm text-white/25">
+                      阅读这篇文章 →
+                    </p>
+                  </Link>
+                );
+              })}
             </div>
+          )}
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
-              <p className="text-xs tracking-[0.3em] text-white/25">
-                DAYS
-              </p>
-
-              <h3 className="mt-4 text-2xl font-light text-white/85">
-                {joinedDays} 天
+          {showDiaries && publicDiaries.length > 0 && (
+            <div id="public-diaries" className="space-y-5 scroll-mt-28">
+              <h3 className="text-xl font-light text-white/75">
+                日记
               </h3>
 
-              <p className="mt-3 text-sm leading-6 text-white/35">
-                在小时代慢慢住下来的时间。
-              </p>
-            </div>
+              {publicDiaries.map((post) => {
+                const excerpt = getExcerpt(post.content || "");
+                const title = getPostTitle(post);
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
-              <p className="text-xs tracking-[0.3em] text-white/25">
-                ARTICLES
-              </p>
+                return (
+                  <Link
+                    key={post.id}
+                    href={`/diary/${post.id}`}
+                    className="group block rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
+                  >
+                    <p className="text-xs text-white/30">
+                      日记 ·{" "}
+                      {new Date(
+                        post.published_at || post.created_at
+                      ).toLocaleString("zh-CN")}
+                    </p>
 
-              <h3 className="mt-4 text-2xl font-light text-white/85">
-                {publicArticles.length} 篇
-              </h3>
+                    <h3 className="mt-5 text-2xl font-light text-white/85">
+                      <TranslatedText text={title} />
+                    </h3>
 
-              <p className="mt-3 text-sm leading-6 text-white/35">
-                公开留下的故事和作品。
-              </p>
-            </div>
-
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
-              <p className="text-xs tracking-[0.3em] text-white/25">
-                DIARIES
-              </p>
-
-              <h3 className="mt-4 text-2xl font-light text-white/85">
-                {publicDiaries.length} 篇
-              </h3>
-
-              <p className="mt-3 text-sm leading-6 text-white/35">
-                愿意公开给世界看见的日常。
-              </p>
-            </div>
-          </section>
-
-        {/* 公开内容 */}
-          <section id="public-writings" className="space-y-10 scroll-mt-28">
-            <div>
-              <p className="text-xs tracking-[0.4em] text-white/25">
-                PUBLIC WRITINGS
-              </p>
-
-              <h2 className="mt-4 text-3xl font-light">
-                公开留下的东西
-              </h2>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  href={`${profilePath}?tab=all#public-writings`}
-                  className={`rounded-full border px-4 py-2 text-sm transition ${
-                    activeTab === "all"
-                      ? "border-white bg-white text-black"
-                      : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
-                  }`}
-                >
-                  全部 {posts?.length || 0}
-                </Link>
-
-                <Link
-                  href={`${profilePath}?tab=article#public-writings`}
-                  className={`rounded-full border px-4 py-2 text-sm transition ${
-                    activeTab === "article"
-                      ? "border-white bg-white text-black"
-                      : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
-                  }`}
-                >
-                  文章 {publicArticles.length}
-                </Link>
-
-                <Link
-                  href={`${profilePath}?tab=diary#public-writings`}
-                  className={`rounded-full border px-4 py-2 text-sm transition ${
-                    activeTab === "diary"
-                      ? "border-white bg-white text-black"
-                      : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
-                  }`}
-                >
-                  日记 {publicDiaries.length}
-                </Link>
-              </div>
-            </div>
-
-            {posts?.length === 0 && (
-              <div className="rounded-[2.2rem] border border-white/10 bg-white/[0.03] p-10 text-white/35">
-                这个房间暂时还没有公开内容。
-              </div>
-            )}
-
-            {showArticles && publicArticles.length > 0 && (
-              <div id="public-articles" className="space-y-5 scroll-mt-28">
-                <h3 className="text-xl font-light text-white/75">
-                  文章
-                </h3>
-
-                {publicArticles.map((post) => {
-                  const imageUrls = getImages(post.content || "");
-                  const excerpt = getExcerpt(post.content || "");
-                  const title = getPostTitle(post);
-
-                  return (
-                    <Link
-                      key={post.id}
-                      href={`/articles/${post.slug}`}
-                      className="group block rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
-                    >
-                      <p className="text-xs text-white/30">
-                        文章 ·{" "}
-                        {new Date(
-                          post.published_at || post.created_at
-                        ).toLocaleString("zh-CN")}
+                    {excerpt && (
+                      <p className="mt-5 text-sm leading-8 text-white/42">
+                        <TranslatedText text={`${excerpt}...`} />
                       </p>
+                    )}
 
-                      <h3 className="mt-5 text-2xl font-light text-white/85">
-                        <TranslatedText text={title} />
-                      </h3>
-
-                      {imageUrls.length > 0 && (
-                        <div className="mt-5 grid grid-cols-3 gap-3">
-                          {imageUrls.map((url) => (
-                            <img
-                              key={url}
-                              src={url}
-                              alt=""
-                              className="aspect-square w-full rounded-2xl border border-white/10 object-cover"
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {excerpt && (
-                        <p className="mt-5 text-sm leading-8 text-white/42">
-                          <TranslatedText text={`${excerpt}...`} />
-                        </p>
-                      )}
-
-                      <p className="mt-7 text-sm text-white/25">
-                        阅读这篇文章 →
-                      </p>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-
-            {showDiaries && publicDiaries.length > 0 && (
-              <div id="public-diaries" className="space-y-5 scroll-mt-28">
-                <h3 className="text-xl font-light text-white/75">
-                  日记
-                </h3>
-
-                {publicDiaries.map((post) => {
-                  const excerpt = getExcerpt(post.content || "");
-                  const title = getPostTitle(post);
-
-                  return (
-                    <Link
-                      key={post.id}
-                      href={`/diary/${post.id}`}
-                      className="group block rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
-                    >
-                      <p className="text-xs text-white/30">
-                        日记 ·{" "}
-                        {new Date(
-                          post.published_at || post.created_at
-                        ).toLocaleString("zh-CN")}
-                      </p>
-
-                      <h3 className="mt-5 text-2xl font-light text-white/85">
-                        <TranslatedText text={title} />
-                      </h3>
-
-                      {excerpt && (
-                        <p className="mt-5 text-sm leading-8 text-white/42">
-                          <TranslatedText text={`${excerpt}...`} />
-                        </p>
-                      )}
-
-                      <p className="mt-7 text-sm text-white/25">
-                        翻开这一天 →
-                      </p>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+                    <p className="mt-7 text-sm text-white/25">
+                      翻开这一天 →
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
     </main>
   );
