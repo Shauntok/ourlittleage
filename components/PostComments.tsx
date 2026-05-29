@@ -7,6 +7,8 @@ type Props = {
   postId: number;
 };
 
+type SortMode = "oldest" | "newest";
+
 type ProfileInfo = {
   username: string | null;
   avatar_url: string | null;
@@ -32,6 +34,8 @@ function getProfile(profile: ProfileInfo | ProfileInfo[] | null) {
 export default function PostComments({ postId }: Props) {
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [content, setContent] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("oldest");
+
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [currentUserId, setCurrentUserId] = useState("");
@@ -39,7 +43,7 @@ export default function PostComments({ postId }: Props) {
   useEffect(() => {
     fetchComments();
     getCurrentUser();
-  }, [postId]);
+  }, [postId, sortMode]);
 
   async function getCurrentUser() {
     const {
@@ -71,7 +75,7 @@ export default function PostComments({ postId }: Props) {
       .eq("is_deleted", false)
       .eq("is_hidden", false)
       .order("created_at", {
-        ascending: true,
+        ascending: sortMode === "oldest",
       });
 
     if (error) {
@@ -221,7 +225,43 @@ export default function PostComments({ postId }: Props) {
         </button>
       </div>
 
-      <div className="mt-14 space-y-5">
+      <div className="mt-14 flex flex-wrap items-center justify-between gap-4">
+        <p className="text-sm text-white/35">
+          {fetching
+            ? "正在翻看留言..."
+            : comments.length > 0
+            ? `${comments.length} 条留言`
+            : "还没有留言"}
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setSortMode("oldest")}
+            className={`rounded-full border px-4 py-2 text-xs transition ${
+              sortMode === "oldest"
+                ? "border-white bg-white text-black"
+                : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
+            }`}
+          >
+            最早
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSortMode("newest")}
+            className={`rounded-full border px-4 py-2 text-xs transition ${
+              sortMode === "newest"
+                ? "border-white bg-white text-black"
+                : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
+            }`}
+          >
+            最新
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-5">
         {fetching && (
           <p className="text-sm text-white/35">
             正在翻看留言...

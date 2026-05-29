@@ -106,31 +106,39 @@ export default function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    function handleNotificationsUpdated() {
+      fetchUnreadCount();
+    }
+
+    window.addEventListener(
+      "notifications-updated",
+      handleNotificationsUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        "notifications-updated",
+        handleNotificationsUpdated
+      );
+    };
+  }, []);
+
   const profileHref = profile?.username
     ? `/u/${encodeURIComponent(profile.username)}`
     : "/settings/profile";
 
-    useEffect(() => {
-      function handleNotificationsUpdated() {
-        fetchUnreadCount();
-      }
-
-      window.addEventListener(
-        "notifications-updated",
-        handleNotificationsUpdated
-      );
-
-      return () => {
-        window.removeEventListener(
-          "notifications-updated",
-          handleNotificationsUpdated
-        );
-      };
-    }, []);
-
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-2xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    <header className="sticky top-0 z-50 bg-transparent px-6 py-4">
+      <div
+        className="
+          mx-auto flex max-w-6xl items-center justify-between
+          rounded-full border border-white/10
+          bg-white/[0.045] px-6 py-3
+          shadow-[0_0_60px_rgba(255,255,255,0.035)]
+          backdrop-blur-2xl
+        "
+      >
         <Link
           href="/home"
           className="text-sm font-semibold tracking-wide text-white/85 transition hover:text-white"
@@ -138,7 +146,7 @@ export default function Navbar() {
           小时代
         </Link>
 
-        <nav className="flex items-center gap-6 text-sm text-white/45">
+        <nav className="hidden items-center gap-7 text-sm text-white/45 md:flex">
           <Link href="/home" className="transition hover:text-white">
             首页
           </Link>
@@ -151,17 +159,34 @@ export default function Navbar() {
             日记
           </Link>
 
-          <Link
-            href="/articles"
-            className="transition hover:text-white"
-          >
+          <Link href="/articles" className="transition hover:text-white">
             文章
           </Link>
 
           {profile && (
             <Link
+              href={profileHref}
+              className="transition hover:text-white"
+            >
+              我的房间
+            </Link>
+          )}
+        </nav>
+
+        <div className="flex items-center gap-4">
+          {profile && (
+            <Link
+              href="/settings/profile"
+              className="hidden text-xs text-white/35 transition hover:text-white/70 sm:block"
+            >
+              编辑房间
+            </Link>
+          )}
+
+          {profile && (
+            <Link
               href="/write"
-              className="hidden transition hover:text-white md:inline"
+              className="hidden text-xs text-white/35 transition hover:text-white/70 lg:block"
             >
               ✍️ 写故事
             </Link>
@@ -191,7 +216,7 @@ export default function Navbar() {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-3 transition hover:text-white"
               >
-                <div className="h-9 w-9 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
+                <div className="h-10 w-10 overflow-hidden rounded-full border border-white/10 bg-white/[0.05] shadow-[0_0_24px_rgba(255,255,255,0.08)]">
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}
@@ -205,13 +230,13 @@ export default function Navbar() {
                   )}
                 </div>
 
-                <span className="hidden max-w-[120px] truncate md:inline">
+                <span className="hidden max-w-[140px] truncate text-xs text-white/45 lg:inline">
                   {profile.username || "居民"}
                 </span>
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-3 w-72 overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl">
+                <div className="absolute right-0 mt-4 w-72 overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl">
                   <div className="border-b border-white/10 px-5 py-5">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
@@ -324,12 +349,12 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="rounded-full border border-white/10 px-4 py-2 text-white/60 transition hover:border-white/25 hover:text-white"
+              className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition hover:border-white/25 hover:text-white"
             >
               登录
             </Link>
           )}
-        </nav>
+        </div>
       </div>
     </header>
   );

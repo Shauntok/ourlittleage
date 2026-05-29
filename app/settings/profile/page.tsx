@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+
+const BIO_LIMIT = 300;
 
 function PrivacySwitch({
   label,
@@ -20,12 +22,12 @@ function PrivacySwitch({
       type="button"
       disabled={disabled}
       onClick={onChange}
-      className={`h-[52px] w-[150px] rounded-2xl border text-sm font-bold transition-all duration-300 ${
+      className={`rounded-2xl border px-5 py-4 text-left text-sm transition-all duration-300 ${
         disabled
           ? "cursor-not-allowed border-white/5 bg-white/[0.02] text-white/15"
           : checked
-          ? "border-violet-300/60 bg-violet-500/30 text-white shadow-[0_0_35px_rgba(139,92,246,0.22)]"
-          : "border-white/10 bg-white/[0.035] text-white/35 hover:border-white/20 hover:text-white/65"
+          ? "border-white/25 bg-white/[0.09] text-white shadow-[0_0_35px_rgba(255,255,255,0.06)]"
+          : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
       }`}
     >
       {label}
@@ -64,7 +66,7 @@ export default function ProfileSettingsPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/home");;
+        router.push("/home");
         return;
       }
 
@@ -113,12 +115,22 @@ export default function ProfileSettingsPage() {
   async function saveProfile() {
     if (!user) return;
 
+    if (!username.trim()) {
+      alert("用户名称不能为空。");
+      return;
+    }
+
+    if (bio.length > BIO_LIMIT) {
+      alert(`个人简介最多 ${BIO_LIMIT} 字。`);
+      return;
+    }
+
     setSaving(true);
 
     const { error } = await supabase
       .from("profiles")
       .update({
-        username,
+        username: username.trim(),
         bio,
         show_level: showLevel,
         show_exp: showExp,
@@ -136,7 +148,7 @@ export default function ProfileSettingsPage() {
 
     setProfile((current: any) => ({
       ...current,
-      username,
+      username: username.trim(),
       bio,
       show_level: showLevel,
       show_exp: showExp,
@@ -219,7 +231,7 @@ export default function ProfileSettingsPage() {
     alert("今日状态已取消。");
   }
 
-  async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+  async function uploadAvatar(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
 
     if (!file || !user) return;
@@ -267,7 +279,7 @@ export default function ProfileSettingsPage() {
     alert("头像上传成功。");
   }
 
-  async function uploadBanner(e: React.ChangeEvent<HTMLInputElement>) {
+  async function uploadBanner(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
 
     if (!file || !user) return;
@@ -317,269 +329,398 @@ export default function ProfileSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center text-white">
+      <main className="flex min-h-screen items-center justify-center bg-black text-white">
         <p className="text-sm tracking-[0.3em] text-white/35">
           正在打开你的房间...
         </p>
-      </div>
+      </main>
     );
   }
 
+  const previewUsername = username || "居民";
+  const previewBio = bio || "这个房间暂时还很安静。";
+
   return (
-    <div className="max-w-4xl space-y-8">
-      <div>
-        <p className="text-xs tracking-[0.4em] text-white/25">
-          PROFILE SETTINGS
-        </p>
+    <div className="w-full overflow-hidden text-white">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
+      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="grid w-full max-w-full gap-10 xl:grid-cols-[minmax(760px,1fr)_380px] 2xl:grid-cols-[minmax(900px,1fr)_420px]">
+        <section className="space-y-8">
+          <div>
+            <p className="text-xs tracking-[0.4em] text-white/25">
+              ROOM SETTINGS
+            </p>
 
-        <h1 className="mt-6 text-5xl font-light tracking-tight">
-          编辑你的房间
-        </h1>
+            <h1 className="mt-6 text-5xl font-light tracking-tight">
+              装修你的房间
+            </h1>
 
-        <p className="mt-6 max-w-xl text-sm leading-8 text-white/40">
-          上传头像、设置背景、留下今日状态。这里会慢慢成为别人认识你的入口。
-        </p>
-      </div>
+            <p className="mt-6 max-w-xl text-sm leading-8 text-white/40">
+              头像、横幅、简介和今日状态，都会成为别人进入你房间时看见的第一束光。
+            </p>
+          </div>
 
-      <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[0.035]">
-        <div className="absolute inset-0 opacity-35">
-          {profile?.banner_url ? (
-            <img
-              src={profile.banner_url}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full bg-gradient-to-br from-zinc-900 via-black to-zinc-950" />
-          )}
-        </div>
-
-        <div className="absolute inset-0 bg-black/60" />
-
-        <div className="absolute bottom-6 left-8 z-[1] pointer-events-none select-none text-6xl font-black text-white/5">
-          ROOM
-        </div>
-
-        <div className="relative z-10 grid grid-cols-1 gap-8 p-8 pb-20 lg:grid-cols-[220px_1fr]">
-          <div className="space-y-5">
-            <div className="h-32 w-32 overflow-hidden rounded-full border border-white/15 bg-black/60 shadow-[0_0_45px_rgba(255,255,255,0.08)]">
-              {profile?.avatar_url ? (
+          <section className="overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
+            <div className="relative z-20 h-56 overflow-hidden border-b border-white/10 bg-black/40">
+              {profile?.banner_url ? (
                 <img
-                  src={profile.avatar_url}
+                  src={profile.banner_url}
                   alt=""
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-5xl text-white/25">
-                  👤
+                <div className="h-full w-full bg-gradient-to-br from-zinc-900 via-black to-zinc-950" />
+              )}
+
+              <div className="pointer-events-none absolute inset-0 bg-black/50" />
+
+              <label className="absolute bottom-5 right-5 z-30 cursor-pointer rounded-full border border-white/15 bg-black/65 px-5 py-3 text-sm text-white/70 backdrop-blur-xl transition hover:border-white/30 hover:text-white">
+                {bannerUploading ? "上传中..." : "更换横幅"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={uploadBanner}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            <div className="relative z-10 p-7">
+              <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-start">
+                <div className="space-y-4">
+                  <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_45px_rgba(255,255,255,0.12)]">
+                    {profile?.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-5xl text-white/25">
+                        👤
+                      </div>
+                    )}
+                  </div>
+
+                  <label className="inline-flex cursor-pointer rounded-full border border-white/10 bg-black/60 px-5 py-3 text-sm text-white/65 transition hover:border-white/25 hover:text-white">
+                    {uploading ? "上传中..." : "更换头像"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={uploadAvatar}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="pb-2">
+                  <p className="text-xs tracking-[0.35em] text-white/25">
+                    ROOM PROFILE
+                  </p>
+
+                  <h2 className="mt-4 text-3xl font-light">
+                    🏠 房间资料
+                  </h2>
+
+                  <p className="mt-3 max-w-xl text-sm leading-7 text-white/35">
+                    头像、横幅、名字和简介，会一起组成别人进入你房间时的第一印象。
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 grid gap-5">
+                <div className="space-y-2">
+                  <p className="text-sm text-white/45">用户名称</p>
+
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 text-white outline-none transition focus:border-white/30"
+                    placeholder="别人会怎么称呼你？"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-white/45">个人简介</p>
+
+                    <p className="text-xs text-white/25">
+                      {bio.length} / {BIO_LIMIT}
+                    </p>
+                  </div>
+
+                  <textarea
+                    rows={6}
+                    value={bio}
+                    maxLength={BIO_LIMIT}
+                    onChange={(e) => {
+                      setBio(e.target.value);
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 p-4 leading-8 text-white outline-none transition focus:border-white/30"
+                    placeholder="介绍一下自己，或者写一句这个房间的门牌。"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-2xl">
+            <p className="text-xs tracking-[0.35em] text-white/25">
+              TODAY STATUS
+            </p>
+
+            <h2 className="mt-4 text-2xl font-light">
+              🌙 今日状态
+            </h2>
+
+            <p className="mt-3 text-sm leading-7 text-white/35">
+              状态会在 18 小时后自动消失，像夜里慢慢暗下来的灯。
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              {["🌙", "☁️", "🌧️", "🎧", "☕", "✨", "💭", "📖", "🌫️", "🫧"].map(
+                (emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setMoodEmoji(emoji)}
+                    className={
+                      moodEmoji === emoji
+                        ? "flex h-12 w-12 items-center justify-center rounded-2xl border border-white/30 bg-white/10 text-2xl"
+                        : "flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/40 text-2xl transition hover:border-white/25"
+                    }
+                  >
+                    {emoji}
+                  </button>
+                )
+              )}
+
+              <input
+                value={moodEmoji}
+                onChange={(e) => setMoodEmoji(e.target.value)}
+                placeholder="自定义"
+                maxLength={2}
+                className="h-12 w-24 rounded-2xl border border-white/10 bg-black/40 text-center text-xl outline-none transition focus:border-white/30"
+              />
+            </div>
+
+            <textarea
+              placeholder="写下今天的状态..."
+              value={statusMessage}
+              onChange={(e) => setStatusMessage(e.target.value)}
+              rows={3}
+              className="mt-5 w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-5 py-4 leading-7 outline-none transition focus:border-white/30"
+            />
+
+            {(moodEmoji || statusMessage) && (
+              <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-white/70">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{moodEmoji || "🌙"}</span>
+
+                  {statusMessage && (
+                    <span className="text-sm text-white/80">
+                      {statusMessage}
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-2 text-xs text-white/30">
+                  今日状态将在夜里安静下来。
+                </p>
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={saveMoodStatus}
+                disabled={statusSaving}
+                className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
+              >
+                {profile?.status_expires_at &&
+                new Date(profile.status_expires_at).getTime() > Date.now()
+                  ? "更新今日状态"
+                  : "设置今日状态"}
+              </button>
+
+              {(moodEmoji || statusMessage) && (
+                <button
+                  onClick={clearMoodStatus}
+                  className="rounded-full border border-white/10 bg-white/[0.03] px-6 py-3 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
+                >
+                  取消状态
+                </button>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-2xl">
+            <p className="text-xs tracking-[0.35em] text-white/25">
+              VISITOR PRIVACY
+            </p>
+
+            <h2 className="mt-4 text-2xl font-light">
+              🔒 访客能看到
+            </h2>
+
+            <p className="mt-3 text-sm leading-7 text-white/35">
+              这些设置会影响别人进入你的房间时，能看到哪些成长痕迹。
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <PrivacySwitch
+                label="显示等级"
+                checked={showLevel}
+                onChange={() => {
+                  setShowLevel(!showLevel);
+                  setHasUnsavedChanges(true);
+                }}
+              />
+
+              <PrivacySwitch
+                label="显示经验"
+                checked={showExp}
+                onChange={() => {
+                  setShowExp(!showExp);
+                  setHasUnsavedChanges(true);
+                }}
+              />
+
+              <PrivacySwitch
+                label="显示信任值"
+                checked={showTrustScore}
+                onChange={() => {
+                  setShowTrustScore(!showTrustScore);
+                  setHasUnsavedChanges(true);
+                }}
+              />
+
+              <PrivacySwitch
+                label="显示居住天数"
+                checked={showJoinedDays}
+                onChange={() => {
+                  setShowJoinedDays(!showJoinedDays);
+                  setHasUnsavedChanges(true);
+                }}
+              />
+            </div>
+          </section>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              onClick={saveProfile}
+              disabled={saving}
+              className="rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
+            >
+              {saving ? "保存中..." : "保存房间资料"}
+            </button>
+
+            {hasUnsavedChanges && (
+              <p className="text-sm text-yellow-200/60">
+                你有还没保存的房间资料。
+              </p>
+            )}
+          </div>
+        </section>
+
+        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <div className="overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
+            <div className="relative h-48">
+              {profile?.banner_url ? (
+                <img
+                  src={profile.banner_url}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-br from-zinc-900 via-black to-zinc-950" />
+              )}
+
+              <div className="absolute inset-0 bg-black/50" />
+
+              {(moodEmoji || statusMessage) && (
+                <div className="absolute right-4 top-4 max-w-[220px] rounded-2xl border border-violet-500/20 bg-black/60 px-4 py-3 backdrop-blur-2xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{moodEmoji || "🌙"}</span>
+                    {statusMessage && (
+                      <span className="truncate text-xs text-white/75">
+                        {statusMessage}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
 
-            <label className="inline-flex w-full cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-black/50 px-5 py-3 text-sm text-white/65 transition hover:border-white/25 hover:text-white">
-              <span>{uploading ? "上传中..." : "上传头像"}</span>
+            <div className="relative px-6 pb-7">
+              <div className="-mt-12 h-24 w-24 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_45px_rgba(255,255,255,0.1)]">
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-4xl text-white/25">
+                    👤
+                  </div>
+                )}
+              </div>
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={uploadAvatar}
-                className="hidden"
-              />
-            </label>
+              <p className="mt-5 text-xs tracking-[0.3em] text-white/25">
+                ROOM PREVIEW
+              </p>
 
-            <label className="inline-flex w-full cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-black/50 px-5 py-3 text-sm text-white/65 transition hover:border-white/25 hover:text-white">
-              <span>{bannerUploading ? "上传中..." : "上传背景图"}</span>
+              <h3 className="mt-3 text-3xl font-light">
+                {previewUsername}
+              </h3>
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={uploadBanner}
-                className="hidden"
-              />
-            </label>
+              <p className="mt-4 text-sm leading-7 text-white/45">
+                {previewBio}
+              </p>
 
-            <p className="text-sm leading-7 text-white/35">
-              背景图未来会成为你个人主页的房间背景。
+              <div className="mt-5 flex flex-wrap gap-2">
+                {showLevel && (
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/40">
+                    Lv.{profile?.level || 1}
+                  </span>
+                )}
+
+                {showExp && (
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/40">
+                    经验 {profile?.exp || 0}
+                  </span>
+                )}
+
+                {showTrustScore && (
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/40">
+                    信任 {profile?.trust_score || 0}
+                  </span>
+                )}
+
+                {showJoinedDays && (
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/40">
+                    居住天数
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 text-sm leading-7 text-white/35 backdrop-blur-2xl">
+            <p className="text-xs tracking-[0.3em] text-white/25">
+              TIP
+            </p>
+
+            <p className="mt-4">
+              以后这里可以继续扩展：房间主题、背景音乐、称号、访客记录和收藏柜。
             </p>
           </div>
-
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <p className="text-sm text-white/45">用户名称</p>
-
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setHasUnsavedChanges(true);
-                }}
-                className="w-full rounded-2xl border border-white/10 bg-black/60 p-4 text-white outline-none transition focus:border-white/30"
-                placeholder="别人会怎么称呼你？"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm text-white/45">个人简介</p>
-
-              <textarea
-                rows={7}
-                value={bio}
-                onChange={(e) => {
-                  setBio(e.target.value);
-                  setHasUnsavedChanges(true);
-                }}
-                className="w-full resize-none rounded-2xl border border-white/10 bg-black/60 p-4 leading-8 text-white outline-none transition focus:border-white/30"
-                placeholder="介绍一下自己..."
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-[2.2rem] border border-white/10 bg-white/[0.035] p-7">
-        <div>
-          <h2 className="text-2xl font-light">🌙 今日状态</h2>
-
-          <p className="mt-2 text-sm text-white/35">
-            心情状态将在 18 小时后自动过期。
-          </p>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          {["🌙", "☁️", "🌧️", "🎧", "☕", "✨", "💭", "📖", "🌫️", "🫧"].map(
-            (emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => setMoodEmoji(emoji)}
-                className={
-                  moodEmoji === emoji
-                    ? "flex h-12 w-12 items-center justify-center rounded-2xl border border-white/30 bg-white/10 text-2xl"
-                    : "flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/40 text-2xl transition hover:border-white/25"
-                }
-              >
-                {emoji}
-              </button>
-            )
-          )}
-
-          <input
-            value={moodEmoji}
-            onChange={(e) => setMoodEmoji(e.target.value)}
-            placeholder="自定义"
-            maxLength={2}
-            className="h-12 w-24 rounded-2xl border border-white/10 bg-black/40 text-center text-xl outline-none transition focus:border-white/30"
-          />
-        </div>
-
-        <textarea
-          placeholder="写下今天的状态..."
-          value={statusMessage}
-          onChange={(e) => setStatusMessage(e.target.value)}
-          rows={3}
-          className="mt-5 w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-5 py-4 leading-7 outline-none transition focus:border-white/30"
-        />
-
-        {(moodEmoji || statusMessage) && (
-          <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-white/70">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{moodEmoji || "🌙"}</span>
-
-              {statusMessage && (
-                <span className="text-sm text-white/80">{statusMessage}</span>
-              )}
-            </div>
-
-            <p className="mt-2 text-xs text-white/30">
-              今日状态将在夜里安静下来。
-            </p>
-          </div>
-        )}
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            onClick={saveMoodStatus}
-            disabled={statusSaving}
-            className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
-          >
-            {profile?.status_expires_at &&
-            new Date(profile.status_expires_at).getTime() > Date.now()
-              ? "更新今日状态"
-              : "设置今日状态"}
-          </button>
-
-          {(moodEmoji || statusMessage) && (
-            <button
-              onClick={clearMoodStatus}
-              className="rounded-full border border-white/10 bg-white/[0.03] px-6 py-3 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
-            >
-              取消状态
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-[2.2rem] border border-white/10 bg-white/[0.035] p-7">
-        <h2 className="text-2xl font-light">公开显示</h2>
-
-        <p className="mt-2 text-sm leading-7 text-white/35">
-          这些设置会影响未来别人进入你的房间时能看到什么。
-        </p>
-
-        <div className="mt-6 flex flex-wrap gap-4">
-          <PrivacySwitch
-            label="显示等级"
-            checked={showLevel}
-            onChange={() => {
-              setShowLevel(!showLevel);
-              setHasUnsavedChanges(true);
-            }}
-          />
-
-          <PrivacySwitch
-            label="显示经验"
-            checked={showExp}
-            onChange={() => {
-              setShowExp(!showExp);
-              setHasUnsavedChanges(true);
-            }}
-          />
-
-          <PrivacySwitch
-            label="显示信任值"
-            checked={showTrustScore}
-            onChange={() => {
-              setShowTrustScore(!showTrustScore);
-              setHasUnsavedChanges(true);
-            }}
-          />
-
-          <PrivacySwitch
-            label="显示加入天数"
-            checked={showJoinedDays}
-            onChange={() => {
-              setShowJoinedDays(!showJoinedDays);
-              setHasUnsavedChanges(true);
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-4">
-        <button
-          onClick={saveProfile}
-          disabled={saving}
-          className="rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
-        >
-          {saving ? "保存中..." : "保存房间资料"}
-        </button>
-
-        {hasUnsavedChanges && (
-          <p className="text-sm text-yellow-200/60">
-            你有还没保存的房间资料。
-          </p>
-        )}
+        </aside>
       </div>
     </div>
   );

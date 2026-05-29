@@ -157,7 +157,8 @@ export default function EditArticlePage() {
       return;
     }
 
-    const finalSlug = generateSlug(slug.trim()) || generateSlug(title.trim());
+    const finalSlug =
+      generateSlug(slug.trim()) || generateSlug(title.trim());
 
     if (!finalSlug) {
       alert("slug 无法生成，请换一个标题或手动填写。");
@@ -212,7 +213,10 @@ export default function EditArticlePage() {
 
     if (!confirmed) return;
 
-    const { error } = await supabase.from("posts").delete().eq("id", id);
+    const { error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", id);
 
     if (error) {
       alert(error.message);
@@ -270,10 +274,7 @@ export default function EditArticlePage() {
           <input
             type="text"
             value={title}
-            onChange={(e) => {
-              const value = e.target.value;
-              setTitle(value);
-            }}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder="文章标题"
             className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition focus:border-white/40"
           />
@@ -285,19 +286,6 @@ export default function EditArticlePage() {
             placeholder="slug，例如 my-night-story"
             className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition focus:border-white/40"
           />
-
-          <div>
-            <label className="inline-flex cursor-pointer items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-white/70 transition hover:border-white/25 hover:text-white">
-              <span>{uploading ? "上传中..." : "📸 上传图片"}</span>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={uploadImage}
-                className="hidden"
-              />
-            </label>
-          </div>
 
           <div className="sticky top-4 z-20 flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-black/80 p-4 backdrop-blur-xl">
             <button
@@ -316,6 +304,16 @@ export default function EditArticlePage() {
               H2
             </button>
 
+            <label className={toolbarButtonClass + " cursor-pointer"}>
+              {uploading ? "上传中..." : "图片"}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={uploadImage}
+                className="hidden"
+              />
+            </label>
+
             <button
               type="button"
               onClick={() => insertTextAtCursor("**", "**")}
@@ -330,24 +328,6 @@ export default function EditArticlePage() {
               className={toolbarButtonClass}
             >
               引用
-            </button>
-
-            <button
-              type="button"
-              onClick={() => insertTextAtCursor("\n---\n")}
-              className={toolbarButtonClass}
-            >
-              分割线
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                insertTextAtCursor("\n```js\n// 在这里写代码\n```\n")
-              }
-              className={toolbarButtonClass}
-            >
-              Code
             </button>
 
             <button
@@ -372,12 +352,30 @@ export default function EditArticlePage() {
 
             <button
               type="button"
+              onClick={() => insertTextAtCursor("\n---\n")}
+              className={toolbarButtonClass}
+            >
+              分割线
+            </button>
+
+            <button
+              type="button"
               onClick={() =>
                 insertTextAtCursor("\n> 💡 提示：这里写重点内容\n")
               }
               className={toolbarButtonClass}
             >
               提示
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                insertTextAtCursor("\n```js\n// 在这里写代码\n```\n")
+              }
+              className={toolbarButtonClass}
+            >
+              Code
             </button>
           </div>
 
@@ -406,7 +404,11 @@ export default function EditArticlePage() {
               disabled={saving}
               className="rounded-full bg-white px-8 py-4 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-40"
             >
-              {saving ? "保存中..." : hasChanged ? "保存修改" : "回到文章"}
+              {saving
+                ? "保存中..."
+                : hasChanged
+                ? "保存修改"
+                : "回到文章"}
             </button>
 
             <button
@@ -470,7 +472,9 @@ export default function EditArticlePage() {
                 >
                   <div className="flex items-center gap-2.5">
                     <span>{item.icon}</span>
-                    <span className="text-sm font-medium">{item.title}</span>
+                    <span className="text-sm font-medium">
+                      {item.title}
+                    </span>
                   </div>
 
                   <p className="mt-1.5 text-[11px] leading-5 text-white/30">

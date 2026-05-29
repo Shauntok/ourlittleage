@@ -5,11 +5,10 @@ export default function SettingsLayout({
 }) {
   return (
     <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex max-w-7xl gap-10 px-6 py-24">
-        
+      <div className="mx-auto flex w-full max-w-[1800px] gap-10 px-6 py-24">
         {/* Sidebar */}
         <aside className="w-[240px] shrink-0">
-          <div className="sticky top-24 space-y-3">
+          <div className="sticky top-28 space-y-3">
             <h2 className="mb-6 text-sm tracking-[0.3em] text-white/30">
               SETTINGS
             </h2>

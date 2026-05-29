@@ -36,7 +36,6 @@ function getTimeWarning() {
   const now = new Date();
   const hour = now.getHours();
   const minute = now.getMinutes();
-
   const minutesLeft = 24 * 60 - (hour * 60 + minute);
 
   if (minutesLeft <= 30) {
@@ -45,7 +44,6 @@ function getTimeWarning() {
 
   if (minutesLeft <= 120) {
     const hours = Math.ceil(minutesLeft / 60);
-
     return `距离今天翻篇还有不到 ${hours} 小时。想留在今天的话，记得慢慢写完。`;
   }
 
@@ -69,7 +67,6 @@ export default function NewDiaryPage() {
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
 
   const contentLength = content.trim().length;
-  const progress = Math.min(contentLength / MIN_DIARY_LENGTH, 1);
 
   useEffect(() => {
     async function fetchUser() {
@@ -78,7 +75,7 @@ export default function NewDiaryPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/home");;
+        router.push("/home");
         return;
       }
 
@@ -116,7 +113,6 @@ export default function NewDiaryPage() {
     setContent(textarea.value);
 
     const newPosition = start + insertText.length;
-
     textarea.focus();
     textarea.setSelectionRange(newPosition, newPosition);
   }
@@ -145,7 +141,7 @@ export default function NewDiaryPage() {
       data: { publicUrl },
     } = supabase.storage.from("images").getPublicUrl(fileName);
 
-    insertTextAtCursor("\n\n![](" + publicUrl + ")\n\n");
+    insertTextAtCursor(`\n\n![](${publicUrl})\n\n`);
   }
 
   async function publishDiary() {
@@ -185,27 +181,19 @@ export default function NewDiaryPage() {
 
     const now = new Date();
 
-    const diaryTitle =
-      `日记 · ${formatDate(now)}`;
+    const { error } = await supabase.from("posts").insert([
+      {
+        type: "diary",
+        title: `日记 · ${formatDate(now)}`,
+        slug: `diary-${Date.now()}`,
+        content,
+        visibility,
+        status: "published",
+        author_id: currentUser.id,
+        published_at: now.toISOString(),
+      },
+    ]);
 
-    const diarySlug =
-      `diary-${Date.now()}`;
-
-    const { error } = await supabase
-      .from("posts")
-      .insert([
-        {
-          type: "diary",
-          title: diaryTitle,
-          slug: diarySlug,
-          content,
-          visibility,
-          status: "published",
-          author_id: currentUser.id,
-          published_at: now.toISOString(),
-        },
-      ]);
-      
     setPublishing(false);
 
     if (error) {
@@ -215,6 +203,9 @@ export default function NewDiaryPage() {
 
     router.push("/diary");
   }
+
+  const toolbarButtonClass =
+    "rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-20 text-white">
@@ -258,82 +249,22 @@ export default function NewDiaryPage() {
             <div className="sticky top-6 z-20 flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-black/70 p-4 backdrop-blur-2xl">
               <button
                 type="button"
-                onClick={() => insertTextAtCursor("**", "**")}
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
+                onClick={() => insertTextAtCursor("\n# 标题\n")}
+                className={toolbarButtonClass}
               >
-                粗体
+                H1
               </button>
 
               <button
                 type="button"
-                onClick={() =>
-                  insertTextAtCursor("\n> 后来我想说的是：\n")
-                }
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
-              >
-                引用
-              </button>
-
-              <button
-                type="button"
-                onClick={() => insertTextAtCursor("\n---\n")}
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
-              >
-                分割线
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  insertTextAtCursor("\n## 今天的小标题\n")
-                }
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
+                onClick={() => insertTextAtCursor("\n## 今天的小标题\n")}
+                className={toolbarButtonClass}
               >
                 H2
               </button>
 
-              <button
-                type="button"
-                onClick={() =>
-                  insertTextAtCursor("\n```text\n写在这里\n```\n")
-                }
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
-              >
-                Code
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  insertTextAtCursor("[想留下的链接](https://example.com)")
-                }
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
-              >
-                链接
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  insertTextAtCursor("\n- 今天发生的事\n- 我想到的事\n- 想记住的事\n")
-                }
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
-              >
-                清单
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  insertTextAtCursor("\n> 💡 我想提醒未来的自己：\n")
-                }
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white"
-              >
-                提示
-              </button>
-
-              <label className="cursor-pointer rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white">
-                📸 图片
+              <label className={toolbarButtonClass + " cursor-pointer"}>
+                {uploading ? "上传中..." : "图片"}
                 <input
                   type="file"
                   accept="image/*"
@@ -342,41 +273,82 @@ export default function NewDiaryPage() {
                 />
               </label>
 
-              {uploading && (
-                <span className="px-3 py-2 text-sm text-white/35">
-                  上传中...
-                </span>
-              )}
+              <button
+                type="button"
+                onClick={() => insertTextAtCursor("**", "**")}
+                className={toolbarButtonClass}
+              >
+                粗体
+              </button>
+
+              <button
+                type="button"
+                onClick={() => insertTextAtCursor("\n> 后来我想说的是：\n")}
+                className={toolbarButtonClass}
+              >
+                引用
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  insertTextAtCursor("[想留下的链接](https://example.com)")
+                }
+                className={toolbarButtonClass}
+              >
+                链接
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  insertTextAtCursor(
+                    "\n- 今天发生的事\n- 我想到的事\n- 想记住的事\n"
+                  )
+                }
+                className={toolbarButtonClass}
+              >
+                清单
+              </button>
+
+              <button
+                type="button"
+                onClick={() => insertTextAtCursor("\n---\n")}
+                className={toolbarButtonClass}
+              >
+                分割线
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  insertTextAtCursor("\n> 💡 我想提醒未来的自己：\n")
+                }
+                className={toolbarButtonClass}
+              >
+                提示
+              </button>
+
             </div>
 
             <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.ctrlKey && e.key.toLowerCase() === "b") {
+                  e.preventDefault();
+                  insertTextAtCursor("**", "**");
+                }
 
-                onKeyDown={(e) => {
-                  if (
-                    e.ctrlKey &&
-                    e.key.toLowerCase() === "b"
-                  ) {
-                    e.preventDefault();
-
-                    insertTextAtCursor("**", "**");
-                  }
-
-                  if (
-                    e.ctrlKey &&
-                    e.key.toLowerCase() === "s"
-                  ) {
-                    e.preventDefault();
-
-                    publishDiary();
-                  }
-                }}
-
-                placeholder="我今天过得很好，别担心。"
-                rows={24}
-                className="
+                if (e.ctrlKey && e.key.toLowerCase() === "s") {
+                  e.preventDefault();
+                  publishDiary();
+                }
+              }}
+              placeholder="我今天过得很好，别担心。"
+              rows={24}
+              className="
                 preview-scrollbar min-h-[760px]
                 w-full resize-none rounded-[2.4rem]
                 border border-white/10 bg-white/[0.045]
@@ -411,12 +383,7 @@ export default function NewDiaryPage() {
                 <button
                   onClick={publishDiary}
                   disabled={publishing}
-                  className="
-                    rounded-full bg-white px-8 py-3
-                    text-sm font-semibold text-black
-                    transition hover:bg-white/90
-                    disabled:cursor-not-allowed disabled:opacity-40
-                  "
+                  className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {publishing ? "留下中..." : "留下今天"}
                 </button>
@@ -432,25 +399,41 @@ export default function NewDiaryPage() {
 
               <div className="mt-5 grid gap-3">
                 <button
+                  type="button"
                   onClick={() => setVisibility("private")}
                   className={`rounded-2xl border px-5 py-4 text-left transition ${
                     visibility === "private"
                       ? "border-white/25 bg-white/[0.09] text-white"
-                      : "border-white/10 bg-white/[0.035] text-white/45"
+                      : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
                   }`}
                 >
-                  🔒 只给自己看
+                  <div className="flex items-center gap-2.5">
+                    <span>🔒</span>
+                    <span className="text-sm font-medium">只给自己看</span>
+                  </div>
+
+                  <p className="mt-1.5 text-[11px] leading-5 text-white/30">
+                    这一天只放在自己的房间里。
+                  </p>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setVisibility("public")}
                   className={`rounded-2xl border px-5 py-4 text-left transition ${
                     visibility === "public"
                       ? "border-white/25 bg-white/[0.09] text-white"
-                      : "border-white/10 bg-white/[0.035] text-white/45"
+                      : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
                   }`}
                 >
-                  🌍 发布到日记广场
+                  <div className="flex items-center gap-2.5">
+                    <span>🌍</span>
+                    <span className="text-sm font-medium">发布到日记广场</span>
+                  </div>
+
+                  <p className="mt-1.5 text-[11px] leading-5 text-white/30">
+                    让其他居民也能读见这一刻。
+                  </p>
                 </button>
               </div>
             </div>
@@ -510,31 +493,29 @@ export default function NewDiaryPage() {
 
               {content ? (
                 <article className="prose prose-invert max-w-none prose-p:leading-[2.2]">
-                    <TranslatedMarkdown content={content} />
+                  <TranslatedMarkdown content={content} />
                 </article>
-                ) : (
+              ) : (
                 <div className="space-y-6">
-                    <p className="text-sm leading-7 text-white/35">
+                  <p className="text-sm leading-7 text-white/35">
                     这里会预览今天留下的东西。
-                    </p>
+                  </p>
 
-                    <div className="flex justify-center py-6">
+                  <div className="flex justify-center py-6">
                     <div className="relative h-24 w-20 rounded-sm border border-violet-400/50 bg-white/[0.025] shadow-[0_0_35px_rgba(139,92,246,0.18)]">
-                        <div className="absolute left-4 top-6 h-[2px] w-8 rounded-full bg-violet-300/60" />
-                        <div className="absolute left-4 top-10 h-[2px] w-10 rounded-full bg-white/25" />
-                        <div className="absolute left-4 top-14 h-[2px] w-7 rounded-full bg-white/20" />
-
-                        <div className="absolute -right-3 top-5 h-14 w-3 rounded-r-full border-y border-r border-violet-400/45" />
-
-                        <div className="absolute -bottom-3 left-1/2 h-[1px] w-16 -translate-x-1/2 bg-violet-400/30 blur-sm" />
+                      <div className="absolute left-4 top-6 h-[2px] w-8 rounded-full bg-violet-300/60" />
+                      <div className="absolute left-4 top-10 h-[2px] w-10 rounded-full bg-white/25" />
+                      <div className="absolute left-4 top-14 h-[2px] w-7 rounded-full bg-white/20" />
+                      <div className="absolute -right-3 top-5 h-14 w-3 rounded-r-full border-y border-r border-violet-400/45" />
+                      <div className="absolute -bottom-3 left-1/2 h-[1px] w-16 -translate-x-1/2 bg-violet-400/30 blur-sm" />
                     </div>
-                    </div>
+                  </div>
 
-                    <p className="text-sm leading-7 text-white/30">
+                  <p className="text-sm leading-7 text-white/30">
                     写下这一刻，让未来的你感谢现在的自己。
-                    </p>
+                  </p>
                 </div>
-                )}
+              )}
             </div>
           </aside>
         </div>

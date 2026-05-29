@@ -68,8 +68,7 @@ export default function EditDiaryPage() {
       }
 
       const loadedContent = data.content || "";
-      const loadedVisibility =
-        data.visibility || "private";
+      const loadedVisibility = data.visibility || "private";
 
       setDiary(data);
       setContent(loadedContent);
@@ -85,18 +84,14 @@ export default function EditDiaryPage() {
   }, [id]);
 
   const contentChanged = content !== originalContent;
-  const visibilityChanged =
-    visibility !== originalVisibility;
+  const visibilityChanged = visibility !== originalVisibility;
   const hasChanged = contentChanged || visibilityChanged;
 
   function goToDiaryDetail() {
     window.location.href = `/diary/${id}`;
   }
 
-  function insertTextAtCursor(
-    beforeText: string,
-    afterText = ""
-  ) {
+  function insertTextAtCursor(beforeText: string, afterText = "") {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -113,9 +108,7 @@ export default function EditDiaryPage() {
     textarea.setSelectionRange(newPosition, newPosition);
   }
 
-  async function uploadImage(
-    e: ChangeEvent<HTMLInputElement>
-  ) {
+  async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -137,9 +130,7 @@ export default function EditDiaryPage() {
 
     const {
       data: { publicUrl },
-    } = supabase.storage
-      .from("images")
-      .getPublicUrl(fileName);
+    } = supabase.storage.from("images").getPublicUrl(fileName);
 
     insertTextAtCursor(`\n\n![](${publicUrl})\n\n`);
   }
@@ -157,15 +148,12 @@ export default function EditDiaryPage() {
 
     setSaving(true);
 
-    const diaryDate =
-      diary?.published_at || diary?.created_at;
+    const diaryDate = diary?.published_at || diary?.created_at;
 
-    const fallbackTitle =
-      `日记 · ${formatDate(diaryDate)}`;
+    const fallbackTitle = `日记 · ${formatDate(diaryDate)}`;
 
     const fallbackSlug =
-      diary?.slug ||
-      `diary-${diary?.id || Date.now()}`;
+      diary?.slug || `diary-${diary?.id || Date.now()}`;
 
     const { error } = await supabase
       .from("posts")
@@ -202,10 +190,7 @@ export default function EditDiaryPage() {
 
     if (!confirmed) return;
 
-    const { error } = await supabase
-      .from("posts")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("posts").delete().eq("id", id);
 
     if (error) {
       alert(error.message);
@@ -237,8 +222,7 @@ export default function EditDiaryPage() {
     );
   }
 
-  const diaryDate =
-    diary?.published_at || diary?.created_at;
+  const diaryDate = diary?.published_at || diary?.created_at;
 
   const toolbarButtonClass =
     "rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white";
@@ -275,9 +259,7 @@ export default function EditDiaryPage() {
               )}
 
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-                {visibility === "public"
-                  ? "🌍 已公开"
-                  : "🔒 私密"}
+                {visibility === "public" ? "🌍 已公开" : "🔒 私密"}
               </span>
 
               {(diary?.edit_count || 0) > 0 && (
@@ -307,6 +289,32 @@ export default function EditDiaryPage() {
           <div className="sticky top-6 z-20 flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-black/70 p-4 backdrop-blur-2xl">
             <button
               type="button"
+              onClick={() => insertTextAtCursor("\n# 标题\n")}
+              className={toolbarButtonClass}
+            >
+              H1
+            </button>
+
+            <button
+              type="button"
+              onClick={() => insertTextAtCursor("\n## 今天的小标题\n")}
+              className={toolbarButtonClass}
+            >
+              H2
+            </button>
+
+            <label className={toolbarButtonClass + " cursor-pointer"}>
+              {uploading ? "上传中..." : "图片"}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={uploadImage}
+                className="hidden"
+              />
+            </label>
+
+            <button
+              type="button"
               onClick={() => insertTextAtCursor("**", "**")}
               className={toolbarButtonClass}
             >
@@ -316,9 +324,7 @@ export default function EditDiaryPage() {
             <button
               type="button"
               onClick={() =>
-                insertTextAtCursor(
-                  "\n> 后来想补充的是：\n"
-                )
+                insertTextAtCursor("\n> 后来想补充的是：\n")
               }
               className={toolbarButtonClass}
             >
@@ -327,40 +333,8 @@ export default function EditDiaryPage() {
 
             <button
               type="button"
-              onClick={() => insertTextAtCursor("\n---\n")}
-              className={toolbarButtonClass}
-            >
-              分割线
-            </button>
-
-            <button
-              type="button"
               onClick={() =>
-                insertTextAtCursor("\n## 今天的小标题\n")
-              }
-              className={toolbarButtonClass}
-            >
-              H2
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                insertTextAtCursor(
-                  "\n```text\n写在这里\n```\n"
-                )
-              }
-              className={toolbarButtonClass}
-            >
-              Code
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                insertTextAtCursor(
-                  "[想留下的链接](https://example.com)"
-                )
+                insertTextAtCursor("[想留下的链接](https://example.com)")
               }
               className={toolbarButtonClass}
             >
@@ -381,35 +355,22 @@ export default function EditDiaryPage() {
 
             <button
               type="button"
+              onClick={() => insertTextAtCursor("\n---\n")}
+              className={toolbarButtonClass}
+            >
+              分割线
+            </button>
+
+            <button
+              type="button"
               onClick={() =>
-                insertTextAtCursor(
-                  "\n> 💡 我想提醒未来的自己：\n"
-                )
+                insertTextAtCursor("\n> 💡 我想提醒未来的自己：\n")
               }
               className={toolbarButtonClass}
             >
               提示
             </button>
 
-            <label
-              className={
-                toolbarButtonClass + " cursor-pointer"
-              }
-            >
-              📸 图片
-              <input
-                type="file"
-                accept="image/*"
-                onChange={uploadImage}
-                className="hidden"
-              />
-            </label>
-
-            {uploading && (
-              <span className="px-3 py-2 text-sm text-white/35">
-                上传中...
-              </span>
-            )}
           </div>
 
           <textarea
@@ -490,10 +451,17 @@ export default function EditDiaryPage() {
                 className={`rounded-2xl border px-5 py-4 text-left transition ${
                   visibility === "private"
                     ? "border-white/25 bg-white/[0.09] text-white"
-                    : "border-white/10 bg-white/[0.035] text-white/45"
+                    : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
                 }`}
               >
-                🔒 只给自己看
+                <div className="flex items-center gap-2.5">
+                  <span>🔒</span>
+                  <span className="text-sm font-medium">只给自己看</span>
+                </div>
+
+                <p className="mt-1.5 text-[11px] leading-5 text-white/30">
+                  这一天只放在自己的房间里。
+                </p>
               </button>
 
               <button
@@ -502,10 +470,17 @@ export default function EditDiaryPage() {
                 className={`rounded-2xl border px-5 py-4 text-left transition ${
                   visibility === "public"
                     ? "border-white/25 bg-white/[0.09] text-white"
-                    : "border-white/10 bg-white/[0.035] text-white/45"
+                    : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
                 }`}
               >
-                🌍 发布到日记广场
+                <div className="flex items-center gap-2.5">
+                  <span>🌍</span>
+                  <span className="text-sm font-medium">发布到日记广场</span>
+                </div>
+
+                <p className="mt-1.5 text-[11px] leading-5 text-white/30">
+                  让其他居民也能读见这一刻。
+                </p>
               </button>
             </div>
           </div>
