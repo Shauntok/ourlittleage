@@ -155,7 +155,7 @@ export default function ArticlesSpacePage() {
             return (
               <Link
                 key={post.id}
-                href={`/articles/${post.id}`}
+                href={`/articles/${post.slug}`}
                 className="
                   group rounded-[2.5rem]
                   border border-white/10

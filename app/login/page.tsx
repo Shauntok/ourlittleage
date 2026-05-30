@@ -5,13 +5,19 @@ import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminPage() {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   async function signIn() {
+    if (!email.trim() || !password.trim()) {
+      alert("请填写邮箱和密码。");
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim(),
       password,
     });
 
@@ -20,16 +26,24 @@ export default function AdminPage() {
       return;
     }
 
-    alert("登录成功");
-    window.location.reload();
+    window.location.href = "/home";
   }
 
   async function signUp() {
-    const {
-      data,
-      error,
-    } = await supabase.auth.signUp({
-      email,
+    if (!username.trim()) {
+      alert("请填写居民名字。");
+      return;
+    }
+
+    if (!email.trim() || !password.trim()) {
+      alert("请填写邮箱和密码。");
+      return;
+    }
+
+    const finalUsername = username.trim();
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
       password,
     });
 
@@ -38,89 +52,96 @@ export default function AdminPage() {
       return;
     }
 
-    // ===== 创建用户 Profile =====
     const user = data.user;
 
     if (user) {
-      const username =
-        email.split("@")[0];
-
-      await supabase
+      const { error: profileError } = await supabase
         .from("profiles")
         .insert([
           {
             id: user.id,
-            username,
+            username: finalUsername,
             role: "user",
+            theme: "midnight",
           },
         ]);
 
-      // ===== 创建欢迎信 =====
-      await supabase
-        .from("notifications")
-        .insert([
-          {
-            user_id: user.id,
-            title: "欢迎来到小时代 🌙",
-            content:
-              "这里是一个可以慢慢生活、写故事、留下回忆的小世界。\n\n希望你能在这里找到属于自己的角落。",
-            type: "system",
-          },
-        ]);
+      if (profileError) {
+        alert(profileError.message);
+        return;
+      }
+
+      await supabase.from("notifications").insert([
+        {
+          user_id: user.id,
+          title: "欢迎来到小时代 🌙",
+          content:
+            "这里是一个可以慢慢生活、写故事、留下回忆的小世界。\n\n希望你能在这里找到属于自己的角落。",
+          type: "system",
+        },
+      ]);
     }
-    
+
     alert("注册成功，请登录");
   }
 
   return (
-    <main className="min-h-screen bg-black text-white px-6 py-20">
-      <div className="max-w-sm mx-auto space-y-6">
-  <h1 className="text-4xl font-bold">
-    居民登录
-  </h1>
+    <main className="min-h-screen bg-black px-6 py-20 text-white">
+      <div className="mx-auto max-w-sm space-y-6">
+        <h1 className="text-4xl font-bold">
+          居民登录
+        </h1>
 
-  <input
-    type="email"
-    placeholder="邮箱"
-    value={email}
-    onChange={(e) => setEmail(e.target.value)}
-    className="w-full p-4 bg-zinc-900 border border-zinc-700 rounded-xl outline-none focus:border-white"
-  />
+        <input
+          type="text"
+          placeholder="居民名字"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-4 outline-none focus:border-white"
+        />
 
-  <div className="relative w-full flex items-center">
-    <input
-      type={showPassword ? "text" : "password"}
-      placeholder="密码"
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-      className="w-full p-4 pr-12 bg-zinc-900 border border-zinc-700 rounded-xl outline-none focus:border-white"
-    />
+        <input
+          type="email"
+          placeholder="邮箱"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-4 outline-none focus:border-white"
+        />
 
-    <button
-      type="button"
-      onClick={() => setShowPassword(!showPassword)}
-      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
-    >
-      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-    </button>
-  </div>
+        <div className="relative flex w-full items-center">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="密码"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-4 pr-12 outline-none focus:border-white"
+          />
 
-  <div className="flex gap-4">
-    <button
-      onClick={signIn}
-      className="bg-white text-black px-6 py-3 font-bold rounded-xl"
-    >
-      登录
-    </button>
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
 
-    <button
-      onClick={signUp}
-      className="border border-zinc-600 px-6 py-3 rounded-xl"
-    >
-      注册
-    </button>
-  </div>
-</div>
+        <div className="flex gap-4">
+          <button
+            onClick={signIn}
+            className="rounded-xl bg-white px-6 py-3 font-bold text-black"
+          >
+            登录
+          </button>
+
+          <button
+            onClick={signUp}
+            className="rounded-xl border border-zinc-600 px-6 py-3"
+          >
+            注册
+          </button>
+        </div>
+      </div>
     </main>
   );
 }

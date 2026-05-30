@@ -21,7 +21,7 @@ export default function HomePage() {
   const [latestDiary, setLatestDiary] =useState("今晚还没有新的痕迹。");
   const [latestArticle, setLatestArticle] =useState("还没有新的故事。");
   const [latestDiaryId, setLatestDiaryId] =useState<number | null>(null);
-  const [latestArticleId, setLatestArticleId] =useState<number | null>(null);
+  const [latestArticleSlug, setLatestArticleSlug] = useState<string | null>(null);
   const [nightBroadcast, setNightBroadcast] =useState("今晚似乎有很多人睡不着。");
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function HomePage() {
 
       if (latestArticlePost?.title) {
         setLatestArticle(latestArticlePost.title);
-        setLatestArticleId(latestArticlePost.id);
+        setLatestArticleSlug(latestArticlePost.slug);
       }
 
       const broadcasts: string[] = [];
@@ -167,9 +167,9 @@ export default function HomePage() {
       label: "最新故事",
       title: "📝 " + latestArticle,
       desc: "有人刚刚留下了一篇新的故事。",
-      href: latestArticleId
-        ? `/articles/${latestArticleId}`
-        : "/articles",
+      href: latestArticleSlug
+        ? `/articles/${latestArticleSlug}`
+        : "/space/articles",
     },
     {
       label: "今晚动态",
@@ -231,80 +231,6 @@ export default function HomePage() {
             blur-3xl
           `}
         />
-
-        <nav className="fixed left-1/2 top-5 z-50 flex w-[92%] max-w-6xl -translate-x-1/2 items-center justify-between rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 backdrop-blur-2xl">
-          <Link
-            href="/home"
-            className="text-sm font-semibold tracking-wide text-white/80 transition hover:text-white"
-          >
-            小时代
-          </Link>
-
-          <div className="hidden items-center gap-6 text-xs text-white/45 md:flex">
-            <Link href="/home" className="text-white/80">
-              首页
-            </Link>
-
-            <Link
-              href="/space"
-              className="transition hover:text-white/80"
-            >
-              广场
-            </Link>
-
-            <Link
-              href="/diary"
-              className="transition hover:text-white/80"
-            >
-              日记
-            </Link>
-
-            <Link
-              href="/articles"
-              className="transition hover:text-white/80"
-            >
-              文章
-            </Link>
-
-            <Link
-              href={profileHref}
-              className="transition hover:text-white/80"
-            >
-              我的房间
-            </Link>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/settings/profile"
-              className="hidden text-xs text-white/40 transition hover:text-white/75 sm:block"
-            >
-              编辑房间
-            </Link>
-
-            <Link
-              href={profileHref}
-              className="h-9 w-9 overflow-hidden rounded-full border border-white/10 bg-white/[0.05] transition hover:border-white/25"
-              title="我的房间"
-            >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={displayName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm">
-                  🌙
-                </div>
-              )}
-            </Link>
-
-            <div className="hidden text-xs text-white/40 lg:block">
-              {atmosphere.label}
-            </div>
-          </div>
-        </nav>
 
         <section className="relative z-10 flex min-h-[78vh] items-center justify-center px-6 pt-28">
           <div className="mx-auto max-w-5xl text-center">

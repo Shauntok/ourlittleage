@@ -38,7 +38,7 @@ export default function ArticleDetailPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        window.location.href = "/";
+        router.push("/");
         return;
       }
 
@@ -56,12 +56,23 @@ export default function ArticleDetailPage() {
         return;
       }
 
-      if (data.visibility === "private" && data.author_id !== user.id) {
+      const isAuthor = data.author_id === user.id;
+
+      const canView =
+        isAuthor ||
+        (data.visibility === "public" &&
+          data.status === "published");
+
+      if (!canView) {
         router.push("/articles");
         return;
       }
 
-      setArticle(data);
+      setArticle({
+        ...data,
+        isAuthor,
+      });
+
       setLoading(false);
     }
 
@@ -79,7 +90,8 @@ export default function ArticleDetailPage() {
   }
 
   const articleDate = article.published_at || article.created_at;
-  const isAuthor = article.author_id === currentUserId;
+  const isAuthor = article.isAuthor || article.author_id === currentUserId;
+  const backHref = isAuthor ? "/articles" : "/space/articles";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
@@ -88,10 +100,10 @@ export default function ArticleDetailPage() {
 
       <article className="mx-auto max-w-4xl">
         <Link
-          href="/articles"
+          href={backHref}
           className="text-sm text-white/35 transition hover:text-white/70"
         >
-          ← 回到文章
+          {isAuthor ? "← 回到我的文章" : "← 回到文章广场"}
         </Link>
 
         <header className="mt-14 rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-9 backdrop-blur-2xl">
@@ -152,22 +164,20 @@ export default function ArticleDetailPage() {
         )}
 
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-4">
-          {isAuthor ? (
+          {isAuthor && (
             <Link
               href={`/articles/edit/${article.id}`}
               className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
             >
               编辑文章
             </Link>
-          ) : (
-            <span />
           )}
 
           <Link
-            href="/articles"
+            href={backHref}
             className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
           >
-            回到文章页
+            {isAuthor ? "回到我的文章" : "回到文章广场"}
           </Link>
         </footer>
 

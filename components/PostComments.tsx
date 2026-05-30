@@ -193,36 +193,56 @@ export default function PostComments({ postId }: Props) {
         </p>
       </div>
 
-      <div className="mt-8 space-y-4">
+      <div
+        className="
+          mt-8 overflow-hidden
+          rounded-[2rem]
+          border border-white/10
+          bg-white/[0.035]
+          backdrop-blur-2xl
+        "
+      >
         <textarea
-          rows={4}
+          rows={5}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="写下你的留言..."
           className="
-            w-full resize-none rounded-[2rem]
-            border border-white/10
-            bg-white/[0.035]
-            p-5 leading-8 text-white
-            outline-none transition
+            w-full resize-none
+            bg-transparent
+            px-5 py-5
+            leading-8 text-white
+            outline-none
             placeholder:text-white/25
-            focus:border-white/25
-            focus:bg-white/[0.055]
           "
         />
 
-        <button
-          onClick={submitComment}
-          disabled={loading}
+        {/* 底部操作区 */}
+        <div
           className="
-            rounded-full bg-white px-7 py-3
-            text-sm font-semibold text-black
-            transition hover:bg-white/90
-            disabled:cursor-not-allowed disabled:opacity-40
+            flex justify-end
+            border-t border-white/5
+            px-5 py-4
+            bg-white/[0.015]
           "
         >
-          {loading ? "送出中..." : "留下留言"}
-        </button>
+          <button
+            onClick={submitComment}
+            disabled={loading}
+            className="
+              rounded-full bg-white
+              px-7 py-3
+              text-sm font-semibold text-black
+              transition-all duration-300
+              hover:bg-white/90
+              hover:scale-[1.02]
+              disabled:cursor-not-allowed
+              disabled:opacity-40
+            "
+          >
+            {loading ? "送出中..." : "留下留言"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-14 flex flex-wrap items-center justify-between gap-4">

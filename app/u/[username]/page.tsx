@@ -124,10 +124,22 @@ export default async function UserPage({
 
   const showArticles =
     activeTab === "all" || activeTab === "article";
+  const roomTheme =
+    profile.theme === "ocean"
+      ? "from-blue-950 via-slate-950 to-black"
+      : profile.theme === "forest"
+      ? "from-emerald-950 via-green-950 to-black"
+      : profile.theme === "sunset"
+      ? "from-orange-950 via-amber-950 to-black"
+      : profile.theme === "mist"
+      ? "from-zinc-700 via-zinc-800 to-black"
+      : "from-black via-zinc-950 to-black";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-20 text-white">
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
+      <div
+        className={`fixed inset-0 -z-10 bg-gradient-to-b ${roomTheme}`}
+      />
       <div className="fixed left-1/2 top-1/3 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
       <div className="mx-auto max-w-6xl space-y-12">

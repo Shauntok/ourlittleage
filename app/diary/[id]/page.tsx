@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
+import PostComments from "@/components/PostComments";
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -52,7 +53,7 @@ export default function DiaryDetailPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/home");
+        router.push("/");
         return;
       }
 
@@ -60,7 +61,6 @@ export default function DiaryDetailPage() {
         .from("posts")
         .select("*")
         .eq("id", id)
-        .eq("author_id", user.id)
         .eq("type", "diary")
         .single();
 
@@ -69,7 +69,23 @@ export default function DiaryDetailPage() {
         return;
       }
 
-      setDiary(data);
+      const isOwner = data.author_id === user.id;
+
+      const canView =
+        isOwner ||
+        (data.visibility === "public" &&
+          data.status === "published");
+
+      if (!canView) {
+        router.push("/diary");
+        return;
+      }
+
+      setDiary({
+        ...data,
+        isOwner,
+      });
+
       setLoading(false);
     }
 
@@ -87,6 +103,8 @@ export default function DiaryDetailPage() {
   }
 
   const diaryDate = diary.published_at || diary.created_at;
+  const canComment =
+    diary.visibility === "public" && diary.status === "published";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
@@ -96,10 +114,10 @@ export default function DiaryDetailPage() {
 
       <article className="mx-auto max-w-3xl">
         <Link
-          href="/diary"
+          href={diary.isOwner ? "/diary" : "/space/diaries"}
           className="text-sm text-white/35 transition hover:text-white/70"
         >
-          ← 回到总日记
+          {diary.isOwner ? "← 回到总日记" : "← 回到日记广场"}
         </Link>
 
         <header className="mt-14 rounded-[2.3rem] border border-white/10 bg-white/[0.035] p-9 backdrop-blur-2xl shadow-[0_0_80px_rgba(255,255,255,0.045)]">
@@ -159,21 +177,25 @@ export default function DiaryDetailPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <Link
-              href={`/diary/${diary.id}/edit`}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
-            >
-              编辑日记
-            </Link>
+            {diary.isOwner && (
+              <Link
+                href={`/diary/${diary.id}/edit`}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
+              >
+                编辑日记
+              </Link>
+            )}
 
             <Link
-              href="/diary"
+              href={diary.isOwner ? "/diary" : "/space/diaries"}
               className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
             >
-              回到日记页
+              {diary.isOwner ? "回到日记页" : "回到日记广场"}
             </Link>
           </div>
         </footer>
+
+        {canComment && <PostComments postId={diary.id} />}
       </article>
     </main>
   );

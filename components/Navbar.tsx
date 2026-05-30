@@ -174,47 +174,11 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4">
-          {profile && (
-            <Link
-              href="/settings/profile"
-              className="hidden text-xs text-white/35 transition hover:text-white/70 sm:block"
-            >
-              编辑房间
-            </Link>
-          )}
-
-          {profile && (
-            <Link
-              href="/write"
-              className="hidden text-xs text-white/35 transition hover:text-white/70 lg:block"
-            >
-              ✍️ 写故事
-            </Link>
-          )}
-
-          {profile && (
-            <Link
-              href="/notifications"
-              className="relative flex items-center justify-center transition hover:scale-105 hover:text-white"
-              title="小时代信箱"
-            >
-              <span className="text-xl">
-                {unreadCount > 0 ? "📬" : "📪"}
-              </span>
-
-              {unreadCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-lg shadow-red-500/50">
-                  {unreadCount}
-                </span>
-              )}
-            </Link>
-          )}
-
           {profile ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-3 transition hover:text-white"
+                className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] p-1 pr-3 transition hover:border-white/25 hover:bg-white/[0.08]"
               >
                 <div className="h-10 w-10 overflow-hidden rounded-full border border-white/10 bg-white/[0.05] shadow-[0_0_24px_rgba(255,255,255,0.08)]">
                   {profile.avatar_url ? (
@@ -230,7 +194,7 @@ export default function Navbar() {
                   )}
                 </div>
 
-                <span className="hidden max-w-[140px] truncate text-xs text-white/45 lg:inline">
+                <span className="hidden max-w-[120px] truncate text-xs text-white/45 lg:inline">
                   {profile.username || "居民"}
                 </span>
               </button>

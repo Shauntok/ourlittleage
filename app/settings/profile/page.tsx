@@ -97,7 +97,7 @@ export default function ProfileSettingsPage() {
 
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
-
+  const [theme, setTheme] = useState("midnight");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
@@ -142,7 +142,7 @@ export default function ProfileSettingsPage() {
 
       setUsername(profile?.username || "");
       setBio(profile?.bio || "");
-
+      setTheme(profile?.theme || "midnight");
       setMoodEmoji(profile?.mood_emoji || "");
       setStatusMessage(profile?.status_message || "");
 
@@ -192,6 +192,7 @@ export default function ProfileSettingsPage() {
       .update({
         username: username.trim(),
         bio,
+        theme,
         show_level: showLevel,
         show_exp: showExp,
         show_trust_score: showTrustScore,
@@ -210,6 +211,7 @@ export default function ProfileSettingsPage() {
       ...current,
       username: username.trim(),
       bio,
+      theme,
       show_level: showLevel,
       show_exp: showExp,
       show_trust_score: showTrustScore,
@@ -441,6 +443,17 @@ export default function ProfileSettingsPage() {
 
   const previewUsername = username || "居民";
   const previewBio = bio || "这个房间暂时还很安静。";
+  const previewTheme =
+    theme === "ocean"
+      ? "from-blue-950 via-slate-950 to-black"
+      : theme === "forest"
+      ? "from-emerald-950 via-green-950 to-black"
+      : theme === "sunset"
+      ? "from-orange-950 via-amber-950 to-black"
+      : theme === "mist"
+      ? "from-zinc-700 via-zinc-800 to-black"
+      : "from-black via-zinc-950 to-black";
+
 
   return (
     <div className="w-full overflow-hidden text-white">
@@ -663,6 +676,61 @@ export default function ProfileSettingsPage() {
 
           <section className="rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-2xl">
             <p className="text-xs tracking-[0.35em] text-white/25">
+              ROOM THEME
+            </p>
+
+            <h2 className="mt-4 text-2xl font-light">
+              🎨 房间主题
+            </h2>
+
+            <p className="mt-3 text-sm leading-7 text-white/35">
+              选择别人进入你房间时看见的氛围。
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  key: "midnight",
+                  name: "🌙 深夜黑",
+                },
+                {
+                  key: "ocean",
+                  name: "🌊 深海蓝",
+                },
+                {
+                  key: "forest",
+                  name: "🌲 森林绿",
+                },
+                {
+                  key: "sunset",
+                  name: "🌇 黄昏橙",
+                },
+                {
+                  key: "mist",
+                  name: "☁️ 雾白",
+                },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    setTheme(item.key);
+                    setHasUnsavedChanges(true);
+                  }}
+                  className={`rounded-2xl border p-4 text-left transition ${
+                    theme === item.key
+                      ? "border-white bg-white text-black"
+                      : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/25"
+                  }`}
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-2xl">
+            <p className="text-xs tracking-[0.35em] text-white/25">
               VISITOR PRIVACY
             </p>
 
@@ -731,7 +799,9 @@ export default function ProfileSettingsPage() {
         </section>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <div className="overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
+          <div
+            className={`overflow-hidden rounded-[2.4rem] border border-white/10 bg-gradient-to-b ${previewTheme} backdrop-blur-2xl`}
+          >
             <div className="relative h-48">
               {profile?.banner_url ? (
                 <img

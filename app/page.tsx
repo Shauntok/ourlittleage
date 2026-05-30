@@ -15,42 +15,43 @@ export default function Page() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [username, setUsername] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [username, setUsername] = useState("");
+
   const [loginLoading, setLoginLoading] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
 
   async function handleEnter() {
-    if (!email || !password) {
+    if (!email.trim() || !password.trim()) {
       alert("请输入邮箱和密码。");
       return;
     }
 
-    setLoginLoading(true);
+    setRegisterLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim(),
       password,
     });
 
     if (error) {
       alert("登录失败，请检查邮箱或密码。");
-      setLoginLoading(false);
+      setRegisterLoading(false);
       return;
     }
 
     router.push("/home");
-    }
+  }
 
-    async function handleRegister() {
+  async function handleRegister() {
     if (
-        !username ||
-        !registerEmail ||
-        !registerPassword ||
-        !confirmPassword
-      ) {
+      !username.trim() ||
+      !registerEmail.trim() ||
+      !registerPassword.trim() ||
+      !confirmPassword.trim()
+    ) {
       alert("请填写居民名字、邮箱和密码。");
       return;
     }
@@ -60,35 +61,54 @@ export default function Page() {
       return;
     }
 
-    setLoginLoading(true);
+    setRegisterLoading(true);
 
     const { data, error } = await supabase.auth.signUp({
-      email: registerEmail,
+      email: registerEmail.trim(),
       password: registerPassword,
     });
 
-    console.log("注册 data:", data);
-    console.error("注册 error:", error);
-
     if (error) {
       alert(error.message);
-      setLoginLoading(false);
+      setRegisterLoading(false);
       return;
     }
 
     if (data.user) {
-      await supabase.from("profiles").insert([
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: data.user.id,
+            username: username.trim(),
+            role: "user",
+            theme: "midnight",
+          },
+          {
+            onConflict: "id",
+          }
+        );
+
+      if (profileError) {
+        alert(profileError.message);
+        setRegisterLoading(false);
+        return;
+      }
+
+      await supabase.from("notifications").insert([
         {
-          id: data.user.id,
-          username: username.trim(),
+          user_id: data.user.id,
+          title: "欢迎来到小时代 🌙",
+          content:
+            "这里是一个可以慢慢生活、写故事、留下回忆的小世界。\n\n希望你能在这里找到属于自己的角落。",
+          type: "system",
         },
       ]);
     }
 
-    setLoginLoading(false);
+    setRegisterLoading(false);
     router.push("/home");
   }
-  
 
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
@@ -127,7 +147,6 @@ export default function Page() {
 
   return (
     <main className="w-full overflow-x-clip bg-black text-white">
-      {/* ===== 第一屏：世界入口 ===== */}
       <section
         className="relative flex h-screen items-center justify-center overflow-hidden transition-all duration-300"
         style={{
@@ -287,7 +306,6 @@ export default function Page() {
         </div>
       </section>
 
-      {/* ===== 第二屏：进入世界过渡 ===== */}
       <section className="relative h-[160vh] bg-black">
         <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
           <div
@@ -328,7 +346,6 @@ export default function Page() {
         </div>
       </section>
 
-      {/* ===== 第三屏：居民入口 ===== */}
       <section
         id="portal"
         className="relative flex min-h-[130vh] items-center justify-center overflow-hidden px-6"
@@ -361,7 +378,6 @@ export default function Page() {
             filter: `blur(${Math.max(10 - (scrollY - 1500) * 0.02, 0)}px)`,
           }}
         >
-          {/* 登录卡片 */}
           <div
             className={`
               rounded-[2rem] border border-white/10 bg-white/[0.035]
@@ -446,7 +462,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* 注册卡片 */}
           <div
             className={`
               overflow-hidden rounded-[2rem] border border-white/10
@@ -473,9 +488,7 @@ export default function Page() {
                 留下一个名字后，这个世界会开始记得你。
               </p>
 
-
               <div className="mt-9 space-y-4">
-
                 <input
                   type="text"
                   placeholder="你想在小时代叫什么名字？"
@@ -557,7 +570,6 @@ export default function Page() {
         </div>
       </section>
 
-      {/* ===== 吸附式居民入口按钮 ===== */}
       <div
         className={`
           fixed left-1/2 z-40 -translate-x-1/2 transition-all duration-1000 ease-out
@@ -588,7 +600,6 @@ export default function Page() {
         </button>
       </div>
 
-      {/* ===== 深夜音乐小碟 ===== */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={() => setMusicOpen(!musicOpen)}

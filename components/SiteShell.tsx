@@ -14,7 +14,6 @@ export default function SiteShell({
 
   const isAdminPage = pathname.startsWith("/admin");
   const isLandingPage = pathname === "/";
-  const isResidentHomePage = pathname === "/home";
 
   useEffect(() => {
     async function checkBanned() {
@@ -44,7 +43,7 @@ export default function SiteShell({
 
   return (
     <>
-      {!isAdminPage && !isLandingPage && !isResidentHomePage && <Navbar />}
+      {!isAdminPage && !isLandingPage && <Navbar />}
 
       {children}
     </>
