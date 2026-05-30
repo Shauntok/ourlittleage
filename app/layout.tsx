@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import SiteShell from "@/components/SiteShell";
@@ -46,6 +47,7 @@ export default function RootLayout({
             </PageRouterTransition>
           </SiteShell>
         </LanguageProvider>
+        <Analytics />
       </body>
     </html>
   );
