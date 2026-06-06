@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
+type ProfileInfo = {
+  username: string | null;
+  avatar_url: string | null;
+};
+
 type ArticlePost = {
   id: number;
   title: string;
@@ -11,6 +16,8 @@ type ArticlePost = {
   content: string;
   tags: string | null;
   published_at: string;
+  author_id: string;
+  authorProfile?: ProfileInfo | null;
 };
 
 function getExcerpt(content: string) {
@@ -21,21 +28,12 @@ function getExcerpt(content: string) {
     .slice(0, 180);
 }
 
-function getReadingTime(content: string) {
-  const words = content.trim().length;
-
-  const minutes = Math.max(
-    1,
-    Math.ceil(words / 450)
-  );
-
-  return `${minutes} 分钟阅读`;
-}
-
-function formatDate(date: string) {
+function formatDateTime(date: string) {
   return new Intl.DateTimeFormat("zh-CN", {
     month: "long",
     day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(new Date(date));
 }
 
@@ -70,7 +68,8 @@ export default function ArticlesSpacePage() {
           slug,
           content,
           tags,
-          published_at
+          published_at,
+          author_id
         `)
         .eq("type", "article")
         .eq("status", "published")
@@ -79,10 +78,42 @@ export default function ArticlesSpacePage() {
           ascending: false,
         });
 
-      if (!error && data) {
-        setPosts(data);
+      if (error || !data) {
+        setPosts([]);
+        setLoading(false);
+        return;
       }
 
+      const authorIds = Array.from(
+        new Set(
+          data
+            .map((post) => post.author_id)
+            .filter(Boolean)
+        )
+      );
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, avatar_url")
+        .in("id", authorIds);
+
+      const profileMap = new Map(
+        (profiles || []).map((profile: any) => [
+          profile.id,
+          {
+            username: profile.username,
+            avatar_url: profile.avatar_url,
+          },
+        ])
+      );
+
+      const postsWithProfiles = data.map((post) => ({
+        ...post,
+        authorProfile:
+          profileMap.get(post.author_id) || null,
+      }));
+
+      setPosts(postsWithProfiles);
       setLoading(false);
     }
 
@@ -95,8 +126,7 @@ export default function ArticlesSpacePage() {
 
       <div className="fixed left-1/2 top-1/3 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
-      <div className="mx-auto max-w-6xl">
-        {/* Header */}
+      <div className="mx-auto max-w-5xl">
         <header className="mb-16">
           <Link
             href="/space"
@@ -119,14 +149,12 @@ export default function ArticlesSpacePage() {
           </p>
         </header>
 
-        {/* Loading */}
         {loading && (
           <div className="py-24 text-center text-white/30">
             正在翻开大家留下的故事...
           </div>
         )}
 
-        {/* Empty */}
         {!loading && posts.length === 0 && (
           <div className="rounded-[2.8rem] border border-white/10 bg-white/[0.03] p-16 text-center backdrop-blur-2xl">
             <p className="text-2xl font-light text-white/65">
@@ -140,87 +168,129 @@ export default function ArticlesSpacePage() {
           </div>
         )}
 
-        {/* Posts */}
         <div className="grid gap-7">
           {posts.map((post) => {
             const excerpt =
               getExcerpt(post.content);
 
-            const readingTime =
-              getReadingTime(post.content);
-
             const tags =
               normalizeTags(post.tags);
 
+            const author = post.authorProfile;
+            const authorHref = author?.username
+              ? `/u/${encodeURIComponent(author.username)}`
+              : null;
+
             return (
-              <Link
+              <article
                 key={post.id}
-                href={`/articles/${post.slug}`}
                 className="
-                  group rounded-[2.5rem]
+                  min-w-0 overflow-hidden
+                  rounded-[2.2rem]
                   border border-white/10
                   bg-white/[0.03]
-                  p-10
+                  p-8
                   backdrop-blur-2xl
-                  transition-all duration-700
-                  hover:-translate-y-1
+                  transition-all duration-500
                   hover:border-white/20
                   hover:bg-white/[0.05]
                 "
               >
-                {/* Top */}
-                <div className="flex flex-wrap items-center gap-3 text-xs text-white/30">
-                  <span>
-                    {formatDate(post.published_at)}
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    {authorHref ? (
+                      <Link
+                        href={authorHref}
+                        className="
+                          h-10 w-10 shrink-0 overflow-hidden rounded-full
+                          border border-white/10 bg-white/[0.04]
+                          transition hover:scale-105 hover:border-white/25
+                        "
+                        title="进入居民房间"
+                      >
+                        {author?.avatar_url ? (
+                          <img
+                            src={author.avatar_url}
+                            alt={author.username || "居民"}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-sm">
+                            🌙
+                          </div>
+                        )}
+                      </Link>
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm">
+                        🌙
+                      </div>
+                    )}
+
+                    <div className="min-w-0">
+                      {authorHref ? (
+                        <Link
+                          href={authorHref}
+                          className="safe-text block truncate text-sm font-medium text-white/70 transition hover:text-white"
+                        >
+                          {author?.username || "已离开的居民"}
+                        </Link>
+                      ) : (
+                        <p className="safe-text truncate text-sm font-medium text-white/45">
+                          已离开的居民
+                        </p>
+                      )}
+
+                      <p className="mt-1 text-xs tracking-[0.18em] text-white/25">
+                        {formatDateTime(post.published_at)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs text-white/40">
+                    文章
                   </span>
-
-                  <span>·</span>
-
-                  <span>{readingTime}</span>
                 </div>
 
-                {/* Title */}
-                <h2 className="mt-6 text-3xl font-light leading-tight text-white/88 transition group-hover:text-white">
-                  {post.title}
-                </h2>
+                <Link
+                  href={`/articles/${post.slug}`}
+                  className="group mt-7 block min-w-0 overflow-hidden"
+                >
+                  <h2 className="safe-text text-2xl font-light leading-tight text-white/88 transition group-hover:text-white">
+                    {post.title}
+                  </h2>
 
-                {/* Excerpt */}
-                <p className="mt-7 max-w-3xl text-[15px] leading-[2.15] text-white/42">
-                  {excerpt}...
-                </p>
-
-                {/* Tags */}
-                {tags.length > 0 && (
-                  <div className="mt-8 flex flex-wrap gap-3">
-                    {tags.map((tag: string) => (
-                      <span
-                        key={tag}
-                        className="
-                          rounded-full border border-white/10
-                          bg-white/[0.04]
-                          px-4 py-2
-                          text-xs text-white/45
-                        "
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Bottom */}
-                <div className="mt-10 flex items-center justify-between">
-                  <p className="text-sm text-white/25 transition group-hover:text-white/50">
-                    进入这篇故事 →
+                  <p className="safe-pre mt-7 max-w-3xl text-[15px] leading-[2.15] text-white/42">
+                    {excerpt}
+                    {post.content.length > 180 ? "..." : ""}
                   </p>
 
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full border border-white/10 bg-white/[0.03]" />
+                  {tags.length > 0 && (
+                    <div className="mt-8 flex flex-wrap gap-3">
+                      {tags.map((tag: string) => (
+                        <span
+                          key={tag}
+                          className="
+                            safe-text
+                            max-w-full
+                            rounded-full border border-white/10
+                            bg-white/[0.04]
+                            px-4 py-2
+                            text-xs text-white/45
+                          "
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-                    <div className="h-10 w-10 rounded-full border border-white/10 bg-white/[0.03]" />
+                  <div className="mt-10">
+                    <p className="text-sm text-white/25 transition group-hover:text-white/50">
+                      进入这篇故事 →
+                    </p>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </article>
             );
           })}
         </div>

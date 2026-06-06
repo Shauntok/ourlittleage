@@ -79,7 +79,7 @@ export default function AdminSidebar() {
       badge: draftCount,
     },
     {
-      href: "/admin/published",
+      href: "/admin/content",
       label: "已发布",
       icon: "✅",
     },

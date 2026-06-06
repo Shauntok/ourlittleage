@@ -124,6 +124,7 @@ export default async function UserPage({
 
   const showArticles =
     activeTab === "all" || activeTab === "article";
+
   const roomTheme =
     profile.theme === "ocean"
       ? "from-blue-950 via-slate-950 to-black"
@@ -150,7 +151,7 @@ export default async function UserPage({
           ← 回到深夜广场
         </Link>
 
-        <section className="overflow-hidden rounded-[2.8rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
+        <section className="min-w-0 overflow-hidden rounded-[2.8rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
           <div className="relative h-[300px] w-full">
             {profile.banner_url ? (
               <img
@@ -166,14 +167,14 @@ export default async function UserPage({
 
             {(profile.status_message || profile.mood_emoji) &&
               !isStatusExpired && (
-                <div className="absolute right-6 top-6 z-10 max-w-xs rounded-[1.5rem] border border-violet-500/20 bg-black/60 px-5 py-4 backdrop-blur-2xl shadow-[0_0_45px_rgba(139,92,246,0.12)]">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">
+                <div className="absolute right-6 top-6 z-10 max-w-xs overflow-hidden rounded-[1.5rem] border border-violet-500/20 bg-black/60 px-5 py-4 backdrop-blur-2xl shadow-[0_0_45px_rgba(139,92,246,0.12)]">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="shrink-0 text-2xl">
                       {profile.mood_emoji || "🌙"}
                     </span>
 
                     {profile.status_message && (
-                      <span className="break-words text-sm leading-6 text-white/75">
+                      <span className="safe-pre text-sm leading-6 text-white/75">
                         {profile.status_message}
                       </span>
                     )}
@@ -188,7 +189,7 @@ export default async function UserPage({
 
           <div
             id="about-user"
-            className="relative px-8 pb-10 scroll-mt-28"
+            className="relative min-w-0 px-8 pb-10 scroll-mt-28"
           >
             <div className="-mt-16 h-32 w-32 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_55px_rgba(255,255,255,0.12)]">
               {profile.avatar_url ? (
@@ -204,17 +205,17 @@ export default async function UserPage({
               )}
             </div>
 
-            <div className="mt-7 space-y-6">
-              <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-5 py-3 backdrop-blur-xl">
-                <div className="h-3 w-3 animate-pulse rounded-full bg-green-400" />
+            <div className="mt-7 min-w-0 space-y-6">
+              <div className="inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-5 py-3 backdrop-blur-xl">
+                <div className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-green-400" />
 
-                <p className="text-xs uppercase tracking-[0.28em] text-white/40">
+                <p className="safe-text text-xs uppercase tracking-[0.28em] text-white/40">
                   {residentTitle}
                 </p>
               </div>
 
-              <div>
-                <h1 className="text-5xl font-light tracking-tight md:text-6xl">
+              <div className="min-w-0">
+                <h1 className="safe-text text-5xl font-light tracking-tight md:text-6xl">
                   {profile.username}
                 </h1>
 
@@ -225,7 +226,7 @@ export default async function UserPage({
                 </p>
               </div>
 
-              <p className="max-w-2xl text-base leading-8 text-white/55">
+              <p className="safe-pre max-w-2xl text-base leading-8 text-white/55">
                 {profile.bio || "这个房间暂时还很安静。"}
               </p>
 
@@ -284,7 +285,7 @@ export default async function UserPage({
                     return (
                       <div
                         key={badge.id}
-                        className={`rounded-full border px-4 py-2 text-sm backdrop-blur-xl ${
+                        className={`safe-text max-w-full rounded-full border px-4 py-2 text-sm backdrop-blur-xl ${
                           badge.color === "gold"
                             ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-100"
                             : badge.color === "emerald"
@@ -307,12 +308,12 @@ export default async function UserPage({
         </section>
 
         <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
+          <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
             <p className="text-xs tracking-[0.3em] text-white/25">
               RESIDENT
             </p>
 
-            <h3 className="mt-4 text-2xl font-light text-white/85">
+            <h3 className="safe-text mt-4 text-2xl font-light text-white/85">
               {residentTitle}
             </h3>
 
@@ -321,12 +322,12 @@ export default async function UserPage({
             </p>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
+          <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
             <p className="text-xs tracking-[0.3em] text-white/25">
               DAYS
             </p>
 
-            <h3 className="mt-4 text-2xl font-light text-white/85">
+            <h3 className="safe-text mt-4 text-2xl font-light text-white/85">
               {joinedDays} 天
             </h3>
 
@@ -335,12 +336,12 @@ export default async function UserPage({
             </p>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
+          <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
             <p className="text-xs tracking-[0.3em] text-white/25">
               ARTICLES
             </p>
 
-            <h3 className="mt-4 text-2xl font-light text-white/85">
+            <h3 className="safe-text mt-4 text-2xl font-light text-white/85">
               {publicArticles.length} 篇
             </h3>
 
@@ -349,12 +350,12 @@ export default async function UserPage({
             </p>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
+          <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
             <p className="text-xs tracking-[0.3em] text-white/25">
               DIARIES
             </p>
 
-            <h3 className="mt-4 text-2xl font-light text-white/85">
+            <h3 className="safe-text mt-4 text-2xl font-light text-white/85">
               {publicDiaries.length} 篇
             </h3>
 
@@ -431,7 +432,7 @@ export default async function UserPage({
                   <Link
                     key={post.id}
                     href={`/articles/${post.slug}`}
-                    className="group block rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
+                    className="group block min-w-0 overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
                   >
                     <p className="text-xs text-white/30">
                       文章 ·{" "}
@@ -440,7 +441,7 @@ export default async function UserPage({
                       ).toLocaleString("zh-CN")}
                     </p>
 
-                    <h3 className="mt-5 text-2xl font-light text-white/85">
+                    <h3 className="safe-text mt-5 text-2xl font-light text-white/85">
                       <TranslatedText text={title} />
                     </h3>
 
@@ -458,7 +459,7 @@ export default async function UserPage({
                     )}
 
                     {excerpt && (
-                      <p className="mt-5 text-sm leading-8 text-white/42">
+                      <p className="safe-pre mt-5 text-sm leading-8 text-white/42">
                         <TranslatedText text={`${excerpt}...`} />
                       </p>
                     )}
@@ -486,7 +487,7 @@ export default async function UserPage({
                   <Link
                     key={post.id}
                     href={`/diary/${post.id}`}
-                    className="group block rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
+                    className="group block min-w-0 overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
                   >
                     <p className="text-xs text-white/30">
                       日记 ·{" "}
@@ -495,12 +496,12 @@ export default async function UserPage({
                       ).toLocaleString("zh-CN")}
                     </p>
 
-                    <h3 className="mt-5 text-2xl font-light text-white/85">
+                    <h3 className="safe-text mt-5 text-2xl font-light text-white/85">
                       <TranslatedText text={title} />
                     </h3>
 
                     {excerpt && (
-                      <p className="mt-5 text-sm leading-8 text-white/42">
+                      <p className="safe-pre mt-5 text-sm leading-8 text-white/42">
                         <TranslatedText text={`${excerpt}...`} />
                       </p>
                     )}

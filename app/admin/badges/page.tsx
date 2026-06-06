@@ -6,72 +6,155 @@ import { supabase } from "@/lib/supabase";
 export default function AdminBadgesPage() {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [badges, setBadges] = useState<any[]>([]);
+  const [userBadges, setUserBadges] = useState<any[]>([]);
+
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedBadgeId, setSelectedBadgeId] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [userBadges, setUserBadges] =useState<any[]>([]);
+
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // ===== 读取用户和徽章 =====
+  const [badgeName, setBadgeName] = useState("");
+  const [badgeColor, setBadgeColor] = useState("violet");
+  const [badgeDescription, setBadgeDescription] = useState("");
+
   useEffect(() => {
-    async function fetchData() {
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .order("username", { ascending: true });
-
-      const { data: badgesData } = await supabase
-        .from("badges")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      setProfiles(profilesData || []);
-      setBadges(badgesData || []);
-    }
-
     fetchData();
   }, []);
 
-    // ===== 搜索过滤 =====
-    const filteredProfiles = profiles.filter(
-    (profile) =>
-        profile.username
-        ?.toLowerCase()
-        .includes(search.toLowerCase()) ||
+  async function fetchData() {
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .order("username", { ascending: true });
 
-        profile.id
-        ?.toLowerCase()
-        .includes(search.toLowerCase())
+    const { data: badgesData } = await supabase
+      .from("badges")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    setProfiles(profilesData || []);
+    setBadges(badgesData || []);
+  }
+
+  async function writeLog(action: string, targetType: string, targetId: string, details: string) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    await supabase.from("admin_logs").insert([
+      {
+        admin_id: user.id,
+        action,
+        target_type: targetType,
+        target_id: targetId,
+        details,
+      },
+    ]);
+  }
+
+  const filteredProfiles = profiles.filter((profile) => {
+    const keyword = search.toLowerCase().trim();
+
+    return (
+      !keyword ||
+      profile.username?.toLowerCase().includes(keyword) ||
+      profile.id?.toLowerCase().includes(keyword)
     );
+  });
 
-    // ===== 读取用户已有徽章 =====
-    async function fetchUserBadges(
-      userId: string
-    ) {
-      if (!userId) {
-        setUserBadges([]);
-        return;
-      }
-
-      const { data } = await supabase
-        .from("user_badges")
-        .select(`
-          id,
-          badges (
-            id,
-            name,
-            color
-          )
-        `)
-        .eq("user_id", userId);
-
-      setUserBadges(data || []);
+  async function fetchUserBadges(userId: string) {
+    if (!userId) {
+      setUserBadges([]);
+      return;
     }
 
-  // ===== 颁发徽章 =====
+    const { data } = await supabase
+      .from("user_badges")
+      .select(`
+        id,
+        badges (
+          id,
+          name,
+          color,
+          description
+        )
+      `)
+      .eq("user_id", userId);
+
+    setUserBadges(data || []);
+  }
+
+  async function createBadge() {
+    const cleanName = badgeName.trim();
+    const cleanDescription = badgeDescription.trim();
+
+    if (!cleanName) {
+      alert("请输入徽章名称。");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("badges")
+      .insert([
+        {
+          name: cleanName,
+          color: badgeColor,
+          description: cleanDescription || null,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await writeLog("create_badge", "badge", data.id, `创建徽章：${cleanName}`);
+
+    setBadgeName("");
+    setBadgeDescription("");
+    setBadgeColor("violet");
+
+    fetchData();
+    alert("徽章已创建 🎖️");
+  }
+
+  async function deleteBadge(badgeId: string) {
+    const confirmed = confirm("确定删除这个徽章吗？已发给居民的对应记录也可能需要一起清理。");
+    if (!confirmed) return;
+
+    await supabase
+      .from("user_badges")
+      .delete()
+      .eq("badge_id", badgeId);
+
+    const { error } = await supabase
+      .from("badges")
+      .delete()
+      .eq("id", badgeId);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await writeLog("delete_badge", "badge", badgeId, "删除徽章");
+
+    if (selectedUserId) {
+      fetchUserBadges(selectedUserId);
+    }
+
+    fetchData();
+    alert("徽章已删除");
+  }
+
   async function giveBadge() {
     if (!selectedUserId || !selectedBadgeId) {
-      alert("请选择用户和徽章");
+      alert("请选择居民和徽章。");
       return;
     }
 
@@ -85,7 +168,7 @@ export default function AdminBadgesPage() {
       .maybeSingle();
 
     if (existingBadge) {
-      alert("这个居民已经拥有这个徽章了");
+      alert("这个居民已经拥有这个徽章了。");
       setLoading(false);
       return;
     }
@@ -104,107 +187,182 @@ export default function AdminBadgesPage() {
       return;
     }
 
-    // ===== 获取当前 admin =====
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    await writeLog(
+      "give_badge",
+      "user",
+      selectedUserId,
+      `发放徽章 ID: ${selectedBadgeId}`
+    );
 
-    // ===== 写入日志 =====
-    await supabase.from("admin_logs").insert([
+    await supabase.from("notifications").insert([
       {
-        admin_id: user?.id,
-        action: "give_badge",
-        target_type: "user",
-        target_id: selectedUserId,
-        details: `发放徽章 ID: ${selectedBadgeId}`,
+        user_id: selectedUserId,
+        title: "你获得了新的徽章 🎖️",
+        content: "有一枚新的徽章被放进了你的房间。谢谢你在小时代留下痕迹。",
+        type: "system",
       },
     ]);
 
-      alert("徽章已颁发 🎖️");
-      fetchUserBadges(selectedUserId);
+    alert("徽章已颁发 🎖️");
+    fetchUserBadges(selectedUserId);
+  }
+
+  async function removeBadge(userBadgeId: string) {
+    const confirmed = confirm("确定移除这个徽章吗？");
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("user_badges")
+      .delete()
+      .eq("id", userBadgeId);
+
+    if (error) {
+      alert(error.message);
+      return;
     }
 
-      // ===== 移除徽章 =====
-    async function removeBadge(
-      userBadgeId: string
-    ) {
-      const confirmed = confirm(
-        "确定移除这个徽章吗？"
-      );
+    await writeLog(
+      "remove_badge",
+      "user",
+      selectedUserId,
+      `移除 user_badge ID: ${userBadgeId}`
+    );
 
-      if (!confirmed) return;
+    setUserBadges((current) =>
+      current.filter((item) => item.id !== userBadgeId)
+    );
 
-      const { error } = await supabase
-        .from("user_badges")
-        .delete()
-        .eq("id", userBadgeId);
+    alert("徽章已移除");
+  }
 
-      if (error) {
-        alert(error.message);
-        return;
-      }
-
-      // ===== 获取当前 admin =====
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      // ===== 写入日志 =====
-      await supabase.from("admin_logs").insert([
-        {
-          admin_id: user?.id,
-          action: "remove_badge",
-          target_type: "user",
-          target_id: selectedUserId,
-          details: `移除 user_badge ID: ${userBadgeId}`,
-        },
-      ]);
-
-      setUserBadges((current) =>
-        current.filter((item) => item.id !== userBadgeId)
-      );
-
-      alert("徽章已移除");
+  function getBadgeStyle(color: string) {
+    switch (color) {
+      case "gold":
+        return "border-yellow-500/30 bg-yellow-500/10 text-yellow-200";
+      case "emerald":
+        return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+      case "rose":
+        return "border-rose-500/30 bg-rose-500/10 text-rose-200";
+      case "sky":
+        return "border-sky-500/30 bg-sky-500/10 text-sky-200";
+      default:
+        return "border-violet-500/30 bg-violet-500/10 text-violet-200";
     }
+  }
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="space-y-8">
       <div>
         <h1 className="text-4xl font-bold">
           徽章管理 🎖️
         </h1>
 
-        <p className="text-zinc-500 mt-2">
-          给居民颁发身份徽章。
+        <p className="mt-2 text-zinc-500">
+          创建徽章，并颁发给居民。
         </p>
       </div>
 
-      <div className="space-y-5 rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-      <input
-        type="text"
-        value={search}
-        onChange={(e) =>
-            setSearch(e.target.value)
-        }
-        placeholder="搜索居民名称或 ID..."
-        className="w-full p-4 rounded-2xl bg-black border border-zinc-700 outline-none focus:border-white"
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+        <h2 className="text-2xl font-bold">
+          创建新徽章
+        </h2>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <input
+            value={badgeName}
+            onChange={(e) => setBadgeName(e.target.value)}
+            placeholder="徽章名称，例如 深夜居民"
+            className="rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-white"
+          />
+
+          <select
+            value={badgeColor}
+            onChange={(e) => setBadgeColor(e.target.value)}
+            className="rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-white"
+          >
+            <option value="violet">violet</option>
+            <option value="gold">gold</option>
+            <option value="emerald">emerald</option>
+            <option value="rose">rose</option>
+            <option value="sky">sky</option>
+          </select>
+
+          <button
+            onClick={createBadge}
+            className="rounded-2xl bg-white px-6 py-3 font-bold text-black transition hover:opacity-80"
+          >
+            创建徽章
+          </button>
+        </div>
+
+        <textarea
+          value={badgeDescription}
+          onChange={(e) => setBadgeDescription(e.target.value)}
+          placeholder="徽章说明，可选"
+          rows={3}
+          className="mt-4 w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-white"
         />
+      </section>
+
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+        <h2 className="text-2xl font-bold">
+          现有徽章
+        </h2>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          {badges.length === 0 && (
+            <p className="text-sm text-zinc-600">
+              暂无徽章。
+            </p>
+          )}
+
+          {badges.map((badge) => (
+            <div
+              key={badge.id}
+              className={`safe-text rounded-full border px-4 py-2 text-sm ${getBadgeStyle(
+                badge.color
+              )}`}
+            >
+              🎖️ {badge.name}
+
+              <button
+                onClick={() => deleteBadge(badge.id)}
+                className="ml-3 text-red-200/70 hover:text-red-100"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-5 rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+        <h2 className="text-2xl font-bold">
+          颁发徽章
+        </h2>
+
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="搜索居民名称或 ID..."
+          className="w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-white"
+        />
+
         <select
           value={selectedUserId}
           onChange={async (e) => {
             const value = e.target.value;
-
             setSelectedUserId(value);
-
             await fetchUserBadges(value);
           }}
-          className="w-full p-4 rounded-2xl bg-black border border-zinc-700 outline-none focus:border-white"
+          className="w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-white"
         >
           <option value="">选择居民</option>
 
           {filteredProfiles.map((profile) => (
             <option key={profile.id} value={profile.id}>
-              {profile.username}
+              {profile.username || "无名居民"} · {profile.id}
             </option>
           ))}
         </select>
@@ -212,7 +370,7 @@ export default function AdminBadgesPage() {
         <select
           value={selectedBadgeId}
           onChange={(e) => setSelectedBadgeId(e.target.value)}
-          className="w-full p-4 rounded-2xl bg-black border border-zinc-700 outline-none focus:border-white"
+          className="w-full rounded-2xl border border-zinc-700 bg-black p-4 outline-none focus:border-white"
         >
           <option value="">选择徽章</option>
 
@@ -226,40 +384,44 @@ export default function AdminBadgesPage() {
         <button
           onClick={giveBadge}
           disabled={loading}
-          className="px-6 py-3 rounded-2xl bg-white text-black font-bold hover:opacity-80 transition"
+          className="rounded-2xl bg-white px-6 py-3 font-bold text-black transition hover:opacity-80 disabled:opacity-40"
         >
           {loading ? "颁发中..." : "颁发徽章"}
         </button>
 
-        {/* ===== 已拥有徽章 ===== */}
-        {userBadges.length > 0 && (
+        {selectedUserId && (
           <div className="space-y-3 pt-4">
             <p className="text-sm text-zinc-500">
-              已拥有徽章
+              该居民已拥有徽章
             </p>
 
             <div className="flex flex-wrap gap-3">
+              {userBadges.length === 0 && (
+                <p className="text-sm text-zinc-600">
+                  暂无徽章。
+                </p>
+              )}
+
               {userBadges.map((item: any) => {
                 const badge = item.badges;
-
                 if (!badge) return null;
 
                 return (
                   <button
                     key={item.id}
-                    onClick={() =>
-                      removeBadge(item.id)
-                    }
-                    className="px-4 py-2 rounded-full border border-red-500 bg-red-500/10 text-red-200 hover:bg-red-500/20 transition"
+                    onClick={() => removeBadge(item.id)}
+                    className={`safe-text rounded-full border px-4 py-2 text-sm transition hover:opacity-80 ${getBadgeStyle(
+                      badge.color
+                    )}`}
                   >
-                    {badge.name} ×
+                    🎖️ {badge.name} ×
                   </button>
                 );
               })}
             </div>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

@@ -7,6 +7,16 @@ import { supabase } from "@/lib/supabase";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
 import PostComments from "@/components/PostComments";
 
+type ProfileInfo = {
+  username: string | null;
+  avatar_url: string | null;
+};
+
+function getProfile(profile: ProfileInfo | ProfileInfo[] | null) {
+  if (Array.isArray(profile)) return profile[0] || null;
+  return profile;
+}
+
 function getVisibilityLabel(visibility: string) {
   switch (visibility) {
     case "public":
@@ -68,8 +78,21 @@ export default function ArticleDetailPage() {
         return;
       }
 
+      let authorProfile = null;
+
+      if (data.author_id) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("username, avatar_url")
+          .eq("id", data.author_id)
+          .maybeSingle();
+
+        authorProfile = profileData;
+      }
+
       setArticle({
         ...data,
+        profiles: authorProfile,
         isAuthor,
       });
 
@@ -93,12 +116,17 @@ export default function ArticleDetailPage() {
   const isAuthor = article.isAuthor || article.author_id === currentUserId;
   const backHref = isAuthor ? "/articles" : "/space/articles";
 
+  const authorProfile = getProfile(article.profiles);
+  const authorHref = authorProfile?.username
+    ? `/u/${encodeURIComponent(authorProfile.username)}`
+    : null;
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
-      <article className="mx-auto max-w-4xl">
+      <article className="mx-auto max-w-4xl min-w-0 overflow-hidden">
         <Link
           href={backHref}
           className="text-sm text-white/35 transition hover:text-white/70"
@@ -106,18 +134,55 @@ export default function ArticleDetailPage() {
           {isAuthor ? "← 回到我的文章" : "← 回到文章广场"}
         </Link>
 
-        <header className="mt-14 rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-9 backdrop-blur-2xl">
+        <header className="mt-14 min-w-0 overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-9 backdrop-blur-2xl">
           <p className="text-xs tracking-[0.38em] text-white/25">
             ARTICLE
           </p>
 
-          <h1 className="mt-6 text-5xl font-light leading-tight tracking-tight md:text-6xl">
+          <h1 className="safe-text mt-6 text-5xl font-light leading-tight tracking-tight md:text-6xl">
             {article.title || "无标题文章"}
           </h1>
 
-          <p className="mt-6 text-sm text-white/35">
-            {new Date(articleDate).toLocaleString("zh-CN")}
-          </p>
+          <div className="mt-7 flex flex-wrap items-center gap-4">
+            {authorHref ? (
+              <Link
+                href={authorHref}
+                className="group inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-black/30 px-4 py-2 transition hover:border-white/25 hover:bg-white/[0.05]"
+              >
+                <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
+                  {authorProfile?.avatar_url ? (
+                    <img
+                      src={authorProfile.avatar_url}
+                      alt={authorProfile.username || "居民"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-sm">
+                      🌙
+                    </div>
+                  )}
+                </div>
+
+                <span className="safe-text text-sm text-white/60 transition group-hover:text-white">
+                  {authorProfile?.username || "已离开的居民"}
+                </span>
+              </Link>
+            ) : (
+              <div className="inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-black/30 px-4 py-2">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm">
+                  🌙
+                </div>
+
+                <span className="safe-text text-sm text-white/45">
+                  已离开的居民
+                </span>
+              </div>
+            )}
+
+            <p className="safe-text text-sm text-white/35">
+              {new Date(articleDate).toLocaleString("zh-CN")}
+            </p>
+          </div>
 
           <div className="mt-7 flex flex-wrap gap-3 text-xs text-white/40">
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
@@ -138,7 +203,7 @@ export default function ArticleDetailPage() {
                 .map((tag: string) => (
                   <span
                     key={tag}
-                    className="rounded-full bg-white/[0.05] px-3 py-1 text-xs text-white/35"
+                    className="safe-text max-w-full rounded-full bg-white/[0.05] px-3 py-1 text-xs text-white/35"
                   >
                     #{tag}
                   </span>
@@ -147,19 +212,31 @@ export default function ArticleDetailPage() {
           )}
         </header>
 
-        <section className="mt-10 rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-9 backdrop-blur-2xl">
-          <article className="prose prose-invert max-w-none prose-p:leading-[2.2]">
+        <section className="mt-10 min-w-0 overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-9 backdrop-blur-2xl">
+          <article
+            className="
+              prose prose-invert max-w-none
+              overflow-hidden break-words
+              prose-p:break-words prose-p:leading-[2.2]
+              prose-headings:break-words
+              prose-blockquote:break-words
+              prose-pre:whitespace-pre-wrap prose-pre:break-words
+              prose-code:break-words
+              [&_*]:break-words
+              [&_*]:[overflow-wrap:anywhere]
+            "
+          >
             <TranslatedMarkdown content={article.content || ""} />
           </article>
         </section>
 
         {isAuthor && article.notes && (
-          <section className="mt-8 rounded-[2rem] border border-yellow-500/15 bg-yellow-500/[0.05] p-6 text-sm leading-8 text-yellow-100/60">
+          <section className="safe-pre mt-8 rounded-[2rem] border border-yellow-500/15 bg-yellow-500/[0.05] p-6 text-sm leading-8 text-yellow-100/60">
             <p className="mb-3 text-xs tracking-[0.3em] text-yellow-100/35">
               作者私密笔记
             </p>
 
-            <p className="whitespace-pre-wrap">{article.notes}</p>
+            <p>{article.notes}</p>
           </section>
         )}
 

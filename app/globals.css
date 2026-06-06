@@ -242,3 +242,40 @@ body {
     box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
   }
 }
+
+.safe-text {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.safe-text * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.safe-pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose,
+.prose * {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.safe-text {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.safe-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}

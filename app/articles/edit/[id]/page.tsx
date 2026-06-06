@@ -33,6 +33,12 @@ export default function EditArticlePage() {
 
   const [originalSnapshot, setOriginalSnapshot] = useState("");
 
+  const cleanTitle = title.trim();
+  const cleanContent = content.trim();
+
+  const titleCount = cleanTitle.length;
+  const contentCount = cleanContent.length;
+
   useEffect(() => {
     async function fetchArticle() {
       const {
@@ -107,6 +113,34 @@ export default function EditArticlePage() {
 
   const hasChanged = makeSnapshot() !== originalSnapshot;
 
+  function validateTitle() {
+    if (!cleanTitle) {
+      alert("请输入文章标题。");
+      return false;
+    }
+
+    if (titleCount > 25) {
+      alert(`文章标题不能超过 25 个字。目前是 ${titleCount} 个字。`);
+      return false;
+    }
+
+    return true;
+  }
+
+  function validateContent() {
+    if (!cleanContent) {
+      alert("请输入文章内容。");
+      return false;
+    }
+
+    if (contentCount < 500) {
+      alert(`文章正文至少需要 500 字。目前只有 ${contentCount} 字。`);
+      return false;
+    }
+
+    return true;
+  }
+
   function insertTextAtCursor(beforeText: string, afterText = "") {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -152,13 +186,11 @@ export default function EditArticlePage() {
   }
 
   async function saveArticle() {
-    if (!title.trim() || !slug.trim() || !content.trim()) {
-      alert("标题、slug 和内容不能为空。");
-      return;
-    }
+    if (!validateTitle()) return;
+    if (!validateContent()) return;
 
     const finalSlug =
-      generateSlug(slug.trim()) || generateSlug(title.trim());
+      generateSlug(slug.trim()) || generateSlug(cleanTitle);
 
     if (!finalSlug) {
       alert("slug 无法生成，请换一个标题或手动填写。");
@@ -188,9 +220,9 @@ export default function EditArticlePage() {
     const { error } = await supabase
       .from("posts")
       .update({
-        title: title.trim(),
+        title: cleanTitle,
         slug: finalSlug,
-        content,
+        content: cleanContent,
         tags,
         notes,
         visibility,
@@ -271,13 +303,31 @@ export default function EditArticlePage() {
             </p>
           </div>
 
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="文章标题"
-            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition focus:border-white/40"
-          />
+          <div>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="文章标题"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition focus:border-white/40"
+            />
+
+            <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+              <p className="text-white/25">
+                标题建议短一点，比较像一扇门。
+              </p>
+
+              <p
+                className={`shrink-0 ${
+                  titleCount > 25
+                    ? "text-red-200/70"
+                    : "text-white/30"
+                }`}
+              >
+                已写 {titleCount} 字 · 最多 25 字
+              </p>
+            </div>
+          </div>
 
           <input
             type="text"
@@ -395,35 +445,62 @@ export default function EditArticlePage() {
               }
             }}
             rows={24}
-            className="w-full min-h-[560px] rounded-2xl border border-white/10 bg-white/[0.04] p-5 leading-8 outline-none transition focus:border-white/40"
-          />
+              className="
+                w-full min-h-[560px] rounded-2xl
+                border border-white/10 bg-white/[0.04]
+                p-5 leading-8 outline-none transition
+                break-words whitespace-pre-wrap
+                focus:border-white/40
+              "          
+              />
 
-          <div className="flex flex-wrap gap-4 pt-4">
-            <button
-              onClick={saveArticle}
-              disabled={saving}
-              className="rounded-full bg-white px-8 py-4 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-40"
-            >
-              {saving
-                ? "保存中..."
-                : hasChanged
-                ? "保存修改"
-                : "回到文章"}
-            </button>
+          <div className="flex flex-col gap-6 pt-2 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2 text-xs">
+              <p
+                className={`${
+                  contentCount < 500
+                    ? "text-yellow-100/55"
+                    : "text-emerald-100/55"
+                }`}
+              >
+                已写 {contentCount} 字
+                {contentCount < 500
+                  ? ` · 距离发布建议还差 ${500 - contentCount} 字`
+                  : " · 已达到发布长度"}
+              </p>
 
-            <button
-              onClick={leaveWithoutSaving}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-sm text-white/70 transition hover:border-white/25 hover:text-white"
-            >
-              先这样
-            </button>
+              <p className="text-white/25">
+                慢慢写，故事不用急着完成。
+              </p>
+            </div>
 
-            <button
-              onClick={deleteArticle}
-              className="rounded-full border border-red-500/20 bg-red-500/[0.06] px-8 py-4 text-sm text-red-200/80 transition hover:bg-red-500/[0.12]"
-            >
-              删除
-            </button>
+            <div className="flex flex-wrap gap-4 md:justify-end">
+              <button
+                onClick={saveArticle}
+                disabled={saving}
+                className="rounded-full bg-white px-8 py-4 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-40"
+              >
+                {saving
+                  ? "保存中..."
+                  : hasChanged
+                  ? "保存修改"
+                  : "回到文章"}
+              </button>
+
+              <button
+                onClick={leaveWithoutSaving}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-sm text-white/70 transition hover:border-white/25 hover:text-white"
+              >
+                先这样
+              </button>
+
+              <button
+                onClick={deleteArticle}
+                className="rounded-full border border-red-500/20 bg-red-500/[0.06] px-8 py-4 text-sm text-red-200/80 transition hover:bg-red-500/[0.12]"
+              >
+                删除
+              </button>
+            </div>
           </div>
         </section>
 
@@ -507,7 +584,15 @@ export default function EditArticlePage() {
             </p>
 
             {content ? (
-              <article className="prose prose-invert max-w-none prose-p:leading-[2.2]">
+              <article
+                className="
+                  prose prose-invert max-w-none
+                  overflow-hidden break-words
+                  prose-p:break-words prose-p:leading-[2.2]
+                  prose-pre:whitespace-pre-wrap prose-pre:break-words
+                  prose-code:break-words
+                "
+              >
                 <TranslatedMarkdown content={content} />
               </article>
             ) : (

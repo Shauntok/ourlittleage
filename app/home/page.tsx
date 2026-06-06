@@ -13,16 +13,22 @@ import MouseGlow from "@/components/MouseGlow";
 export default function HomePage() {
   const router = useRouter();
   const atmosphere = getHomeAtmosphere();
+
   const [onlineCount, setOnlineCount] = useState(0);
-  const [onlineResidents, setOnlineResidents] =useState<any[]>([]);
+  const [onlineResidents, setOnlineResidents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [displayName, setDisplayName] = useState("居民");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [latestDiary, setLatestDiary] =useState("今晚还没有新的痕迹。");
-  const [latestArticle, setLatestArticle] =useState("还没有新的故事。");
-  const [latestDiaryId, setLatestDiaryId] =useState<number | null>(null);
+
+  const [latestDiary, setLatestDiary] = useState("今晚还没有新的痕迹。");
+  const [latestArticle, setLatestArticle] = useState("还没有新的故事。");
+
+  const [latestDiaryId, setLatestDiaryId] = useState<number | null>(null);
   const [latestArticleSlug, setLatestArticleSlug] = useState<string | null>(null);
-  const [nightBroadcast, setNightBroadcast] =useState("今晚似乎有很多人睡不着。");
+
+  const [nightBroadcast, setNightBroadcast] = useState("今晚似乎有很多人睡不着。");
+  const [announcement, setAnnouncement] = useState<any>(null);
 
   useEffect(() => {
     async function checkUser() {
@@ -72,6 +78,18 @@ export default function HomePage() {
       setDisplayName(finalDisplayName);
       setAvatarUrl(profile?.avatar_url || "");
 
+      const { data: activeAnnouncement } = await supabase
+        .from("announcements")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(1)
+        .maybeSingle();
+
+      setAnnouncement(activeAnnouncement || null);
+
       const { data: latestDiaryPost } = await supabase
         .from("posts")
         .select("id, content")
@@ -85,10 +103,7 @@ export default function HomePage() {
         .maybeSingle();
 
       if (latestDiaryPost?.content) {
-        setLatestDiary(
-          latestDiaryPost.content.slice(0, 28)
-        );
-
+        setLatestDiary(latestDiaryPost.content.slice(0, 28));
         setLatestDiaryId(latestDiaryPost.id);
       }
 
@@ -112,25 +127,17 @@ export default function HomePage() {
       const broadcasts: string[] = [];
 
       if (latestArticlePost?.title) {
-        broadcasts.push(
-          `有人刚刚写下了《${latestArticlePost.title}》。`
-        );
+        broadcasts.push(`有人刚刚写下了《${latestArticlePost.title}》。`);
       }
 
       if (latestDiaryPost?.content) {
-        broadcasts.push(
-          "有人刚刚留下了一篇新的日记。"
-        );
+        broadcasts.push("有人刚刚留下了一篇新的日记。");
       }
 
       setNightBroadcast(
         broadcasts.length > 0
-          ? broadcasts[
-              Math.floor(
-                Math.random() * broadcasts.length
-              )
-            ]
-          : getNightBroadcast(onlineCount)
+          ? broadcasts[Math.floor(Math.random() * broadcasts.length)]
+          : getNightBroadcast(onlineResidentsCount || 0)
       );
 
       setLoading(false);
@@ -143,7 +150,6 @@ export default function HomePage() {
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-black text-white">
         <FloatingParticles />
-
         <p className="relative z-10 text-sm tracking-[0.3em] text-white/35">
           正在回到你的房间...
         </p>
@@ -167,17 +173,13 @@ export default function HomePage() {
       label: "最新故事",
       title: "📝 " + latestArticle,
       desc: "有人刚刚留下了一篇新的故事。",
-      href: latestArticleSlug
-        ? `/articles/${latestArticleSlug}`
-        : "/space/articles",
+      href: latestArticleSlug ? `/articles/${latestArticleSlug}` : "/space/articles",
     },
     {
       label: "今晚动态",
       title: "🌙 " + latestDiary,
       desc: "有人刚刚留下了新的日记。",
-      href: latestDiaryId
-        ? `/diary/${latestDiaryId}`
-        : "/space/diaries",
+      href: latestDiaryId ? `/diary/${latestDiaryId}` : "/space/diaries",
     },
     {
       label: "我的房间",
@@ -232,46 +234,67 @@ export default function HomePage() {
           `}
         />
 
-        <section className="relative z-10 flex min-h-[78vh] items-center justify-center px-6 pt-28">
-          <div className="mx-auto max-w-5xl text-center">
+        <section className="relative z-10 flex min-h-screen items-center justify-center px-6 pb-20 pt-32">
+          <div className="mx-auto max-w-5xl min-w-0 text-center">
             <div
               className="
-                mx-auto mb-8 inline-flex items-center gap-3
-                rounded-full border border-violet-500/20
-                bg-violet-500/10
-                px-5 py-3
+                safe-pre
+                mx-auto mb-8 inline-flex max-w-full items-center gap-3
+                overflow-hidden rounded-full border border-violet-500/20
+                bg-violet-500/10 px-5 py-3
                 text-sm text-violet-100
                 backdrop-blur-xl
               "
             >
-              <span className="animate-pulse">
-                🌙
-              </span>
-
-              <span>{nightBroadcast}</span>
+              <span className="shrink-0 animate-pulse">🌙</span>
+              <span className="safe-pre">{nightBroadcast}</span>
             </div>
 
             <p className="mb-5 text-xs tracking-[0.45em] text-white/25">
               RESIDENT HOME
             </p>
 
-            <h1 className="text-5xl font-light leading-tight tracking-tight md:text-7xl">
+            <h1 className="safe-text text-5xl font-light leading-tight tracking-tight md:text-7xl">
               欢迎回来，{displayName}.
             </h1>
 
-            <h2 className="mt-6 text-2xl font-light text-white/75">
+            <h2 className="safe-text mt-6 text-2xl font-light text-white/75">
               {atmosphere.heroTitle}
             </h2>
 
-            <p className="mx-auto mt-8 max-w-xl text-sm leading-7 text-white/45">
+            <p className="safe-pre mx-auto mt-8 max-w-xl text-sm leading-7 text-white/45">
               {atmosphere.heroText}
             </p>
 
-            <p className="mt-6 text-sm italic text-white/25">
+            <p className="safe-pre mt-6 text-sm italic text-white/25">
               “{atmosphere.quote}”
             </p>
 
-            <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
+            {announcement && (
+              <div
+                className="
+                  mx-auto mt-10 max-w-2xl min-w-0 overflow-hidden
+                  rounded-[2rem] border border-fuchsia-400/20
+                  bg-fuchsia-500/[0.07] p-6 text-left
+                  shadow-[0_0_70px_rgba(217,70,239,0.09)]
+                  backdrop-blur-2xl
+                "
+              >
+                <p className="text-xs tracking-[0.35em] text-fuchsia-100/45">
+                  WORLD ANNOUNCEMENT
+                </p>
+
+                <h3 className="safe-text mt-4 text-2xl font-light text-white">
+                  📢 {announcement.title}
+                </h3>
+
+                <p className="safe-pre mt-4 text-sm leading-8 text-white/55">
+                  {announcement.content}
+                </p>
+              </div>
+            )}
+
+            <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
               <button
                 onClick={() => router.push("/diary/new")}
                 className="rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition hover:bg-white/90"
@@ -296,33 +319,32 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="relative z-10 px-6 pb-16">
+        <section className="relative z-10 px-6 pb-16 pt-4">
           <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 xl:grid-cols-4">
             {lifeCards.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
                 className="
+                  min-w-0 overflow-hidden
                   rounded-[2rem] border border-white/10
                   bg-white/[0.035] p-6 backdrop-blur-2xl
                   shadow-[0_0_50px_rgba(255,255,255,0.04)]
                   transition-all duration-700 ease-out
-                  hover:-translate-y-2
-                  hover:scale-[1.015]
-                  hover:border-white/20
-                  hover:bg-white/[0.055]
+                  hover:-translate-y-2 hover:scale-[1.015]
+                  hover:border-white/20 hover:bg-white/[0.055]
                   hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]
                 "
               >
-                <p className="text-xs tracking-[0.3em] text-white/30">
+                <p className="safe-text text-xs tracking-[0.3em] text-white/30">
                   {item.label}
                 </p>
 
-                <h3 className="mt-4 line-clamp-2 text-2xl font-light">
+                <h3 className="safe-text mt-4 line-clamp-2 text-2xl font-light">
                   {item.title}
                 </h3>
 
-                <p className="mt-4 text-sm leading-7 text-white/45">
+                <p className="safe-pre mt-4 text-sm leading-7 text-white/45">
                   {item.desc}
                 </p>
               </Link>
@@ -330,28 +352,27 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 在线居民 */}
         {onlineResidents.length > 0 && (
           <section className="relative z-10 px-6 pb-16">
-            <div className="mx-auto max-w-6xl rounded-[2.5rem] border border-white/10 bg-white/[0.035] p-8 backdrop-blur-2xl shadow-[0_0_70px_rgba(255,255,255,0.035)]">
+            <div className="mx-auto max-w-6xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[0.035] p-8 backdrop-blur-2xl shadow-[0_0_70px_rgba(255,255,255,0.035)]">
               <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs tracking-[0.35em] text-white/25">
                     AWAKE RESIDENTS
                   </p>
 
-                  <h2 className="mt-4 text-3xl font-light">
+                  <h2 className="safe-text mt-4 text-3xl font-light">
                     深夜还亮着灯的房间
                   </h2>
 
-                  <p className="mt-4 max-w-xl text-sm leading-7 text-white/35">
+                  <p className="safe-pre mt-4 max-w-xl text-sm leading-7 text-white/35">
                     有些居民还没有睡，正在这个世界里慢慢经过。
                   </p>
                 </div>
 
                 <Link
                   href="/space"
-                  className="text-sm text-white/35 transition hover:text-white/70"
+                  className="shrink-0 text-sm text-white/35 transition hover:text-white/70"
                 >
                   去广场看看 →
                 </Link>
@@ -368,16 +389,13 @@ export default function HomePage() {
                       key={resident.id}
                       href={href}
                       className="
-                        group flex items-center gap-4 rounded-2xl
-                        border border-white/10 bg-black/35
-                        px-5 py-4
+                        group flex min-w-0 items-center gap-4 rounded-2xl
+                        border border-white/10 bg-black/35 px-5 py-4
                         transition-all duration-500
-                        hover:-translate-y-1
-                        hover:border-white/20
-                        hover:bg-white/[0.055]
+                        hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]
                       "
                     >
-                      <div className="relative">
+                      <div className="relative shrink-0">
                         <div className="h-12 w-12 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
                           {resident.avatar_url ? (
                             <img
@@ -396,11 +414,11 @@ export default function HomePage() {
                       </div>
 
                       <div className="min-w-0">
-                        <p className="truncate text-sm text-white/75">
+                        <p className="safe-text truncate text-sm text-white/75">
                           {resident.username || "无名居民"}
                         </p>
 
-                        <p className="mt-1 truncate text-xs text-white/35">
+                        <p className="safe-text mt-1 truncate text-xs text-white/35">
                           {resident.mood_emoji
                             ? `${resident.mood_emoji} ${resident.status_message || "还醒着"}`
                             : "还醒着"}
@@ -414,7 +432,6 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Home Cards */}
         <section className="relative z-10 px-6 pb-32">
           <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-4">
             {homeCards.map((item) => (
@@ -422,14 +439,13 @@ export default function HomePage() {
                 key={item.title}
                 href={item.href}
                 className="
+                  min-w-0 overflow-hidden
                   rounded-[2rem] border border-white/10
                   bg-white/[0.035] p-6 backdrop-blur-2xl
                   shadow-[0_0_50px_rgba(255,255,255,0.04)]
                   transition-all duration-700 ease-out
-                  hover:-translate-y-2
-                  hover:scale-[1.015]
-                  hover:border-white/20
-                  hover:bg-white/[0.055]
+                  hover:-translate-y-2 hover:scale-[1.015]
+                  hover:border-white/20 hover:bg-white/[0.055]
                   hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]
                 "
               >
@@ -437,11 +453,11 @@ export default function HomePage() {
                   {item.icon}
                 </div>
 
-                <h2 className="text-lg font-light text-white/85">
+                <h2 className="safe-text text-lg font-light text-white/85">
                   {item.title}
                 </h2>
 
-                <p className="mt-4 text-sm leading-6 text-white/35">
+                <p className="safe-pre mt-4 text-sm leading-6 text-white/35">
                   {item.desc}
                 </p>
               </Link>

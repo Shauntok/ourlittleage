@@ -35,6 +35,22 @@ export default function DiaryPage() {
   const [loading, setLoading] = useState(true);
   const [diaries, setDiaries] = useState<any[]>([]);
 
+  const [filter, setFilter] = useState<
+    "all" | "published" | "draft"
+  >("all");
+
+  const filteredDiaries = diaries.filter((diary) => {
+    if (filter === "published") {
+      return diary.status === "published";
+    }
+
+    if (filter === "draft") {
+      return diary.status === "draft";
+    }
+
+    return true;
+  });
+
   useEffect(() => {
     async function fetchDiaries() {
       const {
@@ -93,38 +109,89 @@ export default function DiaryPage() {
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[580px] w-[580px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
       <div className="mx-auto max-w-3xl">
-        <header className="mb-20">
-          <p className="text-xs tracking-[0.45em] text-white/25">
-            DIARY
-          </p>
-
-          <h1 className="mt-6 text-6xl font-light tracking-tight">
-            日记
-          </h1>
-
-          <p className="mt-6 max-w-md text-sm leading-8 text-white/35">
-            那些没有及时说出口的话，
-            后来都慢慢留在了这里。
-          </p>
-        </header>
-
-        {diaries.length === 0 && (
-          <div className="rounded-[2.5rem] border border-white/10 bg-white/[0.03] p-10 text-center backdrop-blur-2xl">
-            <p className="text-sm leading-8 text-white/40">
-              这里还没有留下任何一天。
+        <header className="mb-20 flex flex-col justify-between gap-8 md:flex-row md:items-end">
+          <div>
+            <p className="text-xs tracking-[0.45em] text-white/25">
+              DIARY
             </p>
 
-            <Link
-              href="/diary/new"
-              className="mt-8 inline-flex rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
-            >
-              写下第一篇日记
-            </Link>
-          </div>
-        )}
+            <h1 className="mt-6 text-6xl font-light tracking-tight">
+              日记
+            </h1>
 
-        <section className="space-y-8">
-          {diaries.map((diary) => {
+            <p className="mt-6 max-w-md text-sm leading-8 text-white/35">
+              那些没有及时说出口的话，
+              后来都慢慢留在了这里。
+            </p>
+          </div>
+
+          <Link
+            href="/diary/new"
+            className="rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition hover:bg-white/90"
+          >
+            ✍️ 写日记
+          </Link>
+        </header>
+
+          <div className="mb-10 flex flex-wrap gap-3">
+            {[
+              {
+                key: "all",
+                label: "全部",
+                count: diaries.length,
+              },
+              {
+                key: "published",
+                label: "已发布",
+                count: diaries.filter(
+                  (item) => item.status === "published"
+                ).length,
+              },
+              {
+                key: "draft",
+                label: "草稿",
+                count: diaries.filter(
+                  (item) => item.status === "draft"
+                ).length,
+              },
+            ].map((item) => (
+              <button
+                key={item.key}
+                onClick={() =>
+                  setFilter(item.key as any)
+                }
+                className={
+                  filter === item.key
+                    ? "rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition"
+                    : "rounded-full border border-white/10 bg-white/[0.035] px-5 py-3 text-sm text-white/45 transition hover:border-white/20 hover:text-white"
+                }
+              >
+                {item.label}
+
+                <span className="ml-2 text-xs opacity-60">
+                  {item.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {filteredDiaries.length === 0 && (
+            <div className="rounded-[2.5rem] border border-white/10 bg-white/[0.03] p-10 text-center backdrop-blur-2xl">
+              <p className="text-sm leading-8 text-white/40">
+                这个分类里暂时还没有日记。
+              </p>
+
+              <Link
+                href="/diary/new"
+                className="mt-8 inline-flex rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+              >
+                写下今天
+              </Link>
+            </div>
+          )}
+
+          <section className="space-y-8">
+          {filteredDiaries.map((diary) => {
             const diaryDate =
               diary.published_at || diary.created_at;
 
@@ -133,7 +200,9 @@ export default function DiaryPage() {
                 key={diary.id}
                 href={`/diary/${diary.id}`}
                 className="
-                  group block rounded-[2.3rem]
+                  group block
+                  min-w-0 overflow-hidden
+                  rounded-[2.3rem]
                   border border-white/10
                   bg-white/[0.03]
                   p-8 backdrop-blur-2xl
@@ -156,11 +225,20 @@ export default function DiaryPage() {
                   )}
                 </div>
 
-                <h2 className="mt-5 text-4xl font-light tracking-tight text-white/90 transition group-hover:text-white">
+                <h2 className="safe-text mt-5 text-4xl font-light tracking-tight text-white/90 transition group-hover:text-white">
                   {formatDate(diaryDate)}
                 </h2>
 
-                <p className="mt-8 line-clamp-4 text-[15px] leading-[2.2] text-white/50">
+                <p
+                  className="
+                    safe-pre
+                    mt-8
+                    text-[15px]
+                    leading-[2.2]
+                    text-white/50
+                    line-clamp-4
+                  "
+                >
                   {diary.content}
                 </p>
 

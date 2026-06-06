@@ -1,145 +1,406 @@
-import Link from "next/link";
+"use client";
+
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import Link from "next/link";
 
-// ===== 后台首页 =====
-export default async function AdminHomePage() {
-  // ===== 读取全部文章，用来做后台统计 =====
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("*")
-    .order("edited_at", { ascending: false });
+export default function AdminHomePage() {
+  const [loading, setLoading] = useState(true);
 
-  const allPosts = posts || [];
+  const [stats, setStats] = useState({
+    users: 0,
+    todayUsers: 0,
+    onlineUsers: 0,
+    articles: 0,
+    diaries: 0,
+    todayPosts: 0,
+    comments: 0,
+    todayComments: 0,
+    reports: 0,
+    muted: 0,
+    banned: 0,
+  });
 
-  // ===== 统计数据 =====
-  const draftCount = allPosts.filter(
-    (post) => post.status === "draft"
-  ).length;
+  const [latestUsers, setLatestUsers] = useState<any[]>([]);
+  const [latestPosts, setLatestPosts] = useState<any[]>([]);
+  const [latestReports, setLatestReports] = useState<any[]>([]);
 
-  const publishedCount = allPosts.filter(
-    (post) => post.status === "published"
-  ).length;
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
-  const privateCount = allPosts.filter(
-    (post) => post.visibility === "private"
-  ).length;
+  async function getCount(table: string, filter?: (query: any) => any) {
+    let query = supabase.from(table).select("id", {
+      count: "exact",
+      head: true,
+    });
 
-  const hiddenCount = allPosts.filter(
-    (post) => post.visibility === "hidden"
-  ).length;
+    if (filter) {
+      query = filter(query);
+    }
 
-  // ===== 最近编辑文章 =====
-  const recentPosts = allPosts.slice(0, 5);
+    const { count } = await query;
+    return count || 0;
+  }
+
+  async function loadDashboard() {
+    setLoading(true);
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const fiveMinutesAgo = new Date(
+      Date.now() - 5 * 60 * 1000
+    ).toISOString();
+
+    const [
+      users,
+      todayUsers,
+      onlineUsers,
+      articles,
+      diaries,
+      todayPosts,
+      comments,
+      todayComments,
+      reports,
+      muted,
+      banned,
+    ] = await Promise.all([
+      getCount("profiles"),
+      getCount("profiles", (q) =>
+        q.gte("created_at", todayStart.toISOString())
+      ),
+      getCount("profiles", (q) =>
+        q.gte("last_seen_at", fiveMinutesAgo)
+      ),
+      getCount("posts", (q) => q.eq("type", "article")),
+      getCount("posts", (q) => q.eq("type", "diary")),
+      getCount("posts", (q) =>
+        q.gte("created_at", todayStart.toISOString())
+      ),
+      getCount("comments"),
+      getCount("comments", (q) =>
+        q.gte("created_at", todayStart.toISOString())
+      ),
+      getCount("reports", (q) =>
+        q.neq("status", "resolved").neq("status", "rejected")
+      ),
+      getCount("profiles", (q) => q.eq("status", "muted")),
+      getCount("profiles", (q) => q.eq("status", "banned")),
+    ]);
+
+    const { data: usersData } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url, role, status, created_at")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(5);
+
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select("id, title, slug, content, type, status, visibility, created_at, published_at")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(6);
+
+    const { data: reportsData } = await supabase
+      .from("reports")
+      .select(`
+        id,
+        target_type,
+        reason,
+        status,
+        created_at,
+        profiles (
+          username
+        )
+      `)
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(6);
+
+    setStats({
+      users,
+      todayUsers,
+      onlineUsers,
+      articles,
+      diaries,
+      todayPosts,
+      comments,
+      todayComments,
+      reports,
+      muted,
+      banned,
+    });
+
+    setLatestUsers(usersData || []);
+    setLatestPosts(postsData || []);
+    setLatestReports(reportsData || []);
+    setLoading(false);
+  }
+
+  function getPostTitle(post: any) {
+    if (post.title) return post.title;
+
+    if (post.type === "diary") {
+      return `日记 · ${new Date(post.created_at).toLocaleDateString("zh-CN")}`;
+    }
+
+    return "无标题内容";
+  }
+
+  function getPostHref(post: any) {
+    if (post.type === "diary") {
+      return `/diary/${post.id}`;
+    }
+
+    if (post.type === "article" && post.slug) {
+      return `/articles/${post.slug}`;
+    }
+
+    return "/admin/content";
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/60 p-10 text-zinc-500">
+        正在读取小时代后台数据...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10">
-      {/* ===== 页面标题 ===== */}
-      <div>
-        <h1 className="text-4xl font-bold mb-3">
-          后台首页
-        </h1>
+      <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+        <div>
+          <p className="text-xs tracking-[0.35em] text-zinc-600">
+            ADMIN CONTROL CENTER
+          </p>
 
-        <p className="text-zinc-400">
-          管理文章、草稿、可见性和最近编辑内容。
-        </p>
+          <h1 className="mt-4 text-4xl font-bold">
+            小时代控制中心 🌙
+          </h1>
+
+          <p className="mt-3 text-zinc-500">
+            平台运营概览、风险提醒与快速处理入口。
+          </p>
+        </div>
+
+        <button
+          onClick={loadDashboard}
+          className="rounded-full border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm text-zinc-300 transition hover:border-white hover:text-white"
+        >
+          刷新数据
+        </button>
       </div>
 
-      {/* ===== 统计卡片 ===== */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard title="草稿" value={draftCount} />
-        <StatCard title="已发布" value={publishedCount} />
-        <StatCard title="Private" value={privateCount} />
-        <StatCard title="Hidden" value={hiddenCount} />
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard title="居民总数" value={stats.users} icon="👥" />
+        <StatCard title="今日新增" value={stats.todayUsers} icon="🌱" />
+        <StatCard title="当前在线" value={stats.onlineUsers} icon="🟢" />
+        <StatCard title="文章" value={stats.articles} icon="📝" />
+        <StatCard title="日记" value={stats.diaries} icon="📔" />
+        <StatCard title="今日内容" value={stats.todayPosts} icon="✨" />
+        <StatCard title="评论总数" value={stats.comments} icon="💬" />
+        <StatCard title="今日评论" value={stats.todayComments} icon="🗣️" />
+        <StatCard title="待处理举报" value={stats.reports} icon="🚩" danger />
+        <StatCard title="禁言用户" value={stats.muted} icon="🔇" />
+        <StatCard title="封禁用户" value={stats.banned} icon="🚫" danger />
       </div>
 
-      {/* ===== 快速入口 ===== */}
-      <div className="flex flex-wrap gap-4">
-        <Link
-          href="/admin/write"
-          className="admin-btn admin-btn-primary"
-        >
-          新建文章
+      {(stats.reports > 0 || stats.banned > 0 || stats.muted > 0) && (
+        <section className="rounded-3xl border border-red-500/20 bg-red-500/[0.06] p-6">
+          <h2 className="text-2xl font-bold text-red-100">
+            风险提醒
+          </h2>
+
+          <div className="mt-4 space-y-2 text-sm text-red-100/70">
+            {stats.reports > 0 && (
+              <p>🚩 还有 {stats.reports} 条举报需要处理。</p>
+            )}
+
+            {stats.muted > 0 && (
+              <p>🔇 当前有 {stats.muted} 位居民处于禁言状态。</p>
+            )}
+
+            {stats.banned > 0 && (
+              <p>🚫 当前有 {stats.banned} 位居民被封禁。</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        <Link href="/admin/users" className="admin-btn admin-btn-primary">
+          👥 居民管理
         </Link>
 
-        <Link
-          href="/admin/search"
-          className="admin-btn admin-btn-secondary"
-        >
-          搜索文章
+        <Link href="/admin/comments" className="admin-btn admin-btn-secondary">
+          💬 评论管理
         </Link>
 
-        <Link
-          href="/admin/drafts"
-          className="admin-btn admin-btn-secondary"
-        >
-          查看草稿
+        <Link href="/admin/reports" className="admin-btn admin-btn-secondary">
+          🚩 举报中心
+        </Link>
+
+        <Link href="/admin/content" className="admin-btn admin-btn-secondary">
+          📚 内容管理
+        </Link>
+
+        <Link href="/admin/badges" className="admin-btn admin-btn-secondary">
+          🎖️ 徽章系统
         </Link>
       </div>
 
-      {/* ===== 最近编辑 ===== */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-bold">
-          最近编辑
-        </h2>
-
-        {recentPosts.length === 0 && (
-          <div className="admin-empty">
-            <div className="admin-empty-icon">📭</div>
-
-            <h2 className="admin-empty-title">
-              还没有文章
+      <div className="grid gap-6 xl:grid-cols-2">
+        <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-2xl font-bold">
+              最新注册居民
             </h2>
 
-            <p className="admin-empty-text">
-              新建文章后，会在这里看到最近编辑内容。
-            </p>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {recentPosts.map((post) => (
             <Link
-              key={post.id}
-              href={`/admin/edit/${post.id}`}
-              className="block group border border-zinc-800 rounded-2xl p-5 transition duration-300 hover:-translate-y-1 hover:border-zinc-500 hover:bg-zinc-950 hover:shadow-2xl hover:shadow-black/50"
+              href="/admin/users"
+              className="text-sm text-zinc-500 transition hover:text-white"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-bold group-hover:text-zinc-300 transition">
-                    {post.title}
-                  </h3>
+              查看全部 →
+            </Link>
+          </div>
 
-                  <p className="text-sm text-zinc-500 mt-1">
-                    {post.slug}
+          <div className="space-y-3">
+            {latestUsers.length === 0 && (
+              <p className="text-zinc-500">暂无居民。</p>
+            )}
+
+            {latestUsers.map((user) => (
+              <Link
+                key={user.id}
+                href={`/admin/users/${user.id}`}
+                className="block min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4 transition hover:border-zinc-500"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="safe-text font-semibold text-zinc-100">
+                      {user.username || "无名居民"}
+                    </p>
+
+                    <p className="mt-1 text-xs text-zinc-600">
+                      {user.role || "user"} · {user.status || "active"}
+                    </p>
+                  </div>
+
+                  <p className="shrink-0 text-xs text-zinc-600">
+                    {new Date(user.created_at).toLocaleDateString("zh-CN")}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-2xl font-bold">
+              最新举报
+            </h2>
+
+            <Link
+              href="/admin/reports"
+              className="text-sm text-zinc-500 transition hover:text-white"
+            >
+              去处理 →
+            </Link>
+          </div>
+
+          <div className="space-y-3">
+            {latestReports.length === 0 && (
+              <p className="text-zinc-500">目前没有举报。</p>
+            )}
+
+            {latestReports.map((report) => (
+              <Link
+                key={report.id}
+                href="/admin/reports"
+                className="block min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4 transition hover:border-zinc-500"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="safe-text font-semibold text-zinc-100">
+                      🚩 {report.reason || "没有填写原因"}
+                    </p>
+
+                    <p className="mt-1 text-xs text-zinc-600">
+                      举报人：{report.profiles?.username || "未知居民"} ·{" "}
+                      {report.target_type}
+                    </p>
+                  </div>
+
+                  <span className="shrink-0 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs text-yellow-300">
+                    {report.status || "pending"}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-2xl font-bold">
+            最新内容
+          </h2>
+
+          <Link
+            href="/admin/content"
+            className="text-sm text-zinc-500 transition hover:text-white"
+          >
+            内容管理 →
+          </Link>
+        </div>
+
+        <div className="space-y-3">
+          {latestPosts.length === 0 && (
+            <p className="text-zinc-500">暂无内容。</p>
+          )}
+
+          {latestPosts.map((post) => (
+            <div
+              key={post.id}
+              className="min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4"
+            >
+              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                <div className="min-w-0">
+                  <p className="safe-text font-semibold text-zinc-100">
+                    {getPostTitle(post)}
+                  </p>
+
+                  <p className="mt-1 text-xs text-zinc-600">
+                    {post.type || "unknown"} · {post.status} · {post.visibility}
                   </p>
                 </div>
 
-                <div className="flex gap-2 flex-wrap justify-end">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs border ${
-                      post.status === "published"
-                        ? "border-green-500 text-green-400"
-                        : "border-yellow-500 text-yellow-400"
-                    }`}
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <Link
+                    href={getPostHref(post)}
+                    target="_blank"
+                    className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-300 transition hover:border-white hover:text-white"
                   >
-                    {post.status === "published"
-                      ? "✅ 已发布"
-                      : "📝 草稿"}
-                  </span>
+                    查看
+                  </Link>
 
-                  <span className="px-3 py-1 rounded-full text-xs border border-blue-500 text-blue-400">
-                    🌍 {post.visibility || "public"}
-                  </span>
+                  <Link
+                    href="/admin/content"
+                    className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-300 transition hover:border-white hover:text-white"
+                  >
+                    管理
+                  </Link>
                 </div>
               </div>
-
-              <p className="text-sm text-zinc-500 mt-4">
-                最后编辑：
-                {post.edited_at
-                  ? new Date(post.edited_at).toLocaleString()
-                  : new Date(post.created_at).toLocaleString()}
-              </p>
-            </Link>
+            </div>
           ))}
         </div>
       </section>
@@ -147,21 +408,36 @@ export default async function AdminHomePage() {
   );
 }
 
-// ===== 统计卡片组件 =====
 function StatCard({
   title,
   value,
+  icon,
+  danger = false,
 }: {
   title: string;
   value: number;
+  icon: string;
+  danger?: boolean;
 }) {
   return (
-    <div className="border border-zinc-800 rounded-3xl bg-zinc-950/70 p-6">
-      <p className="text-zinc-500 text-sm mb-3">
-        {title}
-      </p>
+    <div
+      className={`rounded-3xl border p-6 ${
+        danger
+          ? "border-red-500/20 bg-red-500/[0.06]"
+          : "border-zinc-800 bg-zinc-950/60"
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-zinc-500">
+          {title}
+        </p>
 
-      <p className="text-4xl font-bold">
+        <span className="text-xl">
+          {icon}
+        </span>
+      </div>
+
+      <p className="mt-4 text-4xl font-bold">
         {value}
       </p>
     </div>

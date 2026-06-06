@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -161,13 +162,23 @@ export default function PostComments({ postId }: Props) {
 
     if (!confirmed) return;
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("请先登录。");
+      return;
+    }
+
     const { error } = await supabase
       .from("comments")
       .update({
         is_deleted: true,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("author_id", user.id);
 
     if (error) {
       alert(error.message);
@@ -213,17 +224,17 @@ export default function PostComments({ postId }: Props) {
             px-5 py-5
             leading-8 text-white
             outline-none
+            break-words whitespace-pre-wrap
             placeholder:text-white/25
           "
         />
 
-        {/* 底部操作区 */}
         <div
           className="
             flex justify-end
             border-t border-white/5
-            px-5 py-4
             bg-white/[0.015]
+            px-5 py-4
           "
         >
           <button
@@ -234,8 +245,7 @@ export default function PostComments({ postId }: Props) {
               px-7 py-3
               text-sm font-semibold text-black
               transition-all duration-300
-              hover:bg-white/90
-              hover:scale-[1.02]
+              hover:scale-[1.02] hover:bg-white/90
               disabled:cursor-not-allowed
               disabled:opacity-40
             "
@@ -298,11 +308,15 @@ export default function PostComments({ postId }: Props) {
 
         {comments.map((comment) => {
           const profile = getProfile(comment.profiles);
+          const profileHref = profile?.username
+            ? `/u/${encodeURIComponent(profile.username)}`
+            : null;
 
           return (
             <div
               key={comment.id}
               className="
+                min-w-0 overflow-hidden
                 rounded-[2rem]
                 border border-white/10
                 bg-white/[0.03]
@@ -310,32 +324,63 @@ export default function PostComments({ postId }: Props) {
               "
             >
               <div className="flex items-start gap-4">
-                <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
-                  {profile?.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
+                {profileHref ? (
+                  <Link
+                    href={profileHref}
+                    className="
+                      h-11 w-11 shrink-0 overflow-hidden rounded-full
+                      border border-white/10 bg-white/[0.04]
+                      transition hover:scale-105 hover:border-white/25
+                    "
+                    title="进入居民房间"
+                  >
+                    {profile?.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt={profile.username || "居民"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-sm">
+                        🌙
+                      </div>
+                    )}
+                  </Link>
+                ) : (
+                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
                     <div className="flex h-full w-full items-center justify-center text-sm">
                       🌙
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 <div className="min-w-0 flex-1">
                   <div>
-                    <p className="text-sm font-medium text-white/80">
-                      {profile?.username || "已离开的居民"}
-                    </p>
+                    {profileHref ? (
+                      <Link
+                        href={profileHref}
+                        className="safe-text inline-flex max-w-full text-sm font-medium text-white/80 transition hover:text-white"
+                      >
+                        {profile?.username || "已离开的居民"}
+                      </Link>
+                    ) : (
+                      <p className="safe-text text-sm font-medium text-white/80">
+                        已离开的居民
+                      </p>
+                    )}
 
                     <p className="mt-1 text-xs text-white/25">
                       {new Date(comment.created_at).toLocaleString("zh-CN")}
                     </p>
                   </div>
 
-                  <p className="mt-4 whitespace-pre-wrap text-sm leading-8 text-white/65">
+                  <p
+                    className="
+                      mt-4 whitespace-pre-wrap break-words
+                      text-sm leading-8 text-white/65
+                      [overflow-wrap:anywhere]
+                    "
+                  >
                     {comment.content}
                   </p>
 

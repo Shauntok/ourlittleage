@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Page() {
   const router = useRouter();
@@ -19,52 +20,121 @@ export default function Page() {
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [birthDay, setBirthDay] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthYear, setBirthYear] = useState("");
 
   const [loginLoading, setLoginLoading] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   async function handleEnter() {
-    if (!email.trim() || !password.trim()) {
-      alert("请输入邮箱和密码。");
-      return;
+      const cleanEmail = email.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!cleanEmail || !password.trim()) {
+        alert("请输入邮箱和密码。");
+        return;
+      }
+
+      if (!emailRegex.test(cleanEmail)) {
+        alert("请输入正确的邮箱格式。");
+        return;
+      }
+
+      setLoginLoading(true);
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (error) {
+        alert("登录失败，请检查邮箱或密码。");
+        setLoginLoading(false);
+        return;
+      }
+
+      setLoginLoading(false);
+      router.push("/home");
     }
 
-    setRegisterLoading(true);
+  async function handleRegister() {
+      const cleanUsername = username.trim();
+      const cleanEmail = registerEmail.trim();
+      const birthDate =
+        birthYear && birthMonth && birthDay
+          ? `${birthYear}-${birthMonth.padStart(2, "0")}-${birthDay.padStart(2, "0")}`
+          : "";
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const usernameRegex = /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/;
 
-    if (error) {
-      alert("登录失败，请检查邮箱或密码。");
+      if (
+        !cleanUsername ||
+        !cleanEmail ||
+        !birthDate ||
+        !registerPassword.trim() ||
+        !confirmPassword.trim()
+      ) {
+        alert("请填写居民名字、生日、邮箱和密码。");
+        return;
+      }
+
+      if (cleanUsername.length < 3) {
+        alert("居民名字至少需要 3 个字符。");
+        return;
+      }
+
+      if (cleanUsername.length > 20) {
+        alert("居民名字不能超过 20 个字符。");
+        return;
+      }
+
+      if (!usernameRegex.test(cleanUsername)) {
+        alert("居民名字只能使用中文、英文、数字和底线。");
+        return;
+      }
+
+      if (!emailRegex.test(cleanEmail)) {
+        alert("请输入正确的邮箱格式。");
+        return;
+      }
+
+      if (registerPassword.length < 8) {
+        alert("密码至少需要 8 位。");
+        return;
+      }
+
+      if (registerPassword !== confirmPassword) {
+        alert("两次输入的密码不一样。");
+        return;
+      }
+
+      setRegisterLoading(true);
+
+    const { data: existingProfile, error: usernameCheckError } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("username", cleanUsername)
+      .maybeSingle();
+
+    if (usernameCheckError) {
+      alert(usernameCheckError.message);
       setRegisterLoading(false);
       return;
     }
 
-    router.push("/home");
-  }
-
-  async function handleRegister() {
-    if (
-      !username.trim() ||
-      !registerEmail.trim() ||
-      !registerPassword.trim() ||
-      !confirmPassword.trim()
-    ) {
-      alert("请填写居民名字、邮箱和密码。");
+    if (existingProfile) {
+      alert("这个居民名字已经有人住下了，请换一个名字。");
+      setRegisterLoading(false);
       return;
     }
-
-    if (registerPassword !== confirmPassword) {
-      alert("两次输入的密码不一样。");
-      return;
-    }
-
-    setRegisterLoading(true);
 
     const { data, error } = await supabase.auth.signUp({
-      email: registerEmail.trim(),
+      email: cleanEmail,
       password: registerPassword,
     });
 
@@ -80,9 +150,10 @@ export default function Page() {
         .upsert(
           {
             id: data.user.id,
-            username: username.trim(),
+            username: cleanUsername,
             role: "user",
             theme: "midnight",
+            birth_date: birthDate,
           },
           {
             onConflict: "id",
@@ -420,21 +491,36 @@ export default function Page() {
                 "
               />
 
-              <input
-                type="password"
-                placeholder="密码"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="
-                  w-full rounded-2xl border border-white/10
-                  bg-white/[0.07] px-5 py-4 text-sm text-white
-                  placeholder:text-white/25 outline-none
-                  shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
-                  transition-all duration-500
-                  focus:border-white/35 focus:bg-white/[0.12]
-                  focus:shadow-[0_0_30px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]
-                "
-              />
+              <div className="relative">
+                <input
+                  type={showLoginPassword ? "text" : "password"}
+                  placeholder="密码"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="
+                    w-full rounded-2xl border border-white/10
+                    bg-white/[0.07] px-5 py-4 pr-12 text-sm text-white
+                    placeholder:text-white/25 outline-none
+                    shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
+                    transition-all duration-500
+                    focus:border-white/35 focus:bg-white/[0.12]
+                    focus:shadow-[0_0_30px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]
+                  "
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="
+                    absolute right-4 top-1/2 -translate-y-1/2
+                    rounded-full border border-black/10 bg-black/5 p-1
+                    text-zinc-800 transition
+                    hover:bg-black/10 hover:text-black
+                  "
+                >
+                  {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
 
               <button
                 onClick={handleEnter}
@@ -470,8 +556,8 @@ export default function Page() {
               transition-all duration-1000 ease-out
               ${
                 authMode === "register"
-                  ? "max-h-[760px] opacity-100 blur-0"
-                  : "pointer-events-none max-h-[760px] opacity-0 blur-md md:translate-x-8"
+                  ? "max-h-[900px] opacity-100 blur-0"
+                  : "pointer-events-none max-h-[900px] opacity-0 blur-md md:translate-x-8"
               }
             `}
           >
@@ -503,6 +589,74 @@ export default function Page() {
                   "
                 />
 
+                <div className="grid grid-cols-3 gap-3">
+                  <select
+                    value={birthDay}
+                    onChange={(e) => setBirthDay(e.target.value)}
+                    className="
+                      w-full appearance-none rounded-2xl border border-white/10
+                      bg-white/[0.07] px-5 py-4 text-sm text-white/70
+                      outline-none transition-all duration-500
+                      focus:border-white/35 focus:bg-white/[0.12]
+                    "
+                  >
+                    <option value="" className="bg-zinc-950 text-white">
+                      日
+                    </option>
+
+                    {Array.from({ length: 31 }, (_, i) => String(i + 1)).map((day) => (
+                      <option key={day} value={day} className="bg-zinc-950 text-white">
+                        {day}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={birthMonth}
+                    onChange={(e) => setBirthMonth(e.target.value)}
+                    className="
+                      w-full appearance-none rounded-2xl border border-white/10
+                      bg-white/[0.07] px-5 py-4 text-sm text-white/70
+                      outline-none transition-all duration-500
+                      focus:border-white/35 focus:bg-white/[0.12]
+                    "
+                  >
+                    <option value="" className="bg-zinc-950 text-white">
+                      月
+                    </option>
+
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((month) => (
+                      <option key={month} value={month} className="bg-zinc-950 text-white">
+                        {month}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={birthYear}
+                    onChange={(e) => setBirthYear(e.target.value)}
+                    className="
+                      w-full appearance-none rounded-2xl border border-white/10
+                      bg-white/[0.07] px-5 py-4 text-sm text-white/70
+                      outline-none transition-all duration-500
+                      focus:border-white/35 focus:bg-white/[0.12]
+                    "
+                  >
+                    <option value="" className="bg-zinc-950 text-white">
+                      年
+                    </option>
+
+                    {Array.from(
+                      { length: new Date().getFullYear() - 1900 + 1 },
+                      (_, i) => String(new Date().getFullYear() - i)
+                    ).map((year) => (
+                      <option key={year} value={year} className="bg-zinc-950 text-white">
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <input
                   type="email"
                   placeholder="邮箱"
@@ -517,33 +671,63 @@ export default function Page() {
                   "
                 />
 
-                <input
-                  type="password"
-                  placeholder="密码"
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
-                  className="
-                    w-full rounded-2xl border border-white/10
-                    bg-white/[0.07] px-5 py-4 text-sm text-white
-                    placeholder:text-white/25 outline-none
-                    transition-all duration-500
-                    focus:border-white/35 focus:bg-white/[0.12]
-                  "
-                />
+                <div className="relative">
+                  <input
+                    type={showRegisterPassword ? "text" : "password"}
+                    placeholder="密码"
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    className="
+                      w-full rounded-2xl border border-white/10
+                      bg-white/[0.07] px-5 py-4 pr-12 text-sm text-white
+                      placeholder:text-white/25 outline-none
+                      transition-all duration-500
+                      focus:border-white/35 focus:bg-white/[0.12]
+                    "
+                  />
 
-                <input
-                  type="password"
-                  placeholder="确认密码"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="
-                    w-full rounded-2xl border border-white/10
-                    bg-white/[0.07] px-5 py-4 text-sm text-white
-                    placeholder:text-white/25 outline-none
-                    transition-all duration-500
-                    focus:border-white/35 focus:bg-white/[0.12]
-                  "
-                />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                    className="
+                      absolute right-4 top-1/2 -translate-y-1/2
+                      rounded-full border border-black/10 bg-black/5 p-1
+                      text-zinc-800 transition
+                      hover:bg-black/10 hover:text-black
+                    "
+                  >
+                    {showRegisterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="确认密码"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="
+                      w-full rounded-2xl border border-white/10
+                      bg-white/[0.07] px-5 py-4 pr-12 text-sm text-white
+                      placeholder:text-white/25 outline-none
+                      transition-all duration-500
+                      focus:border-white/35 focus:bg-white/[0.12]
+                    "
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="
+                      absolute right-4 top-1/2 -translate-y-1/2
+                      rounded-full border border-black/10 bg-black/5 p-1
+                      text-zinc-800 transition
+                      hover:bg-black/10 hover:text-black
+                    "
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
 
                 <button
                   onClick={handleRegister}

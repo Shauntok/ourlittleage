@@ -209,7 +209,11 @@ export default function ArticlesPage() {
               <Link
                 key={article.id}
                 href={`/articles/${article.slug}`}
-                className="group overflow-hidden rounded-[2rem]
+                className="
+                  group
+                  min-w-0
+                  overflow-hidden
+                  rounded-[2rem]
                   border border-white/10
                   bg-white/[0.035]
                   backdrop-blur-2xl transition-all
@@ -241,12 +245,29 @@ export default function ArticlesPage() {
                     </span>
                   </div>
 
-                  <h2 className="line-clamp-2 text-2xl font-light text-white/90">
+                  <h2
+                    className="
+                      safe-text
+                      line-clamp-2
+                      text-2xl
+                      font-light
+                      text-white/90
+                    "
+                  >
                     {article.title || "无标题文章"}
                   </h2>
 
                   {excerpt && (
-                    <p className="mt-4 line-clamp-3 text-sm leading-7 text-white/40">
+                    <p
+                      className="
+                        safe-pre
+                        mt-4
+                        line-clamp-3
+                        text-sm
+                        leading-7
+                        text-white/40
+                      "
+                    >
                       {excerpt}...
                     </p>
                   )}
@@ -261,7 +282,15 @@ export default function ArticlesPage() {
                         .map((tag) => (
                           <span
                             key={tag}
-                            className="rounded-full bg-white/[0.05] px-3 py-1 text-xs text-white/35"
+                            className="
+                              safe-text
+                              max-w-full
+                              rounded-full
+                              bg-white/[0.05]
+                              px-3 py-1
+                              text-xs
+                              text-white/35
+                            "
                           >
                             #{tag}
                           </span>

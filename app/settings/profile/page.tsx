@@ -175,12 +175,32 @@ export default function ProfileSettingsPage() {
   async function saveProfile() {
     if (!user) return;
 
-    if (!username.trim()) {
-      alert("用户名称不能为空。");
+    const cleanUsername = username.trim();
+    const cleanBio = bio.trim();
+
+    const usernameRegex = /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/;
+
+    if (!cleanUsername) {
+      alert("居民名字不能为空。");
       return;
     }
 
-    if (bio.length > BIO_LIMIT) {
+    if (cleanUsername.length < 3) {
+      alert("居民名字至少需要 3 个字符。");
+      return;
+    }
+
+    if (cleanUsername.length > 20) {
+      alert("居民名字不能超过 20 个字符。");
+      return;
+    }
+
+    if (!usernameRegex.test(cleanUsername)) {
+      alert("居民名字只能使用中文、英文、数字和底线。");
+      return;
+    }
+
+    if (cleanBio.length > BIO_LIMIT) {
       alert(`个人简介最多 ${BIO_LIMIT} 字。`);
       return;
     }
@@ -190,8 +210,8 @@ export default function ProfileSettingsPage() {
     const { error } = await supabase
       .from("profiles")
       .update({
-        username: username.trim(),
-        bio,
+        username: cleanUsername,
+        bio: cleanBio,
         theme,
         show_level: showLevel,
         show_exp: showExp,
@@ -209,8 +229,8 @@ export default function ProfileSettingsPage() {
 
     setProfile((current: any) => ({
       ...current,
-      username: username.trim(),
-      bio,
+      username: cleanUsername,
+      bio: cleanBio,
       theme,
       show_level: showLevel,
       show_exp: showExp,
@@ -551,13 +571,29 @@ export default function ProfileSettingsPage() {
                   <input
                     type="text"
                     value={username}
+                    maxLength={20}
                     onChange={(e) => {
                       setUsername(e.target.value);
                       setHasUnsavedChanges(true);
                     }}
-                    className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 text-white outline-none transition focus:border-white/30"
-                    placeholder="别人会怎么称呼你？"
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 text-white outline-none transition break-words [overflow-wrap:anywhere] focus:border-white/30"                    placeholder="别人会怎么称呼你？"
                   />
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                  <p className="text-white/25">
+                    只能使用中文、英文、数字和底线。
+                  </p>
+
+                  <p
+                    className={`shrink-0 ${
+                      username.trim().length > 20
+                        ? "text-red-200/70"
+                        : "text-white/30"
+                    }`}
+                  >
+                    已写 {username.trim().length} 字 · 最多 20 字
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -577,8 +613,7 @@ export default function ProfileSettingsPage() {
                       setBio(e.target.value);
                       setHasUnsavedChanges(true);
                     }}
-                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 p-4 leading-8 text-white outline-none transition focus:border-white/30"
-                    placeholder="介绍一下自己，或者写一句这个房间的门牌。"
+                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 p-4 leading-8 text-white outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30"                    placeholder="介绍一下自己，或者写一句这个房间的门牌。"
                   />
                 </div>
               </div>
@@ -630,8 +665,7 @@ export default function ProfileSettingsPage() {
               value={statusMessage}
               onChange={(e) => setStatusMessage(e.target.value)}
               rows={3}
-              className="mt-5 w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-5 py-4 leading-7 outline-none transition focus:border-white/30"
-            />
+              className="mt-5 w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-5 py-4 leading-7 outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30"            />
 
             {(moodEmoji || statusMessage) && (
               <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-white/70">
@@ -639,7 +673,7 @@ export default function ProfileSettingsPage() {
                   <span className="text-2xl">{moodEmoji || "🌙"}</span>
 
                   {statusMessage && (
-                    <span className="text-sm text-white/80">
+                    <span className="break-words text-sm text-white/80 [overflow-wrap:anywhere]">
                       {statusMessage}
                     </span>
                   )}
@@ -848,11 +882,11 @@ export default function ProfileSettingsPage() {
                 ROOM PREVIEW
               </p>
 
-              <h3 className="mt-3 text-3xl font-light">
+              <h3 className="mt-3 text-3xl font-light break-words [overflow-wrap:anywhere]">
                 {previewUsername}
               </h3>
 
-              <p className="mt-4 text-sm leading-7 text-white/45">
+              <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-white/45 [overflow-wrap:anywhere]">
                 {previewBio}
               </p>
 

@@ -27,6 +27,12 @@ export default function NewArticlePage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const cleanTitle = title.trim();
+  const cleanContent = content.trim();
+
+  const titleCount = cleanTitle.length;
+  const contentCount = cleanContent.length;
+
   useEffect(() => {
     async function getUser() {
       const {
@@ -63,6 +69,34 @@ export default function NewArticlePage() {
     setTags("");
     setNotes("");
     setVisibility("public");
+  }
+
+  function validateTitle() {
+    if (!cleanTitle) {
+      alert("请输入文章标题。");
+      return false;
+    }
+
+    if (titleCount > 25) {
+      alert(`文章标题不能超过 25 个字。目前是 ${titleCount} 个字。`);
+      return false;
+    }
+
+    return true;
+  }
+
+  function validatePublishContent() {
+    if (!cleanContent) {
+      alert("请输入文章内容。");
+      return false;
+    }
+
+    if (contentCount < 500) {
+      alert(`文章正文至少需要 500 字。目前只有 ${contentCount} 字。`);
+      return false;
+    }
+
+    return true;
   }
 
   function insertTextAtCursor(beforeText: string, afterText = "") {
@@ -122,12 +156,12 @@ export default function NewArticlePage() {
   async function publishArticle() {
     if (!currentUser) return;
 
-    if (!title.trim() || !slug.trim() || !content.trim()) {
-      alert("请填写标题、slug 和文章内容。");
-      return;
-    }
+    if (!validateTitle()) return;
+    if (!validatePublishContent()) return;
 
-    const finalSlug = generateSlug(slug.trim());
+    const finalSlug =
+      generateSlug(slug.trim()) ||
+      generateSlug(cleanTitle);
 
     if (!finalSlug) {
       alert("slug 无法生成，请换一个标题或手动填写。");
@@ -150,9 +184,9 @@ export default function NewArticlePage() {
     const { error } = await supabase.from("posts").insert([
       {
         type: "article",
-        title: title.trim(),
+        title: cleanTitle,
         slug: finalSlug,
-        content,
+        content: cleanContent,
         status: "published",
         visibility,
         author_id: currentUser.id,
@@ -176,8 +210,10 @@ export default function NewArticlePage() {
   async function saveDraft() {
     if (!currentUser) return;
 
-    if (!title.trim() || !content.trim()) {
-      alert("请至少填写标题和内容。");
+    if (!validateTitle()) return;
+
+    if (!cleanContent) {
+      alert("请至少填写文章内容。");
       return;
     }
 
@@ -185,7 +221,7 @@ export default function NewArticlePage() {
 
     const finalSlug =
       generateSlug(slug.trim()) ||
-      generateSlug(title.trim()) ||
+      generateSlug(cleanTitle) ||
       `${Date.now()}`;
 
     const exists = await checkSlugExists(finalSlug);
@@ -199,9 +235,9 @@ export default function NewArticlePage() {
     const { error } = await supabase.from("posts").insert([
       {
         type: "article",
-        title: title.trim(),
+        title: cleanTitle,
         slug: finalSlug,
-        content,
+        content: cleanContent,
         status: "draft",
         visibility,
         author_id: currentUser.id,
@@ -254,17 +290,35 @@ export default function NewArticlePage() {
             </p>
           </div>
 
-          <input
-            type="text"
-            placeholder="文章标题"
-            value={title}
-            onChange={(e) => {
-              const value = e.target.value;
-              setTitle(value);
-              setSlug(generateSlug(value));
-            }}
-            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition focus:border-white/40"
-          />
+          <div>
+            <input
+              type="text"
+              placeholder="文章标题"
+              value={title}
+              onChange={(e) => {
+                const value = e.target.value;
+                setTitle(value);
+                setSlug(generateSlug(value));
+              }}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition focus:border-white/40"
+            />
+
+            <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+              <p className="text-white/25">
+                标题建议短一点，比较像一扇门。
+              </p>
+
+              <p
+                className={`shrink-0 ${
+                  titleCount > 25
+                    ? "text-red-200/70"
+                    : "text-white/30"
+                }`}
+              >
+                已写 {titleCount} 字 · 最多 25 字
+              </p>
+            </div>
+          </div>
 
           <input
             type="text"
@@ -383,32 +437,57 @@ export default function NewArticlePage() {
               }
             }}
             rows={24}
-            className="w-full min-h-[560px] rounded-2xl border border-white/10 bg-white/[0.04] p-5 leading-8 outline-none transition focus:border-white/40"
+            className="w-full min-h-[560px] rounded-2xl 
+            border border-white/10 bg-white/[0.04] 
+            p-5 leading-8 outline-none transition 
+            break-words whitespace-pre-wrap
+            focus:border-white/40"
           />
 
-          <div className="flex flex-wrap gap-4 pt-4">
-            <button
-              onClick={publishArticle}
-              disabled={loading}
-              className="rounded-full bg-white px-8 py-4 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-40"
-            >
-              {loading ? "处理中..." : "发布文章"}
-            </button>
+          <div className="flex flex-col gap-6 pt-2 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2 text-xs">
+              <p
+                className={`${
+                  contentCount < 500
+                    ? "text-yellow-100/55"
+                    : "text-emerald-100/55"
+                }`}
+              >
+                已写 {contentCount} 字
+                {contentCount < 500
+                  ? ` · 距离发布建议还差 ${500 - contentCount} 字`
+                  : " · 已达到发布长度"}
+              </p>
 
-            <button
-              onClick={saveDraft}
-              disabled={loading}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-sm text-white/70 transition hover:border-white/25 hover:text-white disabled:opacity-40"
-            >
-              保存草稿
-            </button>
+              <p className="text-white/25">
+                慢慢写，故事不用急着完成。
+              </p>
+            </div>
 
-            <button
-              onClick={discardArticle}
-              className="rounded-full border border-red-500/20 bg-red-500/[0.06] px-8 py-4 text-sm text-red-200/80 transition hover:bg-red-500/[0.12]"
-            >
-              放弃
-            </button>
+            <div className="flex flex-wrap gap-4 md:justify-end">
+              <button
+                onClick={publishArticle}
+                disabled={loading}
+                className="rounded-full bg-white px-8 py-4 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-40"
+              >
+                {loading ? "处理中..." : "发布文章"}
+              </button>
+
+              <button
+                onClick={saveDraft}
+                disabled={loading}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-sm text-white/70 transition hover:border-white/25 hover:text-white disabled:opacity-40"
+              >
+                保存草稿
+              </button>
+
+              <button
+                onClick={discardArticle}
+                className="rounded-full border border-red-500/20 bg-red-500/[0.06] px-8 py-4 text-sm text-red-200/80 transition hover:bg-red-500/[0.12]"
+              >
+                放弃
+              </button>
+            </div>
           </div>
         </section>
 
@@ -492,7 +571,15 @@ export default function NewArticlePage() {
             </p>
 
             {content ? (
-              <article className="prose prose-invert max-w-none prose-p:leading-[2.2]">
+              <article
+                className="
+                  prose prose-invert max-w-none
+                  overflow-hidden break-words
+                  prose-p:break-words prose-p:leading-[2.2]
+                  prose-pre:whitespace-pre-wrap prose-pre:break-words
+                  prose-code:break-words
+                "
+              >
                 <TranslatedMarkdown content={content} />
               </article>
             ) : (

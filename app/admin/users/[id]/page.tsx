@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminUserDetailPage() {
@@ -10,8 +11,11 @@ export default function AdminUserDetailPage() {
 
   const [profile, setProfile] = useState<any>(null);
   const [badges, setBadges] = useState<any[]>([]);
-  const [currentRole, setCurrentRole] =
-    useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
+
+  const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [userComments, setUserComments] = useState<any[]>([]);
+  const [adminLogs, setAdminLogs] = useState<any[]>([]);
 
   async function fetchUser() {
     const { data: profileData } = await supabase
@@ -36,6 +40,40 @@ export default function AdminUserDetailPage() {
 
     setBadges(badgeData || []);
 
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select("id, title, slug, content, type, status, visibility, created_at, published_at")
+      .eq("author_id", id)
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(8);
+
+    setUserPosts(postsData || []);
+
+    const { data: commentsData } = await supabase
+      .from("comments")
+      .select("id, content, post_id, created_at, is_hidden, is_deleted")
+      .eq("author_id", id)
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(8);
+
+    setUserComments(commentsData || []);
+
+    const { data: logsData } = await supabase
+      .from("admin_logs")
+      .select("*")
+      .eq("target_type", "user")
+      .eq("target_id", id)
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(8);
+
+    setAdminLogs(logsData || []);
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -54,6 +92,24 @@ export default function AdminUserDetailPage() {
   useEffect(() => {
     fetchUser();
   }, [id]);
+
+  async function writeUserLog(action: string, details: string) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    await supabase.from("admin_logs").insert([
+      {
+        admin_id: user.id,
+        action,
+        target_type: "user",
+        target_id: id,
+        details,
+      },
+    ]);
+  }
 
   async function updateRole(newRole: string) {
     const {
@@ -79,10 +135,7 @@ export default function AdminUserDetailPage() {
       }
     }
 
-    if (
-      profile.role === "owner" &&
-      profile.id !== user.id
-    ) {
+    if (profile.role === "owner" && profile.id !== user.id) {
       alert("不能修改 owner 身份");
       return;
     }
@@ -108,21 +161,14 @@ export default function AdminUserDetailPage() {
       return;
     }
 
-    await supabase.from("admin_logs").insert([
-      {
-        admin_id: user.id,
-        action: "update_role",
-        target_type: "user",
-        target_id: id,
-        details: `修改身份为 ${newRole}`,
-      },
-    ]);
+    await writeUserLog("update_role", `修改身份为 ${newRole}`);
 
     setProfile((current: any) => ({
       ...current,
       role: newRole,
     }));
 
+    fetchUser();
     alert("身份已更新 👑");
   }
 
@@ -138,10 +184,7 @@ export default function AdminUserDetailPage() {
       return;
     }
 
-    if (
-      currentRole === "admin" &&
-      profile.role === "owner"
-    ) {
+    if (currentRole === "admin" && profile.role === "owner") {
       alert("admin 无法管理 owner");
       return;
     }
@@ -158,17 +201,8 @@ export default function AdminUserDetailPage() {
       return;
     }
 
-    await supabase.from("admin_logs").insert([
-      {
-        admin_id: user.id,
-        action: "update_status",
-        target_type: "user",
-        target_id: id,
-        details: `修改状态为 ${newStatus}`,
-      },
-    ]);
+    await writeUserLog("update_status", `修改状态为 ${newStatus}`);
 
-    // ===== 自动发送系统通知 =====
     let notificationTitle = "";
     let notificationContent = "";
 
@@ -206,7 +240,67 @@ export default function AdminUserDetailPage() {
       status: newStatus,
     }));
 
+    fetchUser();
     alert("状态已更新 🚨");
+  }
+
+  async function updateGrowth(updates: any, message: string) {
+    if (currentRole !== "owner" && currentRole !== "admin") {
+      alert("只有 owner / admin 可以调整成长数值。");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await writeUserLog("update_growth", message);
+
+    setProfile((current: any) => ({
+      ...current,
+      ...updates,
+    }));
+
+    fetchUser();
+  }
+
+  async function addExp(amount: number) {
+    const nextExp = (profile.exp || 0) + amount;
+
+    await updateGrowth(
+      {
+        exp: nextExp,
+      },
+      `经验值 +${amount}，目前 ${nextExp}`
+    );
+  }
+
+  async function adjustTrust(amount: number) {
+    const nextTrust = Math.max(0, (profile.trust_score || 0) + amount);
+
+    await updateGrowth(
+      {
+        trust_score: nextTrust,
+      },
+      `信任分 ${amount > 0 ? "+" : ""}${amount}，目前 ${nextTrust}`
+    );
+  }
+
+  async function changeLevel(amount: number) {
+    const nextLevel = Math.max(1, (profile.level || 1) + amount);
+
+    await updateGrowth(
+      {
+        level: nextLevel,
+      },
+      `等级 ${amount > 0 ? "+" : ""}${amount}，目前 Lv.${nextLevel}`
+    );
   }
 
   function getRoleStyle(role: string) {
@@ -237,128 +331,268 @@ export default function AdminUserDetailPage() {
     }
   }
 
+  function getPostTitle(post: any) {
+    if (post.title) return post.title;
+
+    if (post.type === "diary") {
+      return `日记 · ${new Date(post.created_at).toLocaleDateString("zh-CN")}`;
+    }
+
+    return "无标题内容";
+  }
+
+  function getPostHref(post: any) {
+    if (post.type === "diary") return `/diary/${post.id}`;
+    if (post.type === "article" && post.slug) return `/articles/${post.slug}`;
+
+    return "/admin/content";
+  }
+
   if (!profile) {
     return (
-      <div className="text-zinc-500">
+      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-8 text-zinc-500">
         读取居民资料中...
       </div>
     );
   }
 
+  const articleCount = userPosts.filter((post) => post.type === "article").length;
+  const diaryCount = userPosts.filter((post) => post.type === "diary").length;
+
+  const roomHref = profile.username
+    ? `/u/${encodeURIComponent(profile.username)}`
+    : "/admin/users";
+
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-5">
-        <div className="h-24 w-24 overflow-hidden rounded-full border border-zinc-800 bg-zinc-900">
-          {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={profile.username}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-3xl text-zinc-600">
-              👤
+      <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+        <div className="flex min-w-0 items-center gap-5">
+          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-full border border-zinc-800 bg-zinc-900">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={profile.username || "居民"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-3xl text-zinc-600">
+                👤
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0 space-y-3">
+            <div>
+              <h1 className="safe-text text-4xl font-bold">
+                {profile.username || "无名居民"}
+              </h1>
+
+              <p className="mt-2 break-all text-sm text-zinc-500">
+                {profile.id}
+              </p>
             </div>
-          )}
-        </div>
 
-        <div className="space-y-3">
-          <div>
-            <h1 className="text-4xl font-bold">
-              {profile.username}
-            </h1>
+            <div className="flex flex-wrap gap-3">
+              {currentRole === "owner" || currentRole === "admin" ? (
+                <select
+                  value={profile.role || "user"}
+                  onChange={(e) => updateRole(e.target.value)}
+                  className={`rounded-full border bg-black px-3 py-1 text-sm outline-none ${getRoleStyle(
+                    profile.role || "user"
+                  )}`}
+                >
+                  <option value="user">user</option>
+                  <option value="moderator">moderator</option>
 
-            <p className="text-zinc-500 text-sm break-all mt-2">
-              {profile.id}
-            </p>
-          </div>
+                  {currentRole === "owner" && (
+                    <option value="admin">admin</option>
+                  )}
 
-          <div className="flex flex-wrap gap-3">
-            {currentRole === "owner" ||
-            currentRole === "admin" ? (
-              <select
-                value={profile.role || "user"}
-                onChange={(e) =>
-                  updateRole(e.target.value)
-                }
-                className={`rounded-full border px-3 py-1 text-sm bg-black outline-none ${getRoleStyle(
-                  profile.role
-                )}`}
-              >
-                <option value="user">user</option>
-                <option value="moderator">
-                  moderator
-                </option>
+                  {currentRole === "owner" && (
+                    <option value="owner">owner</option>
+                  )}
+                </select>
+              ) : (
+                <span
+                  className={`inline-flex rounded-full border px-3 py-1 text-sm ${getRoleStyle(
+                    profile.role || "user"
+                  )}`}
+                >
+                  {profile.role || "user"}
+                </span>
+              )}
 
-                {currentRole === "owner" && (
-                  <option value="admin">
-                    admin
-                  </option>
-                )}
-
-                {currentRole === "owner" && (
-                  <option value="owner">
-                    owner
-                  </option>
-                )}
-              </select>
-            ) : (
-              <span
-                className={`inline-flex rounded-full border px-3 py-1 text-sm ${getRoleStyle(
-                  profile.role
-                )}`}
-              >
-                {profile.role}
-              </span>
-            )}
-
-            {currentRole === "owner" ||
-            currentRole === "admin" ? (
-              <select
-                value={profile.status || "active"}
-                onChange={(e) =>
-                  updateStatus(e.target.value)
-                }
-                className={`rounded-full border px-3 py-1 text-sm bg-black outline-none ${getStatusStyle(
-                  profile.status || "active"
-                )}`}
-              >
-                <option value="active">active</option>
-                <option value="warned">warned</option>
-                <option value="muted">muted</option>
-                <option value="banned">banned</option>
-              </select>
-            ) : (
-              <span
-                className={`inline-flex rounded-full border px-3 py-1 text-sm ${getStatusStyle(
-                  profile.status || "active"
-                )}`}
-              >
-                {profile.status || "active"}
-              </span>
-            )}
+              {currentRole === "owner" || currentRole === "admin" ? (
+                <select
+                  value={profile.status || "active"}
+                  onChange={(e) => updateStatus(e.target.value)}
+                  className={`rounded-full border bg-black px-3 py-1 text-sm outline-none ${getStatusStyle(
+                    profile.status || "active"
+                  )}`}
+                >
+                  <option value="active">active</option>
+                  <option value="warned">warned</option>
+                  <option value="muted">muted</option>
+                  <option value="banned">banned</option>
+                </select>
+              ) : (
+                <span
+                  className={`inline-flex rounded-full border px-3 py-1 text-sm ${getStatusStyle(
+                    profile.status || "active"
+                  )}`}
+                >
+                  {profile.status || "active"}
+                </span>
+              )}
+            </div>
           </div>
         </div>
+
+        <Link
+          href={roomHref}
+          target="_blank"
+          className="rounded-full border border-zinc-700 bg-zinc-900 px-5 py-3 text-sm text-zinc-300 transition hover:border-white hover:text-white"
+        >
+          查看居民房间 ↗
+        </Link>
       </div>
 
-      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6 space-y-3">
+      <div className="grid gap-4 md:grid-cols-5">
+        <StatCard title="等级" value={`Lv.${profile.level || 1}`} />
+        <StatCard title="经验值" value={profile.exp || 0} />
+        <StatCard title="信任分" value={profile.trust_score || 0} />
+        <StatCard title="文章" value={articleCount} />
+        <StatCard title="日记" value={diaryCount} />
+      </div>
+
+      {(currentRole === "owner" || currentRole === "admin") && (
+        <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+          <h2 className="text-2xl font-bold">
+            成长数值调整
+          </h2>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              onClick={() => addExp(100)}
+              className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
+            >
+              +100 EXP
+            </button>
+
+            <button
+              onClick={() => addExp(500)}
+              className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
+            >
+              +500 EXP
+            </button>
+
+            <button
+              onClick={() => changeLevel(1)}
+              className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20"
+            >
+              等级 +1
+            </button>
+
+            <button
+              onClick={() => adjustTrust(5)}
+              className="rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20"
+            >
+              信任 +5
+            </button>
+
+            <button
+              onClick={() => adjustTrust(-5)}
+              className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20"
+            >
+              信任 -5
+            </button>
+          </div>
+        </section>
+      )}
+
+      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
         <p className="text-sm text-zinc-500">
           居民简介
         </p>
 
-        <p className="text-zinc-300">
+        <p className="safe-pre mt-3 text-zinc-300">
           {profile.bio || "这个居民还没有留下简介。"}
         </p>
       </div>
 
-      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6 space-y-4">
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+        <h2 className="text-2xl font-bold">
+          最近内容
+        </h2>
+
+        <div className="mt-5 space-y-3">
+          {userPosts.length === 0 && (
+            <p className="text-sm text-zinc-600">
+              这个居民还没有发布内容。
+            </p>
+          )}
+
+          {userPosts.map((post) => (
+            <Link
+              key={post.id}
+              href={getPostHref(post)}
+              target="_blank"
+              className="block min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4 transition hover:border-zinc-500"
+            >
+              <p className="safe-text font-semibold text-zinc-100">
+                {getPostTitle(post)}
+              </p>
+
+              <p className="mt-1 text-xs text-zinc-600">
+                {post.type} · {post.status} · {post.visibility}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+        <h2 className="text-2xl font-bold">
+          最近评论
+        </h2>
+
+        <div className="mt-5 space-y-3">
+          {userComments.length === 0 && (
+            <p className="text-sm text-zinc-600">
+              这个居民还没有留下评论。
+            </p>
+          )}
+
+          {userComments.map((comment) => (
+            <div
+              key={comment.id}
+              className="min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4"
+            >
+              <p className="safe-pre text-sm leading-7 text-zinc-300">
+                {comment.content}
+              </p>
+
+              <p className="mt-2 text-xs text-zinc-600">
+                {new Date(comment.created_at).toLocaleString("zh-CN")} ·{" "}
+                {comment.is_deleted
+                  ? "已删除"
+                  : comment.is_hidden
+                  ? "已隐藏"
+                  : "正常"}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
         <p className="text-sm text-zinc-500">
           已拥有徽章
         </p>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap gap-3">
           {badges.length === 0 && (
-            <p className="text-zinc-600 text-sm">
+            <p className="text-sm text-zinc-600">
               暂无徽章
             </p>
           )}
@@ -370,7 +604,7 @@ export default function AdminUserDetailPage() {
             return (
               <div
                 key={item.id}
-                className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm"
+                className="safe-text rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm"
               >
                 🎖️ {badge.name}
               </div>
@@ -379,19 +613,72 @@ export default function AdminUserDetailPage() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6 space-y-3">
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+        <h2 className="text-2xl font-bold">
+          最近管理记录
+        </h2>
+
+        <div className="mt-5 space-y-3">
+          {adminLogs.length === 0 && (
+            <p className="text-sm text-zinc-600">
+              暂无管理记录。
+            </p>
+          )}
+
+          {adminLogs.map((log) => (
+            <div
+              key={log.id}
+              className="min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4"
+            >
+              <p className="safe-text font-semibold text-zinc-100">
+                {log.action}
+              </p>
+
+              <p className="safe-pre mt-1 text-sm text-zinc-500">
+                {log.details}
+              </p>
+
+              <p className="mt-2 text-xs text-zinc-600">
+                {log.created_at
+                  ? new Date(log.created_at).toLocaleString("zh-CN")
+                  : "未知时间"}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
         <p className="text-sm text-zinc-500">
           注册时间
         </p>
 
-        <p className="text-zinc-300">
+        <p className="mt-3 text-zinc-300">
           {profile.created_at
-            ? new Date(
-                profile.created_at
-              ).toLocaleString("zh-CN")
+            ? new Date(profile.created_at).toLocaleString("zh-CN")
             : "未知"}
         </p>
       </div>
+    </div>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-5">
+      <p className="text-sm text-zinc-500">
+        {title}
+      </p>
+
+      <p className="safe-text mt-3 text-2xl font-bold">
+        {value}
+      </p>
     </div>
   );
 }
