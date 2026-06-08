@@ -19,16 +19,24 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   const [displayName, setDisplayName] = useState("居民");
-  const [avatarUrl, setAvatarUrl] = useState("");
 
   const [latestDiary, setLatestDiary] = useState("今晚还没有新的痕迹。");
   const [latestArticle, setLatestArticle] = useState("还没有新的故事。");
 
   const [latestDiaryId, setLatestDiaryId] = useState<number | null>(null);
-  const [latestArticleSlug, setLatestArticleSlug] = useState<string | null>(null);
+  const [latestArticleSlug, setLatestArticleSlug] = useState<string | null>(
+    null
+  );
 
-  const [nightBroadcast, setNightBroadcast] = useState("今晚似乎有很多人睡不着。");
+  const [nightBroadcast, setNightBroadcast] = useState(
+    "今晚似乎有很多人睡不着。"
+  );
   const [announcement, setAnnouncement] = useState<any>(null);
+
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [badgeCount, setBadgeCount] = useState(0);
+  const [exp, setExp] = useState(0);
+  const [trustScore, setTrustScore] = useState(0);
 
   useEffect(() => {
     async function checkUser() {
@@ -50,7 +58,9 @@ export default function HomePage() {
 
       const { data: onlineProfiles } = await supabase
         .from("profiles")
-        .select("id, username, avatar_url, mood_emoji, status_message, last_seen_at")
+        .select(
+          "id, username, avatar_url, mood_emoji, status_message, last_seen_at"
+        )
         .gte("last_seen_at", fiveMinutesAgo)
         .order("last_seen_at", {
           ascending: false,
@@ -66,17 +76,38 @@ export default function HomePage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username, avatar_url")
+        .select("username, exp, trust_score")
         .eq("id", data.user.id)
         .single();
 
       const finalDisplayName =
-        profile?.username ||
-        data.user.email?.split("@")[0] ||
-        "居民";
+        profile?.username || data.user.email?.split("@")[0] || "居民";
 
       setDisplayName(finalDisplayName);
-      setAvatarUrl(profile?.avatar_url || "");
+      setExp(Number(profile?.exp || 0));
+      setTrustScore(Number(profile?.trust_score || 0));
+
+      const { count: unreadTotal } = await supabase
+        .from("notifications")
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
+        .eq("user_id", data.user.id)
+        .eq("is_read", false)
+        .is("deleted_at", null);
+
+      setUnreadCount(unreadTotal || 0);
+
+      const { count: badgeTotal } = await supabase
+        .from("user_badges")
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
+        .eq("user_id", data.user.id);
+
+      setBadgeCount(badgeTotal || 0);
 
       const { data: activeAnnouncement } = await supabase
         .from("announcements")
@@ -173,7 +204,9 @@ export default function HomePage() {
       label: "最新故事",
       title: "📝 " + latestArticle,
       desc: "有人刚刚留下了一篇新的故事。",
-      href: latestArticleSlug ? `/articles/${latestArticleSlug}` : "/space/articles",
+      href: latestArticleSlug
+        ? `/articles/${latestArticleSlug}`
+        : "/space/articles",
     },
     {
       label: "今晚动态",
@@ -189,29 +222,32 @@ export default function HomePage() {
     },
   ];
 
-  const homeCards = [
+  const quickCards = [
     {
-      icon: "📔",
-      title: "我的日记",
-      desc: "那些只属于你的今天。",
-      href: "/diary",
+      icon: "✍️",
+      title: "写下今天",
+      desc: "记录今天发生过的事，哪怕只是一点点。",
+      href: "/diary/new",
     },
     {
-      icon: "⚙️",
-      title: "房间设置",
-      desc: "头像、简介、状态和背景。",
-      href: "/settings/profile",
+      icon: "📖",
+      title: "写一篇故事",
+      desc: "把更完整的想法、故事或作品认真留下来。",
+      href: "/articles/new",
     },
     {
-      icon: "🕯️",
-      title: "深夜广场",
-      desc: "看看别人留下的光。",
-      href: "/space",
+      icon: "📬",
+      title: "小时代信箱",
+      desc:
+        unreadCount > 0
+          ? `你有 ${unreadCount} 封未读来信。`
+          : "今晚暂时没有新的来信。",
+      href: "/notifications",
     },
     {
-      icon: "👤",
-      title: "我的房间",
-      desc: "回到属于你的角落。",
+      icon: "🏠",
+      title: "回到我的房间",
+      desc: "看看自己的成长、徽章和公开留下的痕迹。",
       href: profileHref,
     },
   ];
@@ -236,16 +272,7 @@ export default function HomePage() {
 
         <section className="relative z-10 flex min-h-screen items-center justify-center px-6 pb-20 pt-32">
           <div className="mx-auto max-w-5xl min-w-0 text-center">
-            <div
-              className="
-                safe-pre
-                mx-auto mb-8 inline-flex max-w-full items-center gap-3
-                overflow-hidden rounded-full border border-violet-500/20
-                bg-violet-500/10 px-5 py-3
-                text-sm text-violet-100
-                backdrop-blur-xl
-              "
-            >
+            <div className="safe-pre mx-auto mb-8 inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-violet-500/20 bg-violet-500/10 px-5 py-3 text-sm text-violet-100 backdrop-blur-xl">
               <span className="shrink-0 animate-pulse">🌙</span>
               <span className="safe-pre">{nightBroadcast}</span>
             </div>
@@ -271,15 +298,7 @@ export default function HomePage() {
             </p>
 
             {announcement && (
-              <div
-                className="
-                  mx-auto mt-10 max-w-2xl min-w-0 overflow-hidden
-                  rounded-[2rem] border border-fuchsia-400/20
-                  bg-fuchsia-500/[0.07] p-6 text-left
-                  shadow-[0_0_70px_rgba(217,70,239,0.09)]
-                  backdrop-blur-2xl
-                "
-              >
+              <div className="mx-auto mt-10 max-w-2xl min-w-0 overflow-hidden rounded-[2rem] border border-fuchsia-400/20 bg-fuchsia-500/[0.07] p-6 text-left shadow-[0_0_70px_rgba(217,70,239,0.09)] backdrop-blur-2xl">
                 <p className="text-xs tracking-[0.35em] text-fuchsia-100/45">
                   WORLD ANNOUNCEMENT
                 </p>
@@ -303,15 +322,8 @@ export default function HomePage() {
               </button>
 
               <button
-                onClick={() => router.push("/write")}
-                className="
-                  rounded-full border border-white/10
-                  bg-white/[0.04]
-                  px-8 py-4 text-sm text-white/70
-                  backdrop-blur-xl transition
-                  hover:bg-white/[0.08]
-                  hover:text-white
-                "
+                onClick={() => router.push("/articles/new")}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-sm text-white/70 backdrop-blur-xl transition hover:bg-white/[0.08] hover:text-white"
               >
                 📖 写文章
               </button>
@@ -325,16 +337,7 @@ export default function HomePage() {
               <Link
                 key={item.label}
                 href={item.href}
-                className="
-                  min-w-0 overflow-hidden
-                  rounded-[2rem] border border-white/10
-                  bg-white/[0.035] p-6 backdrop-blur-2xl
-                  shadow-[0_0_50px_rgba(255,255,255,0.04)]
-                  transition-all duration-700 ease-out
-                  hover:-translate-y-2 hover:scale-[1.015]
-                  hover:border-white/20 hover:bg-white/[0.055]
-                  hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]
-                "
+                className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_50px_rgba(255,255,255,0.04)] transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.015] hover:border-white/20 hover:bg-white/[0.055] hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]"
               >
                 <p className="safe-text text-xs tracking-[0.3em] text-white/30">
                   {item.label}
@@ -388,12 +391,7 @@ export default function HomePage() {
                     <Link
                       key={resident.id}
                       href={href}
-                      className="
-                        group flex min-w-0 items-center gap-4 rounded-2xl
-                        border border-white/10 bg-black/35 px-5 py-4
-                        transition-all duration-500
-                        hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]
-                      "
+                      className="group flex min-w-0 items-center gap-4 rounded-2xl border border-white/10 bg-black/35 px-5 py-4 transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
                     >
                       <div className="relative shrink-0">
                         <div className="h-12 w-12 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
@@ -420,7 +418,9 @@ export default function HomePage() {
 
                         <p className="safe-text mt-1 truncate text-xs text-white/35">
                           {resident.mood_emoji
-                            ? `${resident.mood_emoji} ${resident.status_message || "还醒着"}`
+                            ? `${resident.mood_emoji} ${
+                                resident.status_message || "还醒着"
+                              }`
                             : "还醒着"}
                         </p>
                       </div>
@@ -432,26 +432,61 @@ export default function HomePage() {
           </section>
         )}
 
+        <section className="relative z-10 px-6 pb-16">
+          <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-3">
+            <div className="rounded-[2rem] border border-violet-500/20 bg-violet-500/[0.055] p-6 backdrop-blur-2xl">
+              <p className="text-xs tracking-[0.3em] text-violet-100/35">
+                LIGHT
+              </p>
+
+              <h2 className="mt-4 text-3xl font-light text-white">
+                {exp.toFixed(2)}
+              </h2>
+
+              <p className="mt-4 text-sm leading-7 text-white/40">
+                你在小时代留下的光。
+              </p>
+            </div>
+
+            <div className="rounded-[2rem] border border-emerald-500/20 bg-emerald-500/[0.055] p-6 backdrop-blur-2xl">
+              <p className="text-xs tracking-[0.3em] text-emerald-100/35">
+                TRUST
+              </p>
+
+              <h2 className="mt-4 text-3xl font-light text-white">
+                {trustScore.toFixed(2)}
+              </h2>
+
+              <p className="mt-4 text-sm leading-7 text-white/40">
+                你的社区信任记录。
+              </p>
+            </div>
+
+            <div className="rounded-[2rem] border border-yellow-500/20 bg-yellow-500/[0.055] p-6 backdrop-blur-2xl">
+              <p className="text-xs tracking-[0.3em] text-yellow-100/35">
+                BADGES
+              </p>
+
+              <h2 className="mt-4 text-3xl font-light text-white">
+                {badgeCount}
+              </h2>
+
+              <p className="mt-4 text-sm leading-7 text-white/40">
+                你已经获得的徽章。
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="relative z-10 px-6 pb-32">
           <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-4">
-            {homeCards.map((item) => (
+            {quickCards.map((item) => (
               <Link
                 key={item.title}
                 href={item.href}
-                className="
-                  min-w-0 overflow-hidden
-                  rounded-[2rem] border border-white/10
-                  bg-white/[0.035] p-6 backdrop-blur-2xl
-                  shadow-[0_0_50px_rgba(255,255,255,0.04)]
-                  transition-all duration-700 ease-out
-                  hover:-translate-y-2 hover:scale-[1.015]
-                  hover:border-white/20 hover:bg-white/[0.055]
-                  hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]
-                "
+                className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_50px_rgba(255,255,255,0.04)] transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.015] hover:border-white/20 hover:bg-white/[0.055] hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]"
               >
-                <div className="mb-8 text-3xl">
-                  {item.icon}
-                </div>
+                <div className="mb-8 text-3xl">{item.icon}</div>
 
                 <h2 className="safe-text text-lg font-light text-white/85">
                   {item.title}

@@ -18,6 +18,8 @@ type ArticlePost = {
   published_at: string;
   author_id: string;
   authorProfile?: ProfileInfo | null;
+  likeCount?: number;
+  commentCount?: number;
 };
 
 function getExcerpt(content: string) {
@@ -40,9 +42,7 @@ function formatDateTime(date: string) {
 function normalizeTags(tags: any) {
   if (!tags) return [];
 
-  if (Array.isArray(tags)) {
-    return tags;
-  }
+  if (Array.isArray(tags)) return tags;
 
   if (typeof tags === "string") {
     return tags
@@ -57,73 +57,124 @@ function normalizeTags(tags: any) {
 export default function ArticlesSpacePage() {
   const [posts, setPosts] = useState<ArticlePost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortMode, setSortMode] = useState<"newest" | "hot">("newest");
 
   useEffect(() => {
-    async function fetchPosts() {
-      const { data, error } = await supabase
-        .from("posts")
-        .select(`
-          id,
-          title,
-          slug,
-          content,
-          tags,
-          published_at,
-          author_id
-        `)
-        .eq("type", "article")
-        .eq("status", "published")
-        .eq("visibility", "public")
-        .order("published_at", {
-          ascending: false,
-        });
-
-      if (error || !data) {
-        setPosts([]);
-        setLoading(false);
-        return;
-      }
-
-      const authorIds = Array.from(
-        new Set(
-          data
-            .map((post) => post.author_id)
-            .filter(Boolean)
-        )
-      );
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username, avatar_url")
-        .in("id", authorIds);
-
-      const profileMap = new Map(
-        (profiles || []).map((profile: any) => [
-          profile.id,
-          {
-            username: profile.username,
-            avatar_url: profile.avatar_url,
-          },
-        ])
-      );
-
-      const postsWithProfiles = data.map((post) => ({
-        ...post,
-        authorProfile:
-          profileMap.get(post.author_id) || null,
-      }));
-
-      setPosts(postsWithProfiles);
-      setLoading(false);
-    }
-
     fetchPosts();
   }, []);
+
+  async function fetchPosts() {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("posts")
+      .select(`
+        id,
+        title,
+        slug,
+        content,
+        tags,
+        published_at,
+        author_id
+      `)
+      .eq("type", "article")
+      .eq("status", "published")
+      .eq("visibility", "public")
+      .order("published_at", {
+        ascending: false,
+      });
+
+    if (error || !data) {
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
+
+    const authorIds = Array.from(
+      new Set(data.map((post) => post.author_id).filter(Boolean))
+    );
+
+    const { data: profiles } =
+      authorIds.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id, username, avatar_url")
+            .in("id", authorIds)
+        : { data: [] as any[] };
+
+    const profileMap = new Map(
+      (profiles || []).map((profile: any) => [
+        profile.id,
+        {
+          username: profile.username,
+          avatar_url: profile.avatar_url,
+        },
+      ])
+    );
+
+    const postIds = data.map((post) => post.id);
+
+    const { data: likesData } =
+      postIds.length > 0
+        ? await supabase
+            .from("post_likes")
+            .select("post_id")
+            .in("post_id", postIds)
+            .eq("is_active", true)
+        : { data: [] as any[] };
+
+    const { data: commentsData } =
+      postIds.length > 0
+        ? await supabase
+            .from("comments")
+            .select("post_id")
+            .in("post_id", postIds)
+            .eq("is_deleted", false)
+            .eq("is_hidden", false)
+        : { data: [] as any[] };
+
+    const likeCountMap = new Map<number, number>();
+    const commentCountMap = new Map<number, number>();
+
+    (likesData || []).forEach((like: any) => {
+      likeCountMap.set(like.post_id, (likeCountMap.get(like.post_id) || 0) + 1);
+    });
+
+    (commentsData || []).forEach((comment: any) => {
+      commentCountMap.set(
+        comment.post_id,
+        (commentCountMap.get(comment.post_id) || 0) + 1
+      );
+    });
+
+    const postsWithProfiles = data.map((post) => ({
+      ...post,
+      authorProfile: profileMap.get(post.author_id) || null,
+      likeCount: likeCountMap.get(post.id) || 0,
+      commentCount: commentCountMap.get(post.id) || 0,
+    }));
+
+    setPosts(postsWithProfiles);
+    setLoading(false);
+  }
+
+  const sortedPosts = [...posts].sort((a, b) => {
+    if (sortMode === "hot") {
+      const scoreA = (a.likeCount || 0) * 3 + (a.commentCount || 0) * 2;
+      const scoreB = (b.likeCount || 0) * 3 + (b.commentCount || 0) * 2;
+
+      return scoreB - scoreA;
+    }
+
+    return (
+      new Date(b.published_at).getTime() -
+      new Date(a.published_at).getTime()
+    );
+  });
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-
       <div className="fixed left-1/2 top-1/3 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
       <div className="mx-auto max-w-5xl">
@@ -147,6 +198,40 @@ export default function ArticlesSpacePage() {
             有些故事不适合一句话说完。
             有些人，会把整个世界慢慢写下来。
           </p>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setSortMode("newest")}
+              className={`rounded-full border px-5 py-3 text-sm transition ${
+                sortMode === "newest"
+                  ? "border-white bg-white text-black"
+                  : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/25 hover:text-white"
+              }`}
+            >
+              最新优先
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSortMode("hot")}
+              className={`rounded-full border px-5 py-3 text-sm transition ${
+                sortMode === "hot"
+                  ? "border-white bg-white text-black"
+                  : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/25 hover:text-white"
+              }`}
+            >
+              热门优先
+            </button>
+
+            <button
+              type="button"
+              onClick={fetchPosts}
+              className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-white/45 transition hover:border-white/25 hover:text-white"
+            >
+              刷新
+            </button>
+          </div>
         </header>
 
         {loading && (
@@ -169,12 +254,9 @@ export default function ArticlesSpacePage() {
         )}
 
         <div className="grid gap-7">
-          {posts.map((post) => {
-            const excerpt =
-              getExcerpt(post.content);
-
-            const tags =
-              normalizeTags(post.tags);
+          {sortedPosts.map((post) => {
+            const excerpt = getExcerpt(post.content);
+            const tags = normalizeTags(post.tags);
 
             const author = post.authorProfile;
             const authorHref = author?.username
@@ -184,28 +266,14 @@ export default function ArticlesSpacePage() {
             return (
               <article
                 key={post.id}
-                className="
-                  min-w-0 overflow-hidden
-                  rounded-[2.2rem]
-                  border border-white/10
-                  bg-white/[0.03]
-                  p-8
-                  backdrop-blur-2xl
-                  transition-all duration-500
-                  hover:border-white/20
-                  hover:bg-white/[0.05]
-                "
+                className="min-w-0 overflow-hidden rounded-[2.2rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl transition-all duration-500 hover:border-white/20 hover:bg-white/[0.05]"
               >
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-3">
                     {authorHref ? (
                       <Link
                         href={authorHref}
-                        className="
-                          h-10 w-10 shrink-0 overflow-hidden rounded-full
-                          border border-white/10 bg-white/[0.04]
-                          transition hover:scale-105 hover:border-white/25
-                        "
+                        className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04] transition hover:scale-105 hover:border-white/25"
                         title="进入居民房间"
                       >
                         {author?.avatar_url ? (
@@ -246,9 +314,19 @@ export default function ArticlesSpacePage() {
                     </div>
                   </div>
 
-                  <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs text-white/40">
-                    文章
-                  </span>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs text-white/40">
+                      文章
+                    </span>
+
+                    <span className="rounded-full border border-pink-500/20 bg-pink-500/[0.06] px-4 py-2 text-xs text-pink-100/55">
+                      喜欢 {post.likeCount || 0}
+                    </span>
+
+                    <span className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-4 py-2 text-xs text-blue-100/55">
+                      评论 {post.commentCount || 0}
+                    </span>
+                  </div>
                 </div>
 
                 <Link
@@ -269,14 +347,7 @@ export default function ArticlesSpacePage() {
                       {tags.map((tag: string) => (
                         <span
                           key={tag}
-                          className="
-                            safe-text
-                            max-w-full
-                            rounded-full border border-white/10
-                            bg-white/[0.04]
-                            px-4 py-2
-                            text-xs text-white/45
-                          "
+                          className="safe-text max-w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs text-white/45"
                         >
                           #{tag}
                         </span>

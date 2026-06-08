@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
+type LogFilter =
+  | "all"
+  | "report"
+  | "content"
+  | "user"
+  | "badge"
+  | "growth"
+  | "other";
+
 function getActionStyle(action: string) {
   switch (action) {
     case "give_badge":
@@ -104,6 +113,13 @@ function getActionStyle(action: string) {
         icon: "⛔",
       };
 
+    case "mark_malicious_report":
+      return {
+        label: "恶意举报",
+        color: "bg-red-500/15 text-red-300 border-red-500/30",
+        icon: "🚨",
+      };
+
     default:
       return {
         label: action || "未知操作",
@@ -113,11 +129,48 @@ function getActionStyle(action: string) {
   }
 }
 
+function getLogCategory(action: string): LogFilter {
+  if (
+    [
+      "update_report_status",
+      "hide_reported_post",
+      "hide_reported_comment",
+      "update_reported_user_status",
+      "mark_malicious_report",
+    ].includes(action)
+  ) {
+    return "report";
+  }
+
+  if (["hide_comment", "restore_comment", "delete_comment"].includes(action)) {
+    return "content";
+  }
+
+  if (["update_role", "update_status"].includes(action)) {
+    return "user";
+  }
+
+  if (
+    ["give_badge", "remove_badge", "create_badge", "delete_badge"].includes(
+      action
+    )
+  ) {
+    return "badge";
+  }
+
+  if (action === "update_growth") {
+    return "growth";
+  }
+
+  return "other";
+}
+
 export default function AdminLogsPage() {
   const router = useRouter();
 
   const [logs, setLogs] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<LogFilter>("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -125,6 +178,8 @@ export default function AdminLogsPage() {
   }, []);
 
   async function checkAndFetchLogs() {
+    setLoading(true);
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -145,39 +200,40 @@ export default function AdminLogsPage() {
       return;
     }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("admin_logs")
       .select("*")
       .order("created_at", {
         ascending: false,
       });
 
+    if (error) {
+      alert("读取操作日志失败：" + error.message);
+      setLoading(false);
+      return;
+    }
+
     const rawLogs = data || [];
 
     const adminIds = Array.from(
-      new Set(
-        rawLogs
-          .map((log) => log.admin_id)
-          .filter(Boolean)
-      )
+      new Set(rawLogs.map((log) => log.admin_id).filter(Boolean))
     );
 
-    const { data: adminProfiles } = await supabase
-      .from("profiles")
-      .select("id, username")
-      .in("id", adminIds);
+    const { data: adminProfiles } =
+      adminIds.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id, username")
+            .in("id", adminIds)
+        : { data: [] as any[] };
 
     const profileMap = new Map(
-      (adminProfiles || []).map((item: any) => [
-        item.id,
-        item.username,
-      ])
+      (adminProfiles || []).map((item: any) => [item.id, item.username])
     );
 
     const logsWithAdminName = rawLogs.map((log) => ({
       ...log,
-      admin_username:
-        profileMap.get(log.admin_id) || "未知管理员",
+      admin_username: profileMap.get(log.admin_id) || "未知管理员",
     }));
 
     setLogs(logsWithAdminName);
@@ -186,6 +242,11 @@ export default function AdminLogsPage() {
 
   const filteredLogs = logs.filter((log) => {
     const keyword = search.toLowerCase().trim();
+    const category = getLogCategory(log.action);
+
+    if (filter !== "all" && category !== filter) {
+      return false;
+    }
 
     if (!keyword) return true;
 
@@ -193,12 +254,53 @@ export default function AdminLogsPage() {
       log.action?.toLowerCase().includes(keyword) ||
       log.details?.toLowerCase().includes(keyword) ||
       log.target_type?.toLowerCase().includes(keyword) ||
-      String(log.target_id || "")
-        .toLowerCase()
-        .includes(keyword) ||
+      String(log.target_id || "").toLowerCase().includes(keyword) ||
       log.admin_username?.toLowerCase().includes(keyword)
     );
   });
+
+  const filterTabs = [
+    {
+      key: "all",
+      label: "全部",
+      count: logs.length,
+    },
+    {
+      key: "report",
+      label: "举报处理",
+      count: logs.filter((log) => getLogCategory(log.action) === "report")
+        .length,
+    },
+    {
+      key: "content",
+      label: "内容处理",
+      count: logs.filter((log) => getLogCategory(log.action) === "content")
+        .length,
+    },
+    {
+      key: "user",
+      label: "用户处理",
+      count: logs.filter((log) => getLogCategory(log.action) === "user").length,
+    },
+    {
+      key: "badge",
+      label: "徽章",
+      count: logs.filter((log) => getLogCategory(log.action) === "badge")
+        .length,
+    },
+    {
+      key: "growth",
+      label: "成长",
+      count: logs.filter((log) => getLogCategory(log.action) === "growth")
+        .length,
+    },
+    {
+      key: "other",
+      label: "其他",
+      count: logs.filter((log) => getLogCategory(log.action) === "other")
+        .length,
+    },
+  ] as const;
 
   if (loading) {
     return (
@@ -210,14 +312,21 @@ export default function AdminLogsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold">
-          操作日志 📜
-        </h1>
+      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+        <div>
+          <h1 className="text-4xl font-bold">操作日志 📜</h1>
 
-        <p className="mt-2 text-zinc-500">
-          记录后台管理员的所有重要操作。仅 owner 可查看。
-        </p>
+          <p className="mt-2 text-zinc-500">
+            记录后台管理员的所有重要操作。仅 owner 可查看。
+          </p>
+        </div>
+
+        <button
+          onClick={checkAndFetchLogs}
+          className="rounded-full border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm text-zinc-300 transition hover:border-white hover:text-white"
+        >
+          刷新日志
+        </button>
       </div>
 
       <input
@@ -227,8 +336,30 @@ export default function AdminLogsPage() {
         className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-4 outline-none transition focus:border-white"
       />
 
+      <div className="flex flex-wrap gap-3">
+        {filterTabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setFilter(tab.key)}
+            className={`rounded-full border px-4 py-2 text-sm transition ${
+              filter === tab.key
+                ? "border-white bg-white text-black"
+                : "border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-white hover:text-white"
+            }`}
+          >
+            {tab.label}{" "}
+            <span
+              className={filter === tab.key ? "text-black/60" : "text-zinc-600"}
+            >
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
       <div className="rounded-full border border-zinc-800 bg-zinc-950 px-5 py-3 text-sm text-zinc-400">
-        显示 {filteredLogs.length} / {logs.length} 条日志
+        当前显示 {filteredLogs.length} / {logs.length} 条日志
       </div>
 
       <div className="space-y-4">
@@ -252,9 +383,7 @@ export default function AdminLogsPage() {
                     className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-sm font-bold ${actionStyle.color}`}
                   >
                     <span>{actionStyle.icon}</span>
-                    <span className="safe-text">
-                      {actionStyle.label}
-                    </span>
+                    <span className="safe-text">{actionStyle.label}</span>
                   </div>
 
                   <p className="safe-pre text-sm leading-7 text-zinc-400">
@@ -262,13 +391,9 @@ export default function AdminLogsPage() {
                   </p>
 
                   <div className="flex flex-wrap gap-3 text-xs text-zinc-600">
-                    <span>
-                      Admin：{log.admin_username || "未知管理员"}
-                    </span>
+                    <span>Admin：{log.admin_username || "未知管理员"}</span>
 
-                    <span>
-                      Target：{log.target_type || "unknown"}
-                    </span>
+                    <span>Target：{log.target_type || "unknown"}</span>
 
                     <span className="break-all">
                       ID：{log.target_id || "无"}

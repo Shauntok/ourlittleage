@@ -27,14 +27,20 @@ type NotificationItem = {
 
 // ===== 通知 Navbar：让顶部信箱红点即时刷新 =====
 function notifyNavbar() {
-  window.dispatchEvent(
-    new Event("notifications-updated")
-  );
+  window.dispatchEvent(new Event("notifications-updated"));
+
+  setTimeout(() => {
+    window.dispatchEvent(new Event("notifications-updated"));
+  }, 250);
 }
 
 // ===== 通知类型文字 =====
 function getTypeLabel(type: string) {
   switch (type) {
+    case "announcement":
+      return "世界公告";
+    case "badge":
+      return "徽章";
     case "system":
       return "系统来信";
     case "reply":
@@ -55,6 +61,10 @@ function getTypeLabel(type: string) {
 // ===== 通知类型图标 =====
 function getTypeIcon(type: string) {
   switch (type) {
+    case "announcement":
+      return "📢";
+    case "badge":
+      return "🎖️";
     case "system":
       return "🌙";
     case "reply":
@@ -178,8 +188,8 @@ export default function NotificationsPage() {
       return;
     }
 
-    await fetchNotifications();
     notifyNavbar();
+    await fetchNotifications();
   }
 
   // ===== 移到垃圾桶：软删除，不是真的删除 =====
@@ -215,8 +225,8 @@ export default function NotificationsPage() {
       return;
     }
 
-    await fetchNotifications();
     notifyNavbar();
+    await fetchNotifications();
   }
 
   // ===== 从垃圾桶恢复 =====
@@ -250,8 +260,8 @@ export default function NotificationsPage() {
       return;
     }
 
-    await fetchNotifications();
     notifyNavbar();
+    await fetchNotifications();
   }
 
   // ===== 星标 / 取消星标 =====
@@ -289,8 +299,8 @@ export default function NotificationsPage() {
       return;
     }
 
-    await fetchNotifications();
     notifyNavbar();
+    await fetchNotifications();
   }
 
   async function toggleImportant(
@@ -326,8 +336,8 @@ export default function NotificationsPage() {
       return;
     }
 
-    await fetchNotifications();
     notifyNavbar();
+    await fetchNotifications();
   }
 
   // ===== 根据当前 tab 过滤通知 =====

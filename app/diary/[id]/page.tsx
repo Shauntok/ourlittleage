@@ -6,6 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
 import PostComments from "@/components/PostComments";
+import ReportButton from "@/components/ReportButton";
+import LikeButton from "@/components/LikeButton";
 
 type ProfileInfo = {
   username: string | null;
@@ -244,14 +246,32 @@ export default function DiaryDetailPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            {diary.isOwner && (
-              <Link
-                href={`/diary/${diary.id}/edit`}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
-              >
-                编辑日记
-              </Link>
-            )}
+            <div className="flex flex-wrap gap-3">
+
+              {!diary.isOwner && (
+                <LikeButton
+                  postId={diary.id}
+                  authorId={diary.author_id}
+                />
+              )}
+
+              {diary.isOwner && (
+                <Link
+                  href={`/diary/${diary.id}/edit`}
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
+                >
+                  编辑日记
+                </Link>
+              )}
+
+              {!diary.isOwner && (
+                <ReportButton
+                  targetType="post"
+                  targetId={diary.id}
+                  authorId={diary.author_id}
+                />
+              )}
+            </div>
 
             <Link
               href={diary.isOwner ? "/diary" : "/space/diaries"}

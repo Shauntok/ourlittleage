@@ -174,6 +174,34 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4">
+          {profile && (
+            <Link
+              href="/notifications"
+              className="
+                relative flex h-11 w-11 items-center justify-center
+                rounded-full border border-white/10
+                bg-white/[0.04] text-lg
+                transition hover:border-white/25 hover:bg-white/[0.08]
+              "
+              title="小时代信箱"
+            >
+              📬
+
+              {unreadCount > 0 && (
+                <span
+                  className="
+                    absolute -right-1 -top-1
+                    flex h-5 min-w-5 items-center justify-center
+                    rounded-full bg-red-500 px-1.5
+                    text-[10px] font-bold text-white
+                    shadow-[0_0_14px_rgba(239,68,68,0.75)]
+                  "
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
           {profile ? (
             <div className="relative" ref={menuRef}>
               <button

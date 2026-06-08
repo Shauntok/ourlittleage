@@ -5,8 +5,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-
-// ===== Sidebar 单个导航项目类型 =====
 type AdminLink = {
   href: string;
   label: string;
@@ -14,139 +12,147 @@ type AdminLink = {
   badge?: number;
 };
 
-
-
-// ===== Admin 后台侧边导航 =====
 export default function AdminSidebar() {
   const pathname = usePathname();
 
-  // ===== 草稿数量，用来显示小红点 badge =====
-  const [draftCount, setDraftCount] = useState(0);
-  const [currentRole, setCurrentRole] =useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [counts, setCounts] = useState({
+    reports: 0,
+    feedbacks: 0,
+    comments: 0,
+  });
 
-  // ===== 读取后台提醒数量 =====
   useEffect(() => {
-    async function fetchCounts() {
-      const { count } = await supabase
-        .from("posts")
-        .select("*", {
+    async function fetchAdminData() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        setCurrentRole(profile?.role || "user");
+      }
+
+      const { count: reportsCount } = await supabase
+        .from("reports")
+        .select("id", {
           count: "exact",
           head: true,
         })
-        .eq("status", "draft");
+        .neq("status", "resolved")
+        .neq("status", "rejected");
 
-      setDraftCount(count || 0);
-    
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      const { count: feedbacksCount } = await supabase
+        .from("feedbacks")
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
+        .neq("status", "resolved")
+        .neq("status", "closed");
 
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
+      const { count: commentsCount } = await supabase
+        .from("comments")
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
+        .eq("is_hidden", false)
+        .eq("is_deleted", false);
 
-      setCurrentRole(profile?.role || "user");
+      setCounts({
+        reports: reportsCount || 0,
+        feedbacks: feedbacksCount || 0,
+        comments: commentsCount || 0,
+      });
     }
 
-    }
-
-    fetchCounts();
+    fetchAdminData();
   }, []);
 
-  // ===== 总览 =====
   const overviewLinks: AdminLink[] = [
     {
       href: "/admin/homepage",
-      label: "后台首页",
+      label: "控制中心",
       icon: "📊",
     },
   ];
 
-  // ===== 内容管理 =====
-  const contentLinks: AdminLink[] = [
-    {
-      href: "/admin/write",
-      label: "新建文章",
-      icon: "✍️",
-    },
-    {
-      href: "/admin/drafts",
-      label: "草稿箱",
-      icon: "📝",
-      badge: draftCount,
-    },
-    {
-      href: "/admin/content",
-      label: "已发布",
-      icon: "✅",
-    },
-    {
-      href: "/admin/search",
-      label: "搜索文章",
-      icon: "🔍",
-    },
-  ];
-
-  // ===== 未来社区管理，先预留视觉位置 =====
   const communityLinks: AdminLink[] = [
-    {
-      href: "/admin/comments",
-      label: "评论",
-      icon: "💬",
-    },
-    {
-      href: "/admin/reports",
-      label: "举报",
-      icon: "🚩",
-    },
-    {
-      href: "/admin/feedback",
-      label: "反馈",
-      icon: "💡",
-    },
-  ];
-
-  const identityLinks: AdminLink[] = [
-    {
-      href: "/admin/badges",
-      label: "徽章管理",
-      icon: "🎖️",
-    },
-
     {
       href: "/admin/users",
       label: "居民管理",
       icon: "👥",
     },
+    {
+      href: "/admin/comments",
+      label: "评论管理",
+      icon: "💬",
+      badge: counts.comments,
+    },
+    {
+      href: "/admin/reports",
+      label: "举报中心",
+      icon: "🚩",
+      badge: counts.reports,
+    },
+    {
+      href: "/admin/feedback",
+      label: "反馈中心",
+      icon: "💌",
+      badge: counts.feedbacks,
+    },
   ];
 
-    const ownerLinks: AdminLink[] = [
-      {
-        href: "/admin/roles",
-        label: "权限管理",
-        icon: "👑",
-      },
-      {
-        href: "/admin/logs",
-        label: "操作日志",
-        icon: "📜",
-      },
-      {
-        href: "/admin/announcements",
-        label: "世界公告",
-        icon: "📢",
-      },
-      {
-        href: "/admin/broadcast",
-        label: "全站信件",
-        icon: "📬",
-      },
-    ];
+  const contentLinks: AdminLink[] = [
+    {
+      href: "/admin/content",
+      label: "内容管理",
+      icon: "📚",
+    },
+    {
+      href: "/admin/announcements",
+      label: "世界公告",
+      icon: "📢",
+    },
+    {
+      href: "/admin/broadcast",
+      label: "全站信件",
+      icon: "📬",
+    },
+  ];
 
-  // ===== 系统 =====
+  const growthLinks: AdminLink[] = [
+    {
+      href: "/admin/badges",
+      label: "徽章管理",
+      icon: "🎖️",
+    },
+    {
+      href: "/admin/growth",
+      label: "成长记录",
+      icon: "✨",
+    },
+  ];
+
+  const ownerLinks: AdminLink[] = [
+    {
+      href: "/admin/roles",
+      label: "权限管理",
+      icon: "👑",
+    },
+    {
+      href: "/admin/logs",
+      label: "操作日志",
+      icon: "📜",
+    },
+  ];
+
   const systemLinks: AdminLink[] = [
     {
       href: "/home",
@@ -155,7 +161,6 @@ export default function AdminSidebar() {
     },
   ];
 
-  // ===== 离开页面前检查是否有未保存修改 =====
   function handleNavigate(e: React.MouseEvent<HTMLAnchorElement>) {
     if (!(window as any).adminHasUnsavedChanges) return;
 
@@ -169,10 +174,12 @@ export default function AdminSidebar() {
   }
 
   const isOwner = currentRole === "owner";
-  const isAdmin =currentRole === "owner" || currentRole === "admin";
-  const isModerator =currentRole === "owner" || currentRole === "admin" || currentRole === "moderator";
+  const isAdmin = currentRole === "owner" || currentRole === "admin";
+  const isModerator =
+    currentRole === "owner" ||
+    currentRole === "admin" ||
+    currentRole === "moderator";
 
-  // ===== 渲染一组导航 =====
   function renderSection(title: string, links: AdminLink[]) {
     return (
       <div className="space-y-1.5">
@@ -193,15 +200,15 @@ export default function AdminSidebar() {
                 onClick={handleNavigate}
                 className={
                   isActive
-                    ? "group flex items-center gap-3 rounded-2xl px-2.5 py-2 bg-white text-black font-bold transition"
-                    : "group flex items-center gap-3 rounded-2xl px-2.5 py-2 text-zinc-300 hover:bg-zinc-900 hover:text-white transition"
+                    ? "group flex items-center gap-3 rounded-2xl bg-white px-2.5 py-2 font-bold text-black transition"
+                    : "group flex items-center gap-3 rounded-2xl px-2.5 py-2 text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
                 }
               >
                 <span
                   className={
                     isActive
-                      ? "flex h-7 w-7 items-center justify-center rounded-xl bg-black text-white border border-black transition"
-                      : "flex h-7 w-7 items-center justify-center rounded-xl bg-zinc-900 border border-zinc-800 group-hover:border-zinc-500 transition"
+                      ? "flex h-7 w-7 items-center justify-center rounded-xl border border-black bg-black text-white transition"
+                      : "flex h-7 w-7 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 transition group-hover:border-zinc-500"
                   }
                 >
                   {item.icon}
@@ -212,8 +219,8 @@ export default function AdminSidebar() {
                 </span>
 
                 {item.badge !== undefined && item.badge > 0 && (
-                  <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
-                    {item.badge}
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
+                    {item.badge > 99 ? "99+" : item.badge}
                   </span>
                 )}
               </Link>
@@ -225,8 +232,8 @@ export default function AdminSidebar() {
   }
 
   return (
-    <aside className="hidden lg:block sticky top-8 self-start">
-      <div className="w-52 rounded-3xl border border-zinc-800 bg-zinc-950/80 p-4 shadow-2xl shadow-black/40">
+    <aside className="hidden self-start lg:sticky lg:top-8 lg:block">
+      <div className="w-56 rounded-3xl border border-zinc-800 bg-zinc-950/80 p-4 shadow-2xl shadow-black/40">
         <p className="px-3 pb-3 text-xs tracking-[0.25em] text-zinc-500">
           ADMIN
         </p>
@@ -234,17 +241,13 @@ export default function AdminSidebar() {
         <nav className="space-y-3">
           {renderSection("总览", overviewLinks)}
 
-          {isAdmin &&
-            renderSection("内容管理", contentLinks)}
+          {isModerator && renderSection("社区", communityLinks)}
 
-          {isModerator &&
-            renderSection("社区管理", communityLinks)}
+          {isModerator && renderSection("内容", contentLinks)}
 
-          {isAdmin &&
-            renderSection("身份系统", identityLinks)}
+          {isAdmin && renderSection("成长", growthLinks)}
 
-          {isOwner && 
-            renderSection("Owner", ownerLinks)}
+          {isOwner && renderSection("Owner", ownerLinks)}
 
           {renderSection("系统", systemLinks)}
         </nav>

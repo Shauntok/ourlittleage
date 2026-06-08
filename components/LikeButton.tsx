@@ -1,0 +1,191 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { addUserGrowth } from "@/lib/community-growth";
+
+type Props = {
+  postId: number;
+  authorId: string;
+};
+
+export default function LikeButton({ postId, authorId }: Props) {
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState("");
+
+  useEffect(() => {
+    fetchLikeState();
+  }, [postId]);
+
+  async function fetchLikeState() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    setCurrentUserId(user.id);
+
+    const { count } = await supabase
+      .from("post_likes")
+      .select("id", {
+        count: "exact",
+        head: true,
+      })
+      .eq("post_id", postId)
+      .eq("is_active", true);
+
+    setLikeCount(count || 0);
+
+    const { data: myLike } = await supabase
+      .from("post_likes")
+      .select("id, is_active, rewarded")
+      .eq("post_id", postId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    setLiked(!!myLike?.is_active);
+  }
+
+  async function toggleLike() {
+    if (!currentUserId) {
+      alert("请先登录后再喜欢。");
+      return;
+    }
+
+    if (currentUserId === authorId) {
+      alert("不能给自己的内容点喜欢。");
+      return;
+    }
+
+    setLoading(true);
+
+    const { data: existingLike, error: existingError } = await supabase
+      .from("post_likes")
+      .select("id, is_active, rewarded")
+      .eq("post_id", postId)
+      .eq("user_id", currentUserId)
+      .maybeSingle();
+
+    if (existingError) {
+      setLoading(false);
+      alert(existingError.message);
+      return;
+    }
+
+    if (existingLike?.is_active) {
+      const { error } = await supabase
+        .from("post_likes")
+        .update({
+          is_active: false,
+        })
+        .eq("id", existingLike.id);
+
+      setLoading(false);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      setLiked(false);
+      setLikeCount((current) => Math.max(current - 1, 0));
+      return;
+    }
+
+    if (existingLike && !existingLike.is_active) {
+      const { error } = await supabase
+        .from("post_likes")
+        .update({
+          is_active: true,
+        })
+        .eq("id", existingLike.id);
+
+      setLoading(false);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      setLiked(true);
+      setLikeCount((current) => current + 1);
+
+      if (!existingLike.rewarded) {
+        const success = await addUserGrowth({
+          userId: authorId,
+          light: 0.005,
+          reason: "post_liked",
+        });
+
+        if (success) {
+          await supabase
+            .from("post_likes")
+            .update({
+              rewarded: true,
+            })
+            .eq("id", existingLike.id);
+        }
+      }
+
+      return;
+    }
+
+    const { data: insertedLike, error } = await supabase
+      .from("post_likes")
+      .insert([
+        {
+          post_id: postId,
+          user_id: currentUserId,
+          is_active: true,
+          rewarded: false,
+        },
+      ])
+      .select("id, rewarded")
+      .single();
+
+    setLoading(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setLiked(true);
+    setLikeCount((current) => current + 1);
+
+    if (insertedLike && !insertedLike.rewarded) {
+      const success = await addUserGrowth({
+        userId: authorId,
+        light: 0.005,
+        reason: "post_liked",
+      });
+
+      if (success) {
+        await supabase
+          .from("post_likes")
+          .update({
+            rewarded: true,
+          })
+          .eq("id", insertedLike.id);
+      }
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggleLike}
+      disabled={loading}
+      className={`rounded-full border px-5 py-3 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
+        liked
+          ? "border-pink-500/30 bg-pink-500/10 text-pink-200"
+          : "border-white/10 bg-white/[0.04] text-white/45 hover:border-pink-500/25 hover:text-pink-100"
+      }`}
+    >
+      {liked ? "已喜欢" : "喜欢"} · {likeCount}
+    </button>
+  );
+}

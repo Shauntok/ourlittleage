@@ -2,81 +2,48 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import Cropper, { Area } from "react-easy-crop";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 const BIO_LIMIT = 300;
-
-function PrivacySwitch({
-  label,
-  checked,
-  onChange,
-  disabled = false,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onChange}
-      className={`rounded-2xl border px-5 py-4 text-left text-sm transition-all duration-300 ${
-        disabled
-          ? "cursor-not-allowed border-white/5 bg-white/[0.02] text-white/15"
-          : checked
-          ? "border-white/25 bg-white/[0.09] text-white shadow-[0_0_35px_rgba(255,255,255,0.06)]"
-          : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
 
 function createImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", reject);
+    image.addEventListener("error", (error) => reject(error));
+    image.setAttribute("crossOrigin", "anonymous");
     image.src = url;
   });
 }
 
-async function getCroppedImage(
-  imageSrc: string,
-  cropPixels: Area
-): Promise<Blob> {
+async function getCroppedImage(imageSrc: string, crop: Area) {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
-  if (!ctx) {
-    throw new Error("无法处理图片。");
-  }
+  if (!ctx) throw new Error("无法处理图片。");
 
-  canvas.width = cropPixels.width;
-  canvas.height = cropPixels.height;
+  canvas.width = crop.width;
+  canvas.height = crop.height;
 
   ctx.drawImage(
     image,
-    cropPixels.x,
-    cropPixels.y,
-    cropPixels.width,
-    cropPixels.height,
+    crop.x,
+    crop.y,
+    crop.width,
+    crop.height,
     0,
     0,
-    cropPixels.width,
-    cropPixels.height
+    crop.width,
+    crop.height
   );
 
-  return new Promise((resolve, reject) => {
+  return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          reject(new Error("裁剪图片失败。"));
+          reject(new Error("图片裁剪失败。"));
           return;
         }
 
@@ -98,19 +65,15 @@ export default function ProfileSettingsPage() {
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [theme, setTheme] = useState("midnight");
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [bannerUploading, setBannerUploading] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  const [showLevel, setShowLevel] = useState(true);
-  const [showExp, setShowExp] = useState(true);
-  const [showTrustScore, setShowTrustScore] = useState(true);
-  const [showJoinedDays, setShowJoinedDays] = useState(true);
 
   const [moodEmoji, setMoodEmoji] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [bannerPreviewUrl, setBannerPreviewUrl] = useState("");
   const [cropOpen, setCropOpen] = useState(false);
@@ -126,30 +89,24 @@ export default function ProfileSettingsPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/home");
+        router.push("/");
         return;
       }
 
       setUser(user);
 
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      setProfile(profile);
-
-      setUsername(profile?.username || "");
-      setBio(profile?.bio || "");
-      setTheme(profile?.theme || "midnight");
-      setMoodEmoji(profile?.mood_emoji || "");
-      setStatusMessage(profile?.status_message || "");
-
-      setShowLevel(profile?.show_level ?? true);
-      setShowExp(profile?.show_exp ?? true);
-      setShowTrustScore(profile?.show_trust_score ?? true);
-      setShowJoinedDays(profile?.show_joined_days ?? true);
+      setProfile(profileData);
+      setUsername(profileData?.username || "");
+      setBio(profileData?.bio || "");
+      setTheme(profileData?.theme || "midnight");
+      setMoodEmoji(profileData?.mood_emoji || "");
+      setStatusMessage(profileData?.status_message || "");
 
       setLoading(false);
     }
@@ -177,7 +134,6 @@ export default function ProfileSettingsPage() {
 
     const cleanUsername = username.trim();
     const cleanBio = bio.trim();
-
     const usernameRegex = /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/;
 
     if (!cleanUsername) {
@@ -213,10 +169,7 @@ export default function ProfileSettingsPage() {
         username: cleanUsername,
         bio: cleanBio,
         theme,
-        show_level: showLevel,
-        show_exp: showExp,
-        show_trust_score: showTrustScore,
-        show_joined_days: showJoinedDays,
+        updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
 
@@ -232,85 +185,10 @@ export default function ProfileSettingsPage() {
       username: cleanUsername,
       bio: cleanBio,
       theme,
-      show_level: showLevel,
-      show_exp: showExp,
-      show_trust_score: showTrustScore,
-      show_joined_days: showJoinedDays,
     }));
 
     setHasUnsavedChanges(false);
-
     alert("房间资料已更新。");
-  }
-
-  async function saveMoodStatus() {
-    if (!user) return;
-
-    if (!moodEmoji && !statusMessage.trim()) {
-      alert("请先选择心情或写一句状态。");
-      return;
-    }
-
-    setStatusSaving(true);
-
-    const expiresAt = new Date(
-      Date.now() + 18 * 60 * 60 * 1000
-    ).toISOString();
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        mood_emoji: moodEmoji,
-        status_message: statusMessage,
-        status_expires_at: expiresAt,
-      })
-      .eq("id", user.id);
-
-    setStatusSaving(false);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setProfile((current: any) => ({
-      ...current,
-      mood_emoji: moodEmoji,
-      status_message: statusMessage,
-      status_expires_at: expiresAt,
-    }));
-
-    alert("今日状态已更新。");
-  }
-
-  async function clearMoodStatus() {
-    if (!user) return;
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        mood_emoji: null,
-        status_message: null,
-        status_expires_at: null,
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setMoodEmoji("");
-    setStatusMessage("");
-
-    setProfile((current: any) => ({
-      ...current,
-      mood_emoji: null,
-      status_message: null,
-      status_expires_at: null,
-    }));
-
-    alert("今日状态已取消。");
   }
 
   async function uploadAvatar(e: ChangeEvent<HTMLInputElement>) {
@@ -320,18 +198,18 @@ export default function ProfileSettingsPage() {
 
     setUploading(true);
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${user.id}.${fileExt}`;
+    const cleanName = file.name.replace(/\s+/g, "-");
+    const fileName = `${user.id}-${Date.now()}-${cleanName}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { error } = await supabase.storage
       .from("avatars")
       .upload(fileName, file, {
         upsert: true,
       });
 
-    if (uploadError) {
-      alert(uploadError.message);
+    if (error) {
       setUploading(false);
+      alert(error.message);
       return;
     }
 
@@ -339,12 +217,11 @@ export default function ProfileSettingsPage() {
       data: { publicUrl },
     } = supabase.storage.from("avatars").getPublicUrl(fileName);
 
-    const freshAvatarUrl = `${publicUrl}?v=${Date.now()}`;
-
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
-        avatar_url: freshAvatarUrl,
+        avatar_url: publicUrl,
+        updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
 
@@ -357,16 +234,28 @@ export default function ProfileSettingsPage() {
 
     setProfile((current: any) => ({
       ...current,
-      avatar_url: freshAvatarUrl,
+      avatar_url: publicUrl,
     }));
 
-    alert("头像上传成功。");
+    alert("头像已更新。");
   }
 
   function chooseBannerFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
 
     if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("请上传图片文件。");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      alert("图片不能超过 8MB。");
+      e.target.value = "";
+      return;
+    }
 
     const previewUrl = URL.createObjectURL(file);
 
@@ -387,8 +276,6 @@ export default function ProfileSettingsPage() {
     setBannerPreviewUrl("");
     setCropOpen(false);
     setCroppedAreaPixels(null);
-    setZoom(1);
-    setCrop({ x: 0, y: 0 });
   }
 
   async function confirmCropAndUpload() {
@@ -402,7 +289,7 @@ export default function ProfileSettingsPage() {
         croppedAreaPixels
       );
 
-      const fileName = `${user.id}.jpg`;
+      const fileName = `${user.id}/banner.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("banners")
@@ -427,6 +314,7 @@ export default function ProfileSettingsPage() {
         .from("profiles")
         .update({
           banner_url: freshBannerUrl,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
 
@@ -442,13 +330,87 @@ export default function ProfileSettingsPage() {
       }));
 
       closeCropModal();
-
       alert("横幅已更新。");
     } catch (error: any) {
       alert(error.message || "裁剪图片失败。");
     }
 
     setBannerUploading(false);
+  }
+
+  async function saveMoodStatus() {
+    if (!user) return;
+
+    if (!moodEmoji && !statusMessage.trim()) {
+      alert("请先选择心情或写一句状态。");
+      return;
+    }
+
+    setStatusSaving(true);
+
+    const expiresAt = new Date(
+      Date.now() + 18 * 60 * 60 * 1000
+    ).toISOString();
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        mood_emoji: moodEmoji || null,
+        status_message: statusMessage.trim() || null,
+        status_expires_at: expiresAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+
+    setStatusSaving(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setProfile((current: any) => ({
+      ...current,
+      mood_emoji: moodEmoji || null,
+      status_message: statusMessage.trim() || null,
+      status_expires_at: expiresAt,
+    }));
+
+    alert("今日状态已设置。");
+  }
+
+  async function clearMoodStatus() {
+    if (!user) return;
+
+    const confirmed = confirm("确定清除今日状态吗？");
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        mood_emoji: null,
+        status_message: null,
+        status_expires_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setMoodEmoji("");
+    setStatusMessage("");
+
+    setProfile((current: any) => ({
+      ...current,
+      mood_emoji: null,
+      status_message: null,
+      status_expires_at: null,
+    }));
+
+    alert("今日状态已清除。");
   }
 
   if (loading) {
@@ -474,13 +436,12 @@ export default function ProfileSettingsPage() {
       ? "from-zinc-700 via-zinc-800 to-black"
       : "from-black via-zinc-950 to-black";
 
-
   return (
     <div className="w-full overflow-hidden text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
-      <div className="grid w-full max-w-full gap-10 xl:grid-cols-[minmax(760px,1fr)_380px] 2xl:grid-cols-[minmax(900px,1fr)_420px]">
+      <div className="grid w-full max-w-full gap-10 xl:grid-cols-[minmax(720px,1fr)_380px] 2xl:grid-cols-[minmax(900px,1fr)_420px]">
         <section className="space-y-8">
           <div>
             <p className="text-xs tracking-[0.4em] text-white/25">
@@ -566,7 +527,7 @@ export default function ProfileSettingsPage() {
 
               <div className="mt-8 grid gap-5">
                 <div className="space-y-2">
-                  <p className="text-sm text-white/45">用户名称</p>
+                  <p className="text-sm text-white/45">居民名字</p>
 
                   <input
                     type="text"
@@ -576,23 +537,12 @@ export default function ProfileSettingsPage() {
                       setUsername(e.target.value);
                       setHasUnsavedChanges(true);
                     }}
-                    className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 text-white outline-none transition break-words [overflow-wrap:anywhere] focus:border-white/30"                    placeholder="别人会怎么称呼你？"
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-white outline-none transition focus:border-white/30"
+                    placeholder="给你的房间留一个名字"
                   />
-                </div>
 
-                <div className="flex items-center justify-between text-xs">
-                  <p className="text-white/25">
-                    只能使用中文、英文、数字和底线。
-                  </p>
-
-                  <p
-                    className={`shrink-0 ${
-                      username.trim().length > 20
-                        ? "text-red-200/70"
-                        : "text-white/30"
-                    }`}
-                  >
-                    已写 {username.trim().length} 字 · 最多 20 字
+                  <p className="text-xs text-white/25">
+                    3-20 个字符，可使用中文、英文、数字和底线。
                   </p>
                 </div>
 
@@ -613,7 +563,8 @@ export default function ProfileSettingsPage() {
                       setBio(e.target.value);
                       setHasUnsavedChanges(true);
                     }}
-                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 p-4 leading-8 text-white outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30"                    placeholder="介绍一下自己，或者写一句这个房间的门牌。"
+                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 p-4 leading-8 text-white outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30"
+                    placeholder="介绍一下自己，或者写一句这个房间的门牌。"
                   />
                 </div>
               </div>
@@ -665,7 +616,8 @@ export default function ProfileSettingsPage() {
               value={statusMessage}
               onChange={(e) => setStatusMessage(e.target.value)}
               rows={3}
-              className="mt-5 w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-5 py-4 leading-7 outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30"            />
+              className="mt-5 w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-5 py-4 leading-7 outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30"
+            />
 
             {(moodEmoji || statusMessage) && (
               <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-white/70">
@@ -691,10 +643,7 @@ export default function ProfileSettingsPage() {
                 disabled={statusSaving}
                 className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
               >
-                {profile?.status_expires_at &&
-                new Date(profile.status_expires_at).getTime() > Date.now()
-                  ? "更新今日状态"
-                  : "设置今日状态"}
+                {statusSaving ? "保存中..." : "设置今日状态"}
               </button>
 
               {(moodEmoji || statusMessage) && (
@@ -723,26 +672,11 @@ export default function ProfileSettingsPage() {
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {[
-                {
-                  key: "midnight",
-                  name: "🌙 深夜黑",
-                },
-                {
-                  key: "ocean",
-                  name: "🌊 深海蓝",
-                },
-                {
-                  key: "forest",
-                  name: "🌲 森林绿",
-                },
-                {
-                  key: "sunset",
-                  name: "🌇 黄昏橙",
-                },
-                {
-                  key: "mist",
-                  name: "☁️ 雾白",
-                },
+                { key: "midnight", name: "🌙 深夜黑" },
+                { key: "ocean", name: "🌊 深海蓝" },
+                { key: "forest", name: "🌲 森林绿" },
+                { key: "sunset", name: "🌇 黄昏橙" },
+                { key: "mist", name: "☁️ 雾白" },
               ].map((item) => (
                 <button
                   key={item.key}
@@ -760,58 +694,6 @@ export default function ProfileSettingsPage() {
                   {item.name}
                 </button>
               ))}
-            </div>
-          </section>
-
-          <section className="rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-2xl">
-            <p className="text-xs tracking-[0.35em] text-white/25">
-              VISITOR PRIVACY
-            </p>
-
-            <h2 className="mt-4 text-2xl font-light">
-              🔒 访客能看到
-            </h2>
-
-            <p className="mt-3 text-sm leading-7 text-white/35">
-              这些设置会影响别人进入你的房间时，能看到哪些成长痕迹。
-            </p>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <PrivacySwitch
-                label="显示等级"
-                checked={showLevel}
-                onChange={() => {
-                  setShowLevel(!showLevel);
-                  setHasUnsavedChanges(true);
-                }}
-              />
-
-              <PrivacySwitch
-                label="显示经验"
-                checked={showExp}
-                onChange={() => {
-                  setShowExp(!showExp);
-                  setHasUnsavedChanges(true);
-                }}
-              />
-
-              <PrivacySwitch
-                label="显示信任值"
-                checked={showTrustScore}
-                onChange={() => {
-                  setShowTrustScore(!showTrustScore);
-                  setHasUnsavedChanges(true);
-                }}
-              />
-
-              <PrivacySwitch
-                label="显示居住天数"
-                checked={showJoinedDays}
-                onChange={() => {
-                  setShowJoinedDays(!showJoinedDays);
-                  setHasUnsavedChanges(true);
-                }}
-              />
             </div>
           </section>
 
@@ -863,8 +745,8 @@ export default function ProfileSettingsPage() {
               )}
             </div>
 
-            <div className="relative px-6 pb-7">
-              <div className="-mt-12 h-24 w-24 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_45px_rgba(255,255,255,0.1)]">
+            <div className="relative px-7 pb-8">
+              <div className="-mt-14 h-28 w-28 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_45px_rgba(255,255,255,0.12)]">
                 {profile?.avatar_url ? (
                   <img
                     src={profile.avatar_url}
@@ -878,69 +760,43 @@ export default function ProfileSettingsPage() {
                 )}
               </div>
 
-              <p className="mt-5 text-xs tracking-[0.3em] text-white/25">
+              <p className="mt-6 text-xs tracking-[0.3em] text-white/25">
                 ROOM PREVIEW
               </p>
 
-              <h3 className="mt-3 text-3xl font-light break-words [overflow-wrap:anywhere]">
+              <h2 className="safe-text mt-4 text-3xl font-light">
                 {previewUsername}
-              </h3>
+              </h2>
 
-              <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-white/45 [overflow-wrap:anywhere]">
+              <p className="safe-pre mt-4 text-sm leading-7 text-white/45">
                 {previewBio}
               </p>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                {showLevel && (
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/40">
-                    Lv.{profile?.level || 1}
-                  </span>
-                )}
+              <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4">
+                <p className="text-xs tracking-[0.25em] text-white/25">
+                  访客看到的你
+                </p>
 
-                {showExp && (
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/40">
-                    经验 {profile?.exp || 0}
-                  </span>
-                )}
-
-                {showTrustScore && (
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/40">
-                    信任 {profile?.trust_score || 0}
-                  </span>
-                )}
-
-                {showJoinedDays && (
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/40">
-                    居住天数
-                  </span>
-                )}
+                <p className="mt-3 text-sm leading-7 text-white/40">
+                  隐私显示项目已经搬到「隐私设置」。这里专心预览你的房间外观。
+                </p>
               </div>
             </div>
-          </div>
-
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 text-sm leading-7 text-white/35 backdrop-blur-2xl">
-            <p className="text-xs tracking-[0.3em] text-white/25">
-              TIP
-            </p>
-
-            <p className="mt-4">
-              以后这里可以继续扩展：房间主题、背景音乐、称号、访客记录和收藏柜。
-            </p>
           </div>
         </aside>
       </div>
 
-      {cropOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-5 backdrop-blur-xl">
-          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl">
-            <div className="border-b border-white/10 px-6 py-5">
-              <p className="text-xs tracking-[0.35em] text-white/25">
-                CROP BANNER
-              </p>
-
-              <h2 className="mt-3 text-2xl font-light">
-                调整横幅显示范围
+      {cropOpen && bannerPreviewUrl && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-6 backdrop-blur-xl">
+          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950">
+            <div className="border-b border-white/10 p-5">
+              <h2 className="text-2xl font-light">
+                裁剪房间横幅
               </h2>
+
+              <p className="mt-2 text-sm text-white/35">
+                拖动图片，选择别人进入你房间时看到的那一幕。
+              </p>
             </div>
 
             <div className="relative h-[420px] bg-black">
@@ -948,7 +804,7 @@ export default function ProfileSettingsPage() {
                 image={bannerPreviewUrl}
                 crop={crop}
                 zoom={zoom}
-                aspect={16 / 5}
+                aspect={3 / 1}
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onCropComplete={(_, croppedPixels) =>
@@ -957,28 +813,22 @@ export default function ProfileSettingsPage() {
               />
             </div>
 
-            <div className="space-y-5 border-t border-white/10 px-6 py-5">
-              <div>
-                <p className="mb-3 text-sm text-white/40">
-                  缩放
-                </p>
-
-                <input
-                  type="range"
-                  min={1}
-                  max={3}
-                  step={0.05}
-                  value={zoom}
-                  onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
+            <div className="space-y-4 border-t border-white/10 p-5">
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.05}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full"
+              />
 
               <div className="flex flex-wrap justify-end gap-3">
                 <button
                   type="button"
                   onClick={closeCropModal}
-                  className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
+                  className="rounded-full border border-white/10 bg-white/[0.03] px-7 py-3 text-sm text-white/65 transition hover:border-white/20 hover:text-white"
                 >
                   取消
                 </button>
@@ -987,7 +837,7 @@ export default function ProfileSettingsPage() {
                   type="button"
                   onClick={confirmCropAndUpload}
                   disabled={bannerUploading}
-                  className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
+                  className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {bannerUploading ? "上传中..." : "确认使用"}
                 </button>

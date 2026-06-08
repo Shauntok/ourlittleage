@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { addUserGrowth } from "@/lib/community-growth";
+import ReportButton from "@/components/ReportButton";
+import { checkFirstCommentBadge } from "@/lib/badge-awards";
 
 type Props = {
   postId: number;
@@ -22,6 +25,8 @@ type CommentItem = {
   content: string;
   created_at: string;
   profiles: ProfileInfo | ProfileInfo[] | null;
+  likeCount?: number;
+  likedByMe?: boolean;
 };
 
 function getProfile(profile: ProfileInfo | ProfileInfo[] | null) {
@@ -38,6 +43,7 @@ export default function PostComments({ postId }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>("oldest");
 
   const [loading, setLoading] = useState(false);
+  const [likeLoadingId, setLikeLoadingId] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
   const [currentUserId, setCurrentUserId] = useState("");
 
@@ -58,6 +64,14 @@ export default function PostComments({ postId }: Props) {
 
   async function fetchComments() {
     setFetching(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      setCurrentUserId(user.id);
+    }
 
     const { data, error } = await supabase
       .from("comments")
@@ -85,7 +99,39 @@ export default function PostComments({ postId }: Props) {
       return;
     }
 
-    setComments((data || []) as CommentItem[]);
+    const rows = (data || []) as CommentItem[];
+    const commentIds = rows.map((comment) => comment.id);
+
+    const { data: likesData } =
+      commentIds.length > 0
+        ? await supabase
+            .from("comment_likes")
+            .select("comment_id, user_id, is_active")
+            .in("comment_id", commentIds)
+            .eq("is_active", true)
+        : { data: [] as any[] };
+
+    const likeCountMap = new Map<string, number>();
+    const likedByMeMap = new Map<string, boolean>();
+
+    (likesData || []).forEach((like: any) => {
+      likeCountMap.set(
+        like.comment_id,
+        (likeCountMap.get(like.comment_id) || 0) + 1
+      );
+
+      if (user && like.user_id === user.id) {
+        likedByMeMap.set(like.comment_id, true);
+      }
+    });
+
+    const commentsWithLikes = rows.map((comment) => ({
+      ...comment,
+      likeCount: likeCountMap.get(comment.id) || 0,
+      likedByMe: likedByMeMap.get(comment.id) || false,
+    }));
+
+    setComments(commentsWithLikes);
     setFetching(false);
   }
 
@@ -131,9 +177,7 @@ export default function PostComments({ postId }: Props) {
 
     if (profile?.status === "banned") {
       alert("你的账号已被封禁。");
-
       await supabase.auth.signOut();
-
       window.location.href = "/";
       return;
     }
@@ -153,8 +197,174 @@ export default function PostComments({ postId }: Props) {
       return;
     }
 
+    await addUserGrowth({
+      userId: user.id,
+      light: 0.01,
+      reason: "write_comment",
+    });
+
+    await checkFirstCommentBadge(user.id);
+
     setContent("");
     fetchComments();
+  }
+
+  async function toggleCommentLike(comment: CommentItem) {
+    if (!currentUserId) {
+      alert("请先登录后再喜欢留言。");
+      return;
+    }
+
+    if (currentUserId === comment.author_id) {
+      alert("这束光已经属于你自己了。");
+      return;
+    }
+
+    setLikeLoadingId(comment.id);
+
+    const { data: existingLike, error: existingError } = await supabase
+      .from("comment_likes")
+      .select("id, is_active, rewarded")
+      .eq("comment_id", comment.id)
+      .eq("user_id", currentUserId)
+      .maybeSingle();
+
+    if (existingError) {
+      setLikeLoadingId(null);
+      alert(existingError.message);
+      return;
+    }
+
+    if (existingLike?.is_active) {
+      const { error } = await supabase
+        .from("comment_likes")
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingLike.id);
+
+      setLikeLoadingId(null);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      setComments((current) =>
+        current.map((item) =>
+          item.id === comment.id
+            ? {
+                ...item,
+                likedByMe: false,
+                likeCount: Math.max((item.likeCount || 0) - 1, 0),
+              }
+            : item
+        )
+      );
+
+      return;
+    }
+
+    if (existingLike && !existingLike.is_active) {
+      const { error } = await supabase
+        .from("comment_likes")
+        .update({
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingLike.id);
+
+      if (error) {
+        setLikeLoadingId(null);
+        alert(error.message);
+        return;
+      }
+
+      setComments((current) =>
+        current.map((item) =>
+          item.id === comment.id
+            ? {
+                ...item,
+                likedByMe: true,
+                likeCount: (item.likeCount || 0) + 1,
+              }
+            : item
+        )
+      );
+
+      if (!existingLike.rewarded) {
+        const success = await addUserGrowth({
+          userId: comment.author_id,
+          light: 0.003,
+          reason: "comment_liked",
+        });
+
+        if (success) {
+          await supabase
+            .from("comment_likes")
+            .update({
+              rewarded: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingLike.id);
+        }
+      }
+
+      setLikeLoadingId(null);
+      return;
+    }
+
+    const { data: insertedLike, error } = await supabase
+      .from("comment_likes")
+      .insert([
+        {
+          comment_id: comment.id,
+          user_id: currentUserId,
+          is_active: true,
+          rewarded: false,
+        },
+      ])
+      .select("id, rewarded")
+      .single();
+
+    if (error) {
+      setLikeLoadingId(null);
+      alert(error.message);
+      return;
+    }
+
+    setComments((current) =>
+      current.map((item) =>
+        item.id === comment.id
+          ? {
+              ...item,
+              likedByMe: true,
+              likeCount: (item.likeCount || 0) + 1,
+            }
+          : item
+      )
+    );
+
+    if (insertedLike && !insertedLike.rewarded) {
+      const success = await addUserGrowth({
+        userId: comment.author_id,
+        light: 0.003,
+        reason: "comment_liked",
+      });
+
+      if (success) {
+        await supabase
+          .from("comment_likes")
+          .update({
+            rewarded: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", insertedLike.id);
+      }
+    }
+
+    setLikeLoadingId(null);
   }
 
   async function deleteComment(id: string) {
@@ -191,64 +401,29 @@ export default function PostComments({ postId }: Props) {
   return (
     <section className="mt-24 border-t border-white/10 pt-12">
       <div>
-        <p className="text-xs tracking-[0.35em] text-white/25">
-          COMMENTS
-        </p>
+        <p className="text-xs tracking-[0.35em] text-white/25">COMMENTS</p>
 
-        <h2 className="mt-4 text-3xl font-light">
-          居民留言
-        </h2>
+        <h2 className="mt-4 text-3xl font-light">居民留言</h2>
 
         <p className="mt-4 text-sm leading-7 text-white/35">
           在这里留下温柔一点的回应。也许作者今晚刚好需要这一句话。
         </p>
       </div>
 
-      <div
-        className="
-          mt-8 overflow-hidden
-          rounded-[2rem]
-          border border-white/10
-          bg-white/[0.035]
-          backdrop-blur-2xl
-        "
-      >
+      <div className="mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
         <textarea
           rows={5}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="写下你的留言..."
-          className="
-            w-full resize-none
-            bg-transparent
-            px-5 py-5
-            leading-8 text-white
-            outline-none
-            break-words whitespace-pre-wrap
-            placeholder:text-white/25
-          "
+          className="w-full resize-none bg-transparent px-5 py-5 leading-8 text-white outline-none break-words whitespace-pre-wrap placeholder:text-white/25"
         />
 
-        <div
-          className="
-            flex justify-end
-            border-t border-white/5
-            bg-white/[0.015]
-            px-5 py-4
-          "
-        >
+        <div className="flex justify-end border-t border-white/5 bg-white/[0.015] px-5 py-4">
           <button
             onClick={submitComment}
             disabled={loading}
-            className="
-              rounded-full bg-white
-              px-7 py-3
-              text-sm font-semibold text-black
-              transition-all duration-300
-              hover:scale-[1.02] hover:bg-white/90
-              disabled:cursor-not-allowed
-              disabled:opacity-40
-            "
+            className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition-all duration-300 hover:scale-[1.02] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? "送出中..." : "留下留言"}
           </button>
@@ -292,17 +467,11 @@ export default function PostComments({ postId }: Props) {
       </div>
 
       <div className="mt-5 space-y-5">
-        {fetching && (
-          <p className="text-sm text-white/35">
-            正在翻看留言...
-          </p>
-        )}
+        {fetching && <p className="text-sm text-white/35">正在翻看留言...</p>}
 
         {!fetching && comments.length === 0 && (
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-10 text-center">
-            <p className="text-sm text-white/35">
-              这里暂时还没有留言。
-            </p>
+            <p className="text-sm text-white/35">这里暂时还没有留言。</p>
           </div>
         )}
 
@@ -315,23 +484,13 @@ export default function PostComments({ postId }: Props) {
           return (
             <div
               key={comment.id}
-              className="
-                min-w-0 overflow-hidden
-                rounded-[2rem]
-                border border-white/10
-                bg-white/[0.03]
-                p-6
-              "
+              className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6"
             >
               <div className="flex items-start gap-4">
                 {profileHref ? (
                   <Link
                     href={profileHref}
-                    className="
-                      h-11 w-11 shrink-0 overflow-hidden rounded-full
-                      border border-white/10 bg-white/[0.04]
-                      transition hover:scale-105 hover:border-white/25
-                    "
+                    className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04] transition hover:scale-105 hover:border-white/25"
                     title="进入居民房间"
                   >
                     {profile?.avatar_url ? (
@@ -374,24 +533,42 @@ export default function PostComments({ postId }: Props) {
                     </p>
                   </div>
 
-                  <p
-                    className="
-                      mt-4 whitespace-pre-wrap break-words
-                      text-sm leading-8 text-white/65
-                      [overflow-wrap:anywhere]
-                    "
-                  >
+                  <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-8 text-white/65 [overflow-wrap:anywhere]">
                     {comment.content}
                   </p>
 
-                  {currentUserId === comment.author_id && (
+                  <div className="mt-5 flex flex-wrap items-center gap-4">
                     <button
-                      onClick={() => deleteComment(comment.id)}
-                      className="mt-5 text-xs text-red-200/50 transition hover:text-red-200"
+                      type="button"
+                      onClick={() => toggleCommentLike(comment)}
+                      disabled={likeLoadingId === comment.id}
+                      className={`rounded-full border px-4 py-2 text-xs transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                        comment.likedByMe
+                          ? "border-pink-500/30 bg-pink-500/10 text-pink-200"
+                          : "border-white/10 bg-white/[0.04] text-white/45 hover:border-pink-500/25 hover:text-pink-100"
+                      }`}
                     >
-                      删除留言
+                      {comment.likedByMe ? "已喜欢" : "喜欢"} ·{" "}
+                      {comment.likeCount || 0}
                     </button>
-                  )}
+
+                    {currentUserId !== comment.author_id && (
+                      <ReportButton
+                        targetType="comment"
+                        targetId={comment.id}
+                        authorId={comment.author_id}
+                      />
+                    )}
+
+                    {currentUserId === comment.author_id && (
+                      <button
+                        onClick={() => deleteComment(comment.id)}
+                        className="text-xs text-red-200/50 transition hover:text-red-200"
+                      >
+                        删除留言
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -75,11 +75,16 @@ export default function AdminBadgesPage() {
       .from("user_badges")
       .select(`
         id,
+        created_at,
         badges (
           id,
           name,
           color,
           description
+        ),
+        assigner:assigned_by (
+          id,
+          username
         )
       `)
       .eq("user_id", userId);
@@ -160,6 +165,10 @@ export default function AdminBadgesPage() {
 
     setLoading(true);
 
+    const selectedBadge = badges.find(
+      (badge) => badge.id === selectedBadgeId
+    );
+
     const { data: existingBadge } = await supabase
       .from("user_badges")
       .select("id")
@@ -173,10 +182,15 @@ export default function AdminBadgesPage() {
       return;
     }
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const { error } = await supabase.from("user_badges").insert([
       {
         user_id: selectedUserId,
         badge_id: selectedBadgeId,
+        assigned_by: user?.id || null,
       },
     ]);
 
@@ -197,9 +211,15 @@ export default function AdminBadgesPage() {
     await supabase.from("notifications").insert([
       {
         user_id: selectedUserId,
-        title: "你获得了新的徽章 🎖️",
-        content: "有一枚新的徽章被放进了你的房间。谢谢你在小时代留下痕迹。",
-        type: "system",
+        title: "🎖️ 你获得了新的徽章",
+        content: `你获得了「${
+          selectedBadge?.name || "一枚新的徽章"
+        }」。\n\n${
+          selectedBadge?.description ||
+          "谢谢你在小时代留下属于自己的痕迹。"
+        }`,
+        type: "badge",
+        is_important: true,
       },
     ]);
 
@@ -404,6 +424,10 @@ export default function AdminBadgesPage() {
 
               {userBadges.map((item: any) => {
                 const badge = item.badges;
+
+                const assigner = Array.isArray(item.assigner)
+                  ? item.assigner[0]
+                  : item.assigner;
                 if (!badge) return null;
 
                 return (
@@ -414,7 +438,8 @@ export default function AdminBadgesPage() {
                       badge.color
                     )}`}
                   >
-                    🎖️ {badge.name} ×
+                    🎖️ {badge.name}
+                        {assigner?.username ? ` · ${assigner.username}` : ""} ×
                   </button>
                 );
               })}

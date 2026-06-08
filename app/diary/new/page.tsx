@@ -2,6 +2,8 @@
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { addUserGrowth } from "@/lib/community-growth";
+import { checkFirstDiaryBadge } from "@/lib/badge-awards";
 import { useRouter } from "next/navigation";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
 
@@ -200,6 +202,14 @@ export default function NewDiaryPage() {
       alert(error.message);
       return;
     }
+
+    await addUserGrowth({
+      userId: currentUser.id,
+      light: 0.03,
+      reason: "write_diary",
+    });
+
+    await checkFirstDiaryBadge(currentUser.id);
 
     router.push("/diary");
   }

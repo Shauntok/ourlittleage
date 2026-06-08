@@ -8,6 +8,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { addUserGrowth } from "@/lib/community-growth";
+import { checkFirstArticleBadge } from "@/lib/badge-awards";
 import { pinyin } from "pinyin-pro";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
 
@@ -203,9 +205,17 @@ export default function NewArticlePage() {
       return;
     }
 
+    await addUserGrowth({
+      userId: currentUser.id,
+      light: 0.08,
+      reason: "publish_article",
+    });
+
+    await checkFirstArticleBadge(currentUser.id);
+
     alert("文章发布成功 🔥");
     router.push(`/articles/${finalSlug}`);
-  }
+    }
 
   async function saveDraft() {
     if (!currentUser) return;

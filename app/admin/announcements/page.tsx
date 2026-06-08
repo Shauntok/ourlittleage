@@ -97,6 +97,27 @@ export default function AdminAnnouncementsPage() {
       return;
     }
 
+    // ===== 发给全站居民 =====
+
+    const { data: residents } = await supabase
+      .from("profiles")
+      .select("id");
+
+    if (residents?.length) {
+      const notifications = residents.map(
+        (resident) => ({
+          user_id: resident.id,
+          title: `📢 ${cleanTitle}`,
+          content: cleanContent,
+          type: "announcement",
+        })
+      );
+
+      await supabase
+        .from("notifications")
+        .insert(notifications);
+    }
+
     await writeLog(
       "create_announcement",
       data.id,

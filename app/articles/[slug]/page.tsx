@@ -6,6 +6,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
 import PostComments from "@/components/PostComments";
+import ReportButton from "@/components/ReportButton";
+import LikeButton from "@/components/LikeButton";
 
 type ProfileInfo = {
   username: string | null;
@@ -241,14 +243,23 @@ export default function ArticleDetailPage() {
         )}
 
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-4">
-          {isAuthor && (
-            <Link
-              href={`/articles/edit/${article.id}`}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
-            >
-              编辑文章
-            </Link>
-          )}
+          <div className="flex flex-wrap gap-3">
+            {!isAuthor && (
+              <LikeButton
+                postId={article.id}
+                authorId={article.author_id}
+              />
+            )}
+
+            {isAuthor && (
+              <Link
+                href={`/articles/edit/${article.id}`}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
+              >
+                编辑文章
+              </Link>
+            )}
+          </div>
 
           <Link
             href={backHref}

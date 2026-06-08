@@ -15,7 +15,23 @@ export default function AdminUserDetailPage() {
 
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [userComments, setUserComments] = useState<any[]>([]);
+  const [relatedReports, setRelatedReports] = useState<any[]>([]);
   const [adminLogs, setAdminLogs] = useState<any[]>([]);
+
+  const [stats, setStats] = useState({
+    articleTotal: 0,
+    diaryTotal: 0,
+    commentTotal: 0,
+    reportTotal: 0,
+  });
+
+  function toNumber(value: any) {
+    return Number(value || 0);
+  }
+
+  function formatDecimal(value: any) {
+    return toNumber(value).toFixed(2);
+  }
 
   async function fetchUser() {
     const { data: profileData } = await supabase
@@ -30,10 +46,16 @@ export default function AdminUserDetailPage() {
       .from("user_badges")
       .select(`
         id,
+        created_at,
         badges (
           id,
           name,
-          color
+          color,
+          description
+        ),
+        assigner:assigned_by (
+          id,
+          username
         )
       `)
       .eq("user_id", id);
@@ -51,6 +73,31 @@ export default function AdminUserDetailPage() {
 
     setUserPosts(postsData || []);
 
+    const { count: articleTotal } = await supabase
+      .from("posts")
+      .select("id", { count: "exact", head: true })
+      .eq("author_id", id)
+      .eq("type", "article");
+
+    const { count: diaryTotal } = await supabase
+      .from("posts")
+      .select("id", { count: "exact", head: true })
+      .eq("author_id", id)
+      .eq("type", "diary");
+
+    const { count: commentTotal } = await supabase
+      .from("comments")
+      .select("id", { count: "exact", head: true })
+      .eq("author_id", id)
+      .eq("is_deleted", false);
+
+    setStats({
+      articleTotal: articleTotal || 0,
+      diaryTotal: diaryTotal || 0,
+      commentTotal: commentTotal || 0,
+      reportTotal: 0,
+    });
+
     const { data: commentsData } = await supabase
       .from("comments")
       .select("id, content, post_id, created_at, is_hidden, is_deleted")
@@ -61,6 +108,41 @@ export default function AdminUserDetailPage() {
       .limit(8);
 
     setUserComments(commentsData || []);
+
+    const postIds = (postsData || []).map((post) => String(post.id));
+    const commentIds = (commentsData || []).map((comment) => String(comment.id));
+
+    const { data: reportsData } = await supabase
+      .from("reports")
+      .select(`
+        *,
+        profiles (
+          username
+        )
+      `)
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(100);
+
+    const filteredReports = (reportsData || []).filter((report: any) => {
+      const targetId = String(report.target_id || "");
+
+      return (
+        report.target_user_id === id ||
+        report.reported_user_id === id ||
+        report.user_id === id ||
+        postIds.includes(targetId) ||
+        commentIds.includes(targetId)
+      );
+    });
+
+    setRelatedReports(filteredReports.slice(0, 8));
+
+    setStats((current) => ({
+      ...current,
+      reportTotal: filteredReports.length,
+    }));
 
     const { data: logsData } = await supabase
       .from("admin_logs")
@@ -231,6 +313,7 @@ export default function AdminUserDetailPage() {
           title: notificationTitle,
           content: notificationContent,
           type: "system",
+          is_important: true,
         },
       ]);
     }
@@ -247,7 +330,7 @@ export default function AdminUserDetailPage() {
   async function updateGrowth(updates: any, message: string) {
     if (currentRole !== "owner" && currentRole !== "admin") {
       alert("只有 owner / admin 可以调整成长数值。");
-      return;
+      return false;
     }
 
     const { error } = await supabase
@@ -257,7 +340,7 @@ export default function AdminUserDetailPage() {
 
     if (error) {
       alert(error.message);
-      return;
+      return false;
     }
 
     await writeUserLog("update_growth", message);
@@ -268,39 +351,79 @@ export default function AdminUserDetailPage() {
     }));
 
     fetchUser();
+    return true;
   }
 
-  async function addExp(amount: number) {
-    const nextExp = (profile.exp || 0) + amount;
+  async function addLight(amount: number) {
+    const currentLight = toNumber(profile.exp);
+    const nextLight = Number((currentLight + amount).toFixed(2));
 
-    await updateGrowth(
+    const success = await updateGrowth(
       {
-        exp: nextExp,
+        exp: nextLight,
       },
-      `经验值 +${amount}，目前 ${nextExp}`
+      `留下的光 +${amount.toFixed(2)}，目前 ${nextLight.toFixed(2)}`
     );
+
+    if (!success) return;
+
+    await supabase.from("notifications").insert([
+      {
+        user_id: id,
+        title: "✨ 留下的光增加",
+        content: `你获得了 ${amount.toFixed(2)} 点「留下的光」。当前留下的光：${nextLight.toFixed(2)}`,
+        type: "system",
+      },
+    ]);
   }
+  
 
   async function adjustTrust(amount: number) {
-    const nextTrust = Math.max(0, (profile.trust_score || 0) + amount);
+    const currentTrust = toNumber(profile.trust_score);
+    const nextTrust = Math.max(0, Number((currentTrust + amount).toFixed(2)));
 
-    await updateGrowth(
+    const success = await updateGrowth(
       {
         trust_score: nextTrust,
       },
-      `信任分 ${amount > 0 ? "+" : ""}${amount}，目前 ${nextTrust}`
+      `社区信任 ${amount > 0 ? "+" : ""}${amount.toFixed(2)}，目前 ${nextTrust.toFixed(2)}`
     );
+
+    if (!success) return;
+
+    await supabase.from("notifications").insert([
+      {
+        user_id: id,
+        title: "🌙 社区信任变化",
+        content: `你的社区信任 ${
+          amount > 0 ? "增加" : "减少"
+        }了 ${Math.abs(amount).toFixed(2)} 点。当前社区信任：${nextTrust.toFixed(2)}`,
+        type: "system",
+      },
+    ]);
   }
 
   async function changeLevel(amount: number) {
-    const nextLevel = Math.max(1, (profile.level || 1) + amount);
+    const nextLevel = Math.min(3, Math.max(1, (profile.level || 1) + amount));
 
-    await updateGrowth(
+    const success = await updateGrowth(
       {
         level: nextLevel,
       },
       `等级 ${amount > 0 ? "+" : ""}${amount}，目前 Lv.${nextLevel}`
     );
+
+    if (!success) return;
+
+    await supabase.from("notifications").insert([
+      {
+        user_id: id,
+        title: "🏆 居民等级变更",
+        content: `你的居民等级已变更为 Lv.${nextLevel}`,
+        type: "system",
+        is_important: true,
+      },
+    ]);
   }
 
   function getRoleStyle(role: string) {
@@ -355,9 +478,6 @@ export default function AdminUserDetailPage() {
       </div>
     );
   }
-
-  const articleCount = userPosts.filter((post) => post.type === "article").length;
-  const diaryCount = userPosts.filter((post) => post.type === "diary").length;
 
   const roomHref = profile.username
     ? `/u/${encodeURIComponent(profile.username)}`
@@ -457,12 +577,15 @@ export default function AdminUserDetailPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-5">
-        <StatCard title="等级" value={`Lv.${profile.level || 1}`} />
-        <StatCard title="经验值" value={profile.exp || 0} />
-        <StatCard title="信任分" value={profile.trust_score || 0} />
-        <StatCard title="文章" value={articleCount} />
-        <StatCard title="日记" value={diaryCount} />
+      <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
+        <StatCard title="等级" value={`Lv${profile.level || 1}`} />
+        <StatCard title="留下的光" value={formatDecimal(profile.exp)} />
+        <StatCard title="社区信任" value={formatDecimal(profile.trust_score)} />
+        <StatCard title="文章" value={stats.articleTotal} />
+        <StatCard title="日记" value={stats.diaryTotal} />
+        <StatCard title="评论" value={stats.commentTotal} />
+        <StatCard title="举报" value={stats.reportTotal} />
+        <StatCard title="徽章" value={badges.length} />
       </div>
 
       {(currentRole === "owner" || currentRole === "admin") && (
@@ -471,19 +594,30 @@ export default function AdminUserDetailPage() {
             成长数值调整
           </h2>
 
+          <p className="mt-2 text-sm text-zinc-500">
+            「留下的光」和「社区信任」采用慢成长小数系统，避免等级成长过快。
+          </p>
+
           <div className="mt-5 flex flex-wrap gap-3">
             <button
-              onClick={() => addExp(100)}
+              onClick={() => addLight(0.03)}
               className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
             >
-              +100 EXP
+              +0.03 光
             </button>
 
             <button
-              onClick={() => addExp(500)}
+              onClick={() => addLight(0.05)}
               className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
             >
-              +500 EXP
+              +0.05 光
+            </button>
+
+            <button
+              onClick={() => addLight(0.10)}
+              className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
+            >
+              +0.10 光
             </button>
 
             <button
@@ -494,17 +628,24 @@ export default function AdminUserDetailPage() {
             </button>
 
             <button
-              onClick={() => adjustTrust(5)}
-              className="rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20"
+              onClick={() => changeLevel(-1)}
+              className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20"
             >
-              信任 +5
+              等级 -1
             </button>
 
             <button
-              onClick={() => adjustTrust(-5)}
+              onClick={() => adjustTrust(0.02)}
+              className="rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20"
+            >
+              +0.02 信任
+            </button>
+
+            <button
+              onClick={() => adjustTrust(-0.02)}
               className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20"
             >
-              信任 -5
+              -0.02 信任
             </button>
           </div>
         </section>
@@ -585,6 +726,55 @@ export default function AdminUserDetailPage() {
         </div>
       </section>
 
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
+        <h2 className="text-2xl font-bold">
+          相关举报记录
+        </h2>
+
+        <div className="mt-5 space-y-3">
+          {relatedReports.length === 0 && (
+            <p className="text-sm text-zinc-600">
+              暂无相关举报记录。
+            </p>
+          )}
+
+          {relatedReports.map((report) => (
+            <Link
+              key={report.id}
+              href="/admin/reports"
+              className="block min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4 transition hover:border-zinc-500"
+            >
+              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                <div className="min-w-0">
+                  <p className="safe-text font-semibold text-red-100">
+                    🚩 {report.reason || "没有填写原因"}
+                  </p>
+
+                  {report.details && (
+                    <p className="safe-pre mt-2 text-sm leading-7 text-zinc-400">
+                      {report.details}
+                    </p>
+                  )}
+
+                  <p className="mt-2 text-xs text-zinc-600">
+                    举报人：
+                    {report.profiles?.username || "未知居民"} · 目标：
+                    {report.target_type || "未知"} ·{" "}
+                    {report.created_at
+                      ? new Date(report.created_at).toLocaleString("zh-CN")
+                      : "未知时间"}
+                  </p>
+                </div>
+
+                <span className="shrink-0 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs text-yellow-300">
+                  {report.status || "pending"}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
         <p className="text-sm text-zinc-500">
           已拥有徽章
@@ -599,6 +789,10 @@ export default function AdminUserDetailPage() {
 
           {badges.map((item: any) => {
             const badge = item.badges;
+            const assigner = Array.isArray(item.assigner)
+              ? item.assigner[0]
+              : item.assigner;
+
             if (!badge) return null;
 
             return (
@@ -607,6 +801,7 @@ export default function AdminUserDetailPage() {
                 className="safe-text rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm"
               >
                 🎖️ {badge.name}
+                {assigner?.username ? ` · ${assigner.username}` : ""}
               </div>
             );
           })}

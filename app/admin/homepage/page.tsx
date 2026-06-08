@@ -17,6 +17,7 @@ export default function AdminHomePage() {
     comments: 0,
     todayComments: 0,
     reports: 0,
+    feedbacks: 0,
     muted: 0,
     banned: 0,
   });
@@ -63,6 +64,7 @@ export default function AdminHomePage() {
       comments,
       todayComments,
       reports,
+      feedbacks,
       muted,
       banned,
     ] = await Promise.all([
@@ -84,6 +86,9 @@ export default function AdminHomePage() {
       ),
       getCount("reports", (q) =>
         q.neq("status", "resolved").neq("status", "rejected")
+      ),
+      getCount("feedbacks", (q) =>
+        q.neq("status", "resolved").neq("status", "closed")
       ),
       getCount("profiles", (q) => q.eq("status", "muted")),
       getCount("profiles", (q) => q.eq("status", "banned")),
@@ -132,6 +137,7 @@ export default function AdminHomePage() {
       comments,
       todayComments,
       reports,
+      feedbacks,
       muted,
       banned,
     });
@@ -207,6 +213,7 @@ export default function AdminHomePage() {
         <StatCard title="评论总数" value={stats.comments} icon="💬" />
         <StatCard title="今日评论" value={stats.todayComments} icon="🗣️" />
         <StatCard title="待处理举报" value={stats.reports} icon="🚩" danger />
+        <StatCard title="待处理反馈" value={stats.feedbacks} icon="💌" danger />
         <StatCard title="禁言用户" value={stats.muted} icon="🔇" />
         <StatCard title="封禁用户" value={stats.banned} icon="🚫" danger />
       </div>
@@ -252,6 +259,22 @@ export default function AdminHomePage() {
 
         <Link href="/admin/badges" className="admin-btn admin-btn-secondary">
           🎖️ 徽章系统
+        </Link>
+
+        <Link href="/admin/growth" className="admin-btn admin-btn-secondary">
+          ✨ 成长记录
+        </Link>
+
+        <Link href="/admin/feedback" className="admin-btn admin-btn-secondary">
+          💌 反馈中心
+        </Link>
+
+        <Link href="/admin/announcements" className="admin-btn admin-btn-secondary">
+          📢 世界公告
+        </Link>
+
+        <Link href="/admin/broadcast" className="admin-btn admin-btn-secondary">
+          📬 全站信件
         </Link>
       </div>
 
