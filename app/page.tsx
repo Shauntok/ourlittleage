@@ -266,31 +266,31 @@ export default function Page() {
           {[
             {
               text: "你还在吗？",
-              className: "left-[9%] top-[24%]",
+              className: "left-[7%] top-[24%] md:left-[9%] md:top-[24%]",
               rotate: "-6deg",
               duration: "8s",
             },
             {
               text: "我只是突然想起以前。",
-              className: "right-[10%] top-[30%]",
+              className: "right-[6%] top-[31%] md:right-[10%] md:top-[30%]",
               rotate: "5deg",
               duration: "10s",
             },
             {
               text: "如果那时候，我们都慢一点就好了。",
-              className: "left-[17%] bottom-[20%]",
+              className: "left-[8%] bottom-[24%] md:left-[17%] md:bottom-[20%]",
               rotate: "3deg",
               duration: "12s",
             },
             {
               text: "有些话，好像只能留在凌晨。",
-              className: "left-[34%] top-[16%]",
+              className: "right-[7%] top-[9%] md:left-[34%] md:top-[16%]",
               rotate: "4deg",
               duration: "13s",
             },
             {
               text: "晚安。可是我还没睡。",
-              className: "left-[70%] bottom-[14%]",
+              className: "right-[4%] bottom-[16%] md:left-[70%] md:bottom-[14%]",
               rotate: "-5deg",
               duration: "14s",
             },
@@ -299,9 +299,11 @@ export default function Page() {
               key={item.text}
               className={`
                 absolute ${item.className}
+                max-w-[210px] md:max-w-none
                 rounded-3xl border border-white/15 bg-white/[0.055]
-                px-5 py-4 text-sm text-white/45 backdrop-blur-md
+                px-4 py-3 text-xs text-white/40 backdrop-blur-md
                 shadow-[0_0_40px_rgba(255,255,255,0.035)]
+                md:px-5 md:py-4 md:text-sm md:text-white/45
               `}
               style={
                 {
@@ -347,7 +349,7 @@ export default function Page() {
         </div>
 
         <div
-          className="absolute left-20 top-32 z-[4] text-2xl text-white/30"
+          className="absolute left-7 top-14 z-[4] text-xl text-white/24 md:left-20 md:top-32 md:text-2xl md:text-white/30"
           style={{
             transform: `translateY(${scrollY * -0.08}px)`,
             opacity: Math.max(0.55 - scrollY / 1000, 0),
@@ -357,7 +359,7 @@ export default function Page() {
         </div>
 
         <div
-          className="absolute right-32 bottom-40 z-[4] text-lg text-zinc-700"
+          className="absolute bottom-[17%] left-1/2 z-[4] -translate-x-1/2 text-sm text-zinc-700 md:bottom-40 md:right-32 md:left-auto md:translate-x-0 md:text-lg"
           style={{
             transform: `translateY(${scrollY * 0.06}px)`,
             opacity: Math.max(0.45 - scrollY / 900, 0),
@@ -389,7 +391,7 @@ export default function Page() {
             一个允许人慢慢生活的地方。
           </p>
 
-          <p className="pt-8 text-sm uppercase tracking-[0.3em] text-zinc-700">
+          <p className="pt-5 text-xs uppercase tracking-[0.3em] text-zinc-700 md:pt-8 md:text-sm">
             Scroll To Enter
           </p>
         </div>
