@@ -43,25 +43,56 @@ function getPostTitle(post: any) {
   return `${date} 的日记`;
 }
 
-function getGrowthLabel(reason: string) {
-  switch (reason) {
-    case "write_article":
-      return "发布了一篇文章";
-    case "write_diary":
-      return "写下了一篇日记";
-    case "write_comment":
-      return "留下了一条留言";
-    case "post_liked":
-      return "有人喜欢了 Ta 的内容";
-    case "comment_liked":
-      return "有人喜欢了 Ta 的留言";
-    case "report_success":
-      return "一次举报被确认有效";
-    case "malicious_report":
-      return "一次举报被判定为恶意";
-    default:
-      return "留下了一点新的痕迹";
+function getLevelProgress(exp: number) {
+  const total = Number(exp || 0);
+
+  if (total >= 10) {
+    return {
+      level: 5,
+      current: 0,
+      max: 0,
+      percent: 100,
+      text: "Lv5 已满阶",
+    };
   }
+
+  if (total >= 6) {
+    return {
+      level: 4,
+      current: Number((total - 6).toFixed(2)),
+      max: 4,
+      percent: ((total - 6) / 4) * 100,
+      text: `Lv4 · ${Number(total - 6).toFixed(2)} / 4.00 光`,
+    };
+  }
+
+  if (total >= 3) {
+    return {
+      level: 3,
+      current: Number((total - 3).toFixed(2)),
+      max: 3,
+      percent: ((total - 3) / 3) * 100,
+      text: `Lv3 · ${Number(total - 3).toFixed(2)} / 3.00 光`,
+    };
+  }
+
+  if (total >= 1) {
+    return {
+      level: 2,
+      current: Number((total - 1).toFixed(2)),
+      max: 2,
+      percent: ((total - 1) / 2) * 100,
+      text: `Lv2 · ${Number(total - 1).toFixed(2)} / 2.00 光`,
+    };
+  }
+
+  return {
+    level: 1,
+    current: Number(total.toFixed(2)),
+    max: 1,
+    percent: total * 100,
+    text: `Lv1 · ${total.toFixed(2)} / 1.00 光`,
+  };
 }
 
 type Props = {
@@ -85,6 +116,7 @@ export default async function UserPage({ params, searchParams }: Props) {
   if (!profile) notFound();
 
   const residentTitle = getResidentTitle(profile.level || 1);
+  const levelProgress = getLevelProgress(Number(profile.exp || 0));
   const joinedDays = getJoinedDays(profile.joined_at || profile.created_at);
 
   const isStatusExpired =
@@ -105,13 +137,6 @@ export default async function UserPage({ params, searchParams }: Props) {
     `)
     .eq("user_id", profile.id)
     .order("created_at", { ascending: false });
-
-  const { data: growthLogs } = await supabase
-    .from("growth_logs")
-    .select("*")
-    .eq("user_id", profile.id)
-    .order("created_at", { ascending: false })
-    .limit(8);
 
   const { data: posts } = await supabase
     .from("posts")
@@ -317,7 +342,7 @@ export default async function UserPage({ params, searchParams }: Props) {
 
                 {profile.show_exp && (
                   <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/45">
-                    留下的光 {Number(profile.exp || 0).toFixed(2)}
+                    留下的光 {levelProgress.current.toFixed(2)}
                   </span>
                 )}
 
@@ -332,17 +357,14 @@ export default async function UserPage({ params, searchParams }: Props) {
                 <div className="max-w-xl space-y-2">
                   <div className="flex items-center justify-between text-sm text-white/35">
                     <span>留下的光</span>
-                    <span>{Number(profile.exp || 0).toFixed(2)} 光</span>
+                    <span>{levelProgress.text}</span>
                   </div>
 
                   <div className="h-3 overflow-hidden rounded-full border border-white/10 bg-white/5">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
                       style={{
-                        width: `${Math.min(
-                          (Number(profile.exp || 0) / 3) * 100,
-                          100
-                        )}%`,
+                        width: `${Math.min(levelProgress.percent, 100)}%`,
                       }}
                     />
                   </div>
@@ -377,135 +399,6 @@ export default async function UserPage({ params, searchParams }: Props) {
                 </div>
               )}
             </div>
-          </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-4">
-          <StatCard label="RESIDENT" value={residentTitle} desc="这个房间的当前身份。" />
-          <StatCard label="DAYS" value={`${joinedDays} 天`} desc="在小时代慢慢住下来的时间。" />
-          <StatCard label="ARTICLES" value={`${publicArticles.length} 篇`} desc="公开留下的故事和作品。" />
-          <StatCard label="DIARIES" value={`${publicDiaries.length} 篇`} desc="愿意公开给世界看见的日常。" />
-          <StatCard label="LIKES" value={totalLikes} desc="公开内容收到的喜欢。" />
-          <StatCard label="COMMENTS" value={totalComments} desc="公开内容收到的留言。" />
-          <StatCard label="LIGHT" value={Number(profile.exp || 0).toFixed(2)} desc="这个居民留下的光。" />
-          <StatCard label="TRUST" value={Number(profile.trust_score || 0).toFixed(2)} desc="社区信任记录。" />
-        </section>
-
-        <section className="rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl">
-          <div>
-            <p className="text-xs tracking-[0.35em] text-white/25">
-              ACTIVITY
-            </p>
-
-            <h2 className="mt-4 text-3xl font-light">
-              最近留下的光
-            </h2>
-
-            {userBadges && userBadges.length > 0 && (
-              <section className="rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl">
-                <div>
-                  <p className="text-xs tracking-[0.35em] text-white/25">
-                    BADGES
-                  </p>
-
-                  <h2 className="mt-4 text-3xl font-light">
-                    最近获得徽章
-                  </h2>
-
-                  <p className="mt-4 text-sm leading-7 text-white/35">
-                    这些是这个居民在小时代慢慢留下来的证明。
-                  </p>
-                </div>
-
-                <div className="mt-8 grid gap-4 md:grid-cols-3">
-                  {userBadges.slice(0, 6).map((item: any) => {
-                    const badge = item.badges;
-
-                    if (!badge) return null;
-
-                    return (
-                      <div
-                        key={item.id}
-                        className={`min-w-0 overflow-hidden rounded-[1.7rem] border p-5 backdrop-blur-2xl ${
-                          badge.color === "gold"
-                            ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-100"
-                            : badge.color === "emerald"
-                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
-                            : badge.color === "rose"
-                            ? "border-rose-500/30 bg-rose-500/10 text-rose-100"
-                            : badge.color === "sky"
-                            ? "border-sky-500/30 bg-sky-500/10 text-sky-100"
-                            : "border-violet-500/30 bg-violet-500/10 text-violet-100"
-                        }`}
-                      >
-                        <p className="safe-text text-lg font-light">
-                          🎖️ {badge.name}
-                        </p>
-
-                        {badge.description && (
-                          <p className="safe-pre mt-3 text-sm leading-7 text-white/45">
-                            {badge.description}
-                          </p>
-                        )}
-
-                        <p className="mt-5 text-xs text-white/30">
-                          {item.created_at
-                            ? new Date(item.created_at).toLocaleDateString("zh-CN")
-                            : "获得时间未知"}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            <p className="mt-4 text-sm leading-7 text-white/35">
-              这里记录这个居民最近在小时代留下的痕迹。
-            </p>
-          </div>
-
-          <div className="mt-8 space-y-4">
-            {!growthLogs || growthLogs.length === 0 ? (
-              <div className="rounded-[2rem] border border-white/10 bg-white/[0.025] p-6 text-sm text-white/35">
-                这个房间最近还很安静。
-              </div>
-            ) : (
-              growthLogs.map((log: any) => (
-                <div
-                  key={log.id}
-                  className="flex flex-col gap-3 rounded-[1.6rem] border border-white/10 bg-black/25 p-5 md:flex-row md:items-center md:justify-between"
-                >
-                  <div>
-                    <p className="text-sm text-white/75">
-                      ✨ {getGrowthLabel(log.reason)}
-                    </p>
-
-                    <p className="mt-1 text-xs text-white/25">
-                      {new Date(log.created_at).toLocaleString("zh-CN")}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {Number(log.light_change || 0) !== 0 && (
-                      <span className="rounded-full border border-violet-500/20 bg-violet-500/[0.08] px-3 py-1 text-xs text-violet-100/60">
-                        留下的光{" "}
-                        {Number(log.light_change) > 0 ? "+" : ""}
-                        {Number(log.light_change).toFixed(3)}
-                      </span>
-                    )}
-
-                    {Number(log.trust_change || 0) !== 0 && (
-                      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-3 py-1 text-xs text-emerald-100/60">
-                        社区信任{" "}
-                        {Number(log.trust_change) > 0 ? "+" : ""}
-                        {Number(log.trust_change).toFixed(3)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
           </div>
         </section>
 

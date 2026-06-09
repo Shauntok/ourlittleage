@@ -557,6 +557,7 @@ export default function PostComments({ postId }: Props) {
                         targetType="comment"
                         targetId={comment.id}
                         authorId={comment.author_id}
+                        compact
                       />
                     )}
 

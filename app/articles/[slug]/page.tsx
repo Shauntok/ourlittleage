@@ -72,8 +72,7 @@ export default function ArticleDetailPage() {
 
       const canView =
         isAuthor ||
-        (data.visibility === "public" &&
-          data.status === "published");
+        (data.visibility === "public" && data.status === "published");
 
       if (!canView) {
         router.push("/articles");
@@ -137,9 +136,7 @@ export default function ArticleDetailPage() {
         </Link>
 
         <header className="mt-14 min-w-0 overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-9 backdrop-blur-2xl">
-          <p className="text-xs tracking-[0.38em] text-white/25">
-            ARTICLE
-          </p>
+          <p className="text-xs tracking-[0.38em] text-white/25">ARTICLE</p>
 
           <h1 className="safe-text mt-6 text-5xl font-light leading-tight tracking-tight md:text-6xl">
             {article.title || "无标题文章"}
@@ -186,7 +183,7 @@ export default function ArticleDetailPage() {
             </p>
           </div>
 
-          <div className="mt-7 flex flex-wrap gap-3 text-xs text-white/40">
+          <div className="mt-7 flex flex-wrap items-center gap-3 text-xs text-white/40">
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
               {article.status === "published" ? "已发布" : "草稿"}
             </span>
@@ -194,6 +191,7 @@ export default function ArticleDetailPage() {
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
               {getVisibilityLabel(article.visibility)}
             </span>
+
           </div>
 
           {article.tags && (
@@ -215,19 +213,7 @@ export default function ArticleDetailPage() {
         </header>
 
         <section className="mt-10 min-w-0 overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-9 backdrop-blur-2xl">
-          <article
-            className="
-              prose prose-invert max-w-none
-              overflow-hidden break-words
-              prose-p:break-words prose-p:leading-[2.2]
-              prose-headings:break-words
-              prose-blockquote:break-words
-              prose-pre:whitespace-pre-wrap prose-pre:break-words
-              prose-code:break-words
-              [&_*]:break-words
-              [&_*]:[overflow-wrap:anywhere]
-            "
-          >
+          <article className="prose prose-invert max-w-none overflow-hidden break-words prose-p:break-words prose-p:leading-[2.2] prose-headings:break-words prose-blockquote:break-words prose-pre:whitespace-pre-wrap prose-pre:break-words prose-code:break-words [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
             <TranslatedMarkdown content={article.content || ""} />
           </article>
         </section>
@@ -237,7 +223,6 @@ export default function ArticleDetailPage() {
             <p className="mb-3 text-xs tracking-[0.3em] text-yellow-100/35">
               作者私密笔记
             </p>
-
             <p>{article.notes}</p>
           </section>
         )}
@@ -245,10 +230,16 @@ export default function ArticleDetailPage() {
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap gap-3">
             {!isAuthor && (
-              <LikeButton
-                postId={article.id}
-                authorId={article.author_id}
-              />
+              <>
+                <LikeButton postId={article.id} authorId={article.author_id} />
+
+                <ReportButton
+                  targetType="post"
+                  targetId={article.id}
+                  authorId={article.author_id}
+                  compact
+                />
+              </>
             )}
 
             {isAuthor && (

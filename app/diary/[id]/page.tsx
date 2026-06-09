@@ -269,6 +269,7 @@ export default function DiaryDetailPage() {
                   targetType="post"
                   targetId={diary.id}
                   authorId={diary.author_id}
+                  compact
                 />
               )}
             </div>

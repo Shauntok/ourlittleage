@@ -7,10 +7,53 @@ type Props = {
   targetType: "post" | "comment" | "user";
   targetId: string | number;
   authorId?: string;
+  compact?: boolean;
 };
 
-export default function ReportButton({ targetType, targetId, authorId }: Props) {
+const reasonOptions = [
+  "辱骂 / 攻击他人",
+  "骚扰 / 引战",
+  "色情 / 露骨内容",
+  "暴力 / 血腥内容",
+  "垃圾内容 / 广告",
+  "侵犯隐私",
+  "其他原因",
+];
+
+function getTargetLabel(targetType: Props["targetType"]) {
+  if (targetType === "post") return "内容";
+  if (targetType === "comment") return "留言";
+  return "居民";
+}
+
+export default function ReportButton({
+  targetType,
+  targetId,
+  authorId,
+  compact = false,
+}: Props) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [details, setDetails] = useState("");
   const [loading, setLoading] = useState(false);
+
+  async function openReportModal() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("请先登录后再举报。");
+      return;
+    }
+
+    if (authorId && user.id === authorId) {
+      alert("自己的内容不用举报啦，如果想调整，可以回去编辑。");
+      return;
+    }
+
+    setOpen(true);
+  }
 
   async function submitReport() {
     const {
@@ -27,13 +70,33 @@ export default function ReportButton({ targetType, targetId, authorId }: Props) 
       return;
     }
 
-    const reason = prompt(
-      "请简单写下举报原因，例如：辱骂、骚扰、色情、暴力、垃圾内容。"
-    );
-
-    if (!reason?.trim()) return;
+    if (!reason.trim()) {
+      alert("请选择举报原因。");
+      return;
+    }
 
     setLoading(true);
+
+    const { data: existingReports, error: existingError } = await supabase
+      .from("reports")
+      .select("id, status")
+      .eq("reporter_id", user.id)
+      .eq("target_type", targetType)
+      .eq("target_id", String(targetId))
+      .limit(1);
+
+    if (existingError) {
+      setLoading(false);
+      alert(existingError.message);
+      return;
+    }
+
+    if (existingReports && existingReports.length > 0) {
+      setLoading(false);
+      alert("你已经举报过这个内容了，管理员会查看。请不要重复举报。");
+      setOpen(false);
+      return;
+    }
 
     const { error } = await supabase.from("reports").insert([
       {
@@ -41,6 +104,7 @@ export default function ReportButton({ targetType, targetId, authorId }: Props) 
         target_type: targetType,
         target_id: String(targetId),
         reason: reason.trim(),
+        details: details.trim() || null,
         status: "pending",
       },
     ]);
@@ -52,17 +116,101 @@ export default function ReportButton({ targetType, targetId, authorId }: Props) 
       return;
     }
 
+    setOpen(false);
+    setReason("");
+    setDetails("");
+
     alert("举报已提交，管理员会查看。谢谢你帮忙守护小时代。");
   }
 
   return (
-    <button
-      type="button"
-      onClick={submitReport}
-      disabled={loading}
-      className="rounded-full border border-red-500/25 bg-red-500/[0.06] px-4 py-2 text-xs text-red-200/70 transition hover:bg-red-500/[0.12] hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      {loading ? "提交中..." : "举报"}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={openReportModal}
+        disabled={loading}
+        className={
+          compact
+            ? "rounded-full border border-red-500/20 bg-red-500/[0.04] px-3 py-1.5 text-xs text-red-200/55 transition hover:bg-red-500/[0.1] hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+            : "rounded-full border border-red-500/25 bg-red-500/[0.06] px-4 py-2 text-xs text-red-200/70 transition hover:bg-red-500/[0.12] hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+        }
+      >
+        {loading ? "提交中..." : "举报"}
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/75 px-6 py-28 backdrop-blur-xl">
+          <div className="mx-auto w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl shadow-black">
+            <div className="border-b border-white/10 p-6">
+              <p className="text-xs tracking-[0.35em] text-red-200/35">
+                REPORT
+              </p>
+
+              <h2 className="mt-4 text-2xl font-light text-white">
+                举报这个{getTargetLabel(targetType)}
+              </h2>
+
+              <p className="mt-3 text-sm leading-7 text-white/35">
+                举报会进入管理员后台。请尽量选择准确原因，不要恶意举报。
+              </p>
+            </div>
+
+            <div className="space-y-5 p-6">
+              <div className="grid gap-2">
+                {reasonOptions.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setReason(item)}
+                    className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                      reason === item
+                        ? "border-red-300/35 bg-red-500/10 text-red-100"
+                        : "border-white/10 bg-white/[0.03] text-white/45 hover:border-white/20 hover:text-white/75"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+                rows={4}
+                maxLength={300}
+                placeholder="补充说明，可选。"
+                className="w-full resize-none rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm leading-7 text-white outline-none transition placeholder:text-white/20 focus:border-white/25"
+              />
+
+              <p className="text-xs text-white/25">
+                补充说明 {details.length} / 300
+              </p>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 p-6">
+              <button
+                type="button"
+                onClick={() => {
+                  if (loading) return;
+                  setOpen(false);
+                }}
+                className="rounded-full border border-white/10 bg-white/[0.03] px-6 py-3 text-sm text-white/55 transition hover:border-white/20 hover:text-white"
+              >
+                取消
+              </button>
+
+              <button
+                type="button"
+                onClick={submitReport}
+                disabled={loading}
+                className="rounded-full border border-red-400/25 bg-red-500/15 px-6 py-3 text-sm text-red-100 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {loading ? "提交中..." : "提交举报"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
