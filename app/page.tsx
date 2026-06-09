@@ -181,6 +181,24 @@ export default function Page() {
     router.push("/home");
   }
 
+  function scrollToPortal() {
+    const portalCard = document.getElementById("portal-card");
+
+    if (!portalCard) return;
+
+    const rect = portalCard.getBoundingClientRect();
+
+    const targetTop =
+      window.scrollY +
+      rect.top -
+      Math.max((window.innerHeight - rect.height) / 2, 24);
+
+    window.scrollTo({
+      top: targetTop,
+      behavior: "smooth",
+    });
+  }
+
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
@@ -419,7 +437,7 @@ export default function Page() {
 
       <section
         id="portal"
-        className="relative flex min-h-[130vh] items-center justify-center overflow-hidden px-6"
+        className="relative flex min-h-screen items-start justify-center overflow-hidden px-6 py-24 md:items-center md:py-20"
       >
         <div
           className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.035] blur-3xl"
@@ -440,13 +458,12 @@ export default function Page() {
           style={{
             opacity: Math.min(Math.max((scrollY - 1550) / 500, 0), 1),
             transform: `
-              translateY(${Math.max(70 - (scrollY - 1500) * 0.12, 0)}px)
               scale(${
-                0.96 +
-                Math.min(Math.max((scrollY - 1500) / 900, 0), 1) * 0.04
+                0.98 +
+                Math.min(Math.max((scrollY - 1500) / 900, 0), 1) * 0.02
               })
             `,
-            filter: `blur(${Math.max(10 - (scrollY - 1500) * 0.02, 0)}px)`,
+            filter: `blur(${Math.max(6 - (scrollY - 1500) * 0.015, 0)}px)`,
           }}
         >
           <div
@@ -556,8 +573,8 @@ export default function Page() {
               transition-all duration-1000 ease-out
               ${
                 authMode === "register"
-                  ? "max-h-[900px] opacity-100 blur-0"
-                  : "pointer-events-none max-h-[900px] opacity-0 blur-md md:translate-x-8"
+                  ? "max-h-[1200px] opacity-100 blur-0"
+                  : "pointer-events-none max-h-0 opacity-0 blur-md md:max-h-[900px] md:translate-x-8"
               }
             `}
           >
@@ -765,12 +782,7 @@ export default function Page() {
         `}
       >
         <button
-          onClick={() => {
-            document.getElementById("portal-card")?.scrollIntoView({
-              behavior: "smooth",
-              block: "center",
-            });
-          }}
+          onClick={scrollToPortal}
           className="
             rounded-full border border-white/10 bg-white/[0.055]
             px-5 py-2.5 text-xs font-medium tracking-wide text-white/70
