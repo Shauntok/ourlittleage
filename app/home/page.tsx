@@ -9,6 +9,7 @@ import { getNightBroadcast } from "@/lib/getNightBroadcast";
 import FloatingParticles from "@/components/FloatingParticles";
 import PageTransition from "@/components/PageTransition";
 import MouseGlow from "@/components/MouseGlow";
+import RoomStatusButton from "@/components/RoomStatusButton";
 
 export default function HomePage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function HomePage() {
   const [onlineResidents, setOnlineResidents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [currentUserId, setCurrentUserId] = useState("");
   const [displayName, setDisplayName] = useState("居民");
 
   const [latestDiary, setLatestDiary] = useState("今晚还没有新的痕迹。");
@@ -32,15 +34,21 @@ export default function HomePage() {
     "今晚似乎有很多人睡不着。"
   );
   const [announcement, setAnnouncement] = useState<any>(null);
-
   const [unreadCount, setUnreadCount] = useState(0);
-  const [badgeCount, setBadgeCount] = useState(0);
-  const [exp, setExp] = useState(0);
-  const [trustScore, setTrustScore] = useState(0);
+
+  const [moodEmoji, setMoodEmoji] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
     async function checkUser() {
       const { data } = await supabase.auth.getUser();
+
+      if (!data.user) {
+        router.push("/");
+        return;
+      }
+
+      setCurrentUserId(data.user.id);
 
       const fiveMinutesAgo = new Date(
         Date.now() - 5 * 60 * 1000
@@ -62,21 +70,14 @@ export default function HomePage() {
           "id, username, avatar_url, mood_emoji, status_message, last_seen_at"
         )
         .gte("last_seen_at", fiveMinutesAgo)
-        .order("last_seen_at", {
-          ascending: false,
-        })
+        .order("last_seen_at", { ascending: false })
         .limit(6);
 
       setOnlineResidents(onlineProfiles || []);
 
-      if (!data.user) {
-        router.push("/");
-        return;
-      }
-
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username, exp, trust_score")
+        .select("username, mood_emoji, status_message")
         .eq("id", data.user.id)
         .single();
 
@@ -84,8 +85,8 @@ export default function HomePage() {
         profile?.username || data.user.email?.split("@")[0] || "居民";
 
       setDisplayName(finalDisplayName);
-      setExp(Number(profile?.exp || 0));
-      setTrustScore(Number(profile?.trust_score || 0));
+      setMoodEmoji(profile?.mood_emoji || "");
+      setStatusMessage(profile?.status_message || "");
 
       const { count: unreadTotal } = await supabase
         .from("notifications")
@@ -99,23 +100,11 @@ export default function HomePage() {
 
       setUnreadCount(unreadTotal || 0);
 
-      const { count: badgeTotal } = await supabase
-        .from("user_badges")
-        .select("id", {
-          count: "exact",
-          head: true,
-        })
-        .eq("user_id", data.user.id);
-
-      setBadgeCount(badgeTotal || 0);
-
       const { data: activeAnnouncement } = await supabase
         .from("announcements")
         .select("*")
         .eq("is_active", true)
-        .order("created_at", {
-          ascending: false,
-        })
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -127,9 +116,7 @@ export default function HomePage() {
         .eq("type", "diary")
         .eq("visibility", "public")
         .eq("status", "published")
-        .order("published_at", {
-          ascending: false,
-        })
+        .order("published_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -144,9 +131,7 @@ export default function HomePage() {
         .eq("type", "article")
         .eq("visibility", "public")
         .eq("status", "published")
-        .order("published_at", {
-          ascending: false,
-        })
+        .order("published_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -193,6 +178,30 @@ export default function HomePage() {
       ? `/u/${encodeURIComponent(displayName)}`
       : "/settings/profile";
 
+  const quickCards = [
+    {
+      icon: "📬",
+      title: "小时代信箱",
+      desc:
+        unreadCount > 0
+          ? `你有 ${unreadCount} 封未读来信。`
+          : "今晚暂无新来信。",
+      href: "/notifications",
+    },
+    {
+      icon: "🌙",
+      title: "深夜广场",
+      desc: "看看别人留下的光。",
+      href: "/space",
+    },
+    {
+      icon: "🏠",
+      title: "我的房间",
+      desc: "回到自己的角落。",
+      href: profileHref,
+    },
+  ];
+
   const lifeCards = [
     {
       label: "深夜灯火",
@@ -214,42 +223,6 @@ export default function HomePage() {
       desc: "有人刚刚留下了新的日记。",
       href: latestDiaryId ? `/diary/${latestDiaryId}` : "/space/diaries",
     },
-    {
-      label: "我的房间",
-      title: "👤 " + displayName,
-      desc: "看看别人眼中的你。",
-      href: profileHref,
-    },
-  ];
-
-  const quickCards = [
-    {
-      icon: "✍️",
-      title: "写下今天",
-      desc: "记录今天发生过的事，哪怕只是一点点。",
-      href: "/diary/new",
-    },
-    {
-      icon: "📖",
-      title: "写一篇故事",
-      desc: "把更完整的想法、故事或作品认真留下来。",
-      href: "/articles/new",
-    },
-    {
-      icon: "📬",
-      title: "小时代信箱",
-      desc:
-        unreadCount > 0
-          ? `你有 ${unreadCount} 封未读来信。`
-          : "今晚暂时没有新的来信。",
-      href: "/notifications",
-    },
-    {
-      icon: "🏠",
-      title: "回到我的房间",
-      desc: "看看自己的成长、徽章和公开留下的痕迹。",
-      href: profileHref,
-    },
   ];
 
   return (
@@ -270,60 +243,60 @@ export default function HomePage() {
           `}
         />
 
-        <section className="relative z-10 flex min-h-screen items-center justify-center px-6 pb-20 pt-32">
+        <section className="relative z-10 flex min-h-[700px] items-center justify-center px-5 pb-10 pt-28 md:min-h-screen md:px-6 md:pb-20 md:pt-32">
           <div className="mx-auto max-w-5xl min-w-0 text-center">
-            <div className="safe-pre mx-auto mb-8 inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-violet-500/20 bg-violet-500/10 px-5 py-3 text-sm text-violet-100 backdrop-blur-xl">
+            <div className="safe-pre mx-auto mb-7 inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-2.5 text-xs text-violet-100 backdrop-blur-xl md:mb-8 md:px-5 md:py-3 md:text-sm">
               <span className="shrink-0 animate-pulse">🌙</span>
-              <span className="safe-pre">{nightBroadcast}</span>
+              <span className="safe-pre line-clamp-1">{nightBroadcast}</span>
             </div>
 
-            <p className="mb-5 text-xs tracking-[0.45em] text-white/25">
+            <p className="mb-4 text-xs tracking-[0.45em] text-white/25 md:mb-5">
               RESIDENT HOME
             </p>
 
-            <h1 className="safe-text text-5xl font-light leading-tight tracking-tight md:text-7xl">
+            <h1 className="safe-text text-4xl font-light leading-tight tracking-tight md:text-7xl">
               欢迎回来，{displayName}.
             </h1>
 
-            <h2 className="safe-text mt-6 text-2xl font-light text-white/75">
+            <h2 className="safe-text mt-5 text-xl font-light text-white/75 md:mt-6 md:text-2xl">
               {atmosphere.heroTitle}
             </h2>
 
-            <p className="safe-pre mx-auto mt-8 max-w-xl text-sm leading-7 text-white/45">
+            <p className="safe-pre mx-auto mt-5 max-w-xl text-sm leading-7 text-white/45 md:mt-8">
               {atmosphere.heroText}
             </p>
 
-            <p className="safe-pre mt-6 text-sm italic text-white/25">
+            <p className="safe-pre mt-6 hidden text-sm italic text-white/25 md:block">
               “{atmosphere.quote}”
             </p>
 
             {announcement && (
-              <div className="mx-auto mt-10 max-w-2xl min-w-0 overflow-hidden rounded-[2rem] border border-fuchsia-400/20 bg-fuchsia-500/[0.07] p-6 text-left shadow-[0_0_70px_rgba(217,70,239,0.09)] backdrop-blur-2xl">
-                <p className="text-xs tracking-[0.35em] text-fuchsia-100/45">
+              <div className="mx-auto mt-7 max-w-2xl min-w-0 overflow-hidden rounded-[1.5rem] border border-fuchsia-400/20 bg-fuchsia-500/[0.07] p-4 text-left shadow-[0_0_70px_rgba(217,70,239,0.09)] backdrop-blur-2xl md:mt-10 md:rounded-[2rem] md:p-6">
+                <p className="text-xs tracking-[0.25em] text-fuchsia-100/45 md:tracking-[0.35em]">
                   WORLD ANNOUNCEMENT
                 </p>
 
-                <h3 className="safe-text mt-4 text-2xl font-light text-white">
+                <h3 className="safe-text mt-3 text-xl font-light text-white md:mt-4 md:text-2xl">
                   📢 {announcement.title}
                 </h3>
 
-                <p className="safe-pre mt-4 text-sm leading-8 text-white/55">
+                <p className="safe-pre mt-3 line-clamp-3 text-sm leading-7 text-white/55 md:mt-4 md:line-clamp-none md:leading-8">
                   {announcement.content}
                 </p>
               </div>
             )}
 
-            <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 md:mt-12 md:flex-row md:items-center md:gap-4">
               <button
                 onClick={() => router.push("/diary/new")}
-                className="rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition hover:bg-white/90"
+                className="w-full rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition hover:bg-white/90 md:w-auto"
               >
                 ✍️ 写日记
               </button>
 
               <button
                 onClick={() => router.push("/articles/new")}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-sm text-white/70 backdrop-blur-xl transition hover:bg-white/[0.08] hover:text-white"
+                className="w-full rounded-full border border-white/10 bg-white/[0.035] px-6 py-3 text-sm text-white/55 backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white/80 md:w-auto md:px-8 md:py-4 md:text-white/70"
               >
                 📖 写文章
               </button>
@@ -331,23 +304,58 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="relative z-10 px-6 pb-16 pt-4">
-          <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <section className="relative z-10 px-5 pb-12 pt-2 md:px-6 md:pb-16 md:pt-4">
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
+            {quickCards.map((item) => (
+              <Link
+                key={item.title}
+                href={item.href}
+                className="min-w-0 overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-2xl shadow-[0_0_50px_rgba(255,255,255,0.04)] transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.015] hover:border-white/20 hover:bg-white/[0.055] hover:shadow-[0_0_80px_rgba(255,255,255,0.06)] md:rounded-[2rem] md:p-6"
+              >
+                <div className="mb-6 text-2xl md:mb-8 md:text-3xl">
+                  {item.icon}
+                </div>
+
+                <h2 className="safe-text text-base font-light text-white/85 md:text-lg">
+                  {item.title}
+                </h2>
+
+                <p className="safe-pre mt-3 text-xs leading-6 text-white/35 md:mt-4 md:text-sm">
+                  {item.desc}
+                </p>
+              </Link>
+            ))}
+
+            <RoomStatusButton
+              ownerId={currentUserId}
+              initialMoodEmoji={moodEmoji}
+              initialStatusMessage={statusMessage}
+              variant="card"
+              onStatusChange={(nextEmoji, nextMessage) => {
+                setMoodEmoji(nextEmoji);
+                setStatusMessage(nextMessage);
+              }}
+            />
+          </div>
+        </section>
+
+        <section className="relative z-10 px-5 pb-12 md:px-6 md:pb-16">
+          <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3">
             {lifeCards.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
-                className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_50px_rgba(255,255,255,0.04)] transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.015] hover:border-white/20 hover:bg-white/[0.055] hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]"
+                className="min-w-0 overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-2xl shadow-[0_0_50px_rgba(255,255,255,0.04)] transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.015] hover:border-white/20 hover:bg-white/[0.055] hover:shadow-[0_0_80px_rgba(255,255,255,0.06)] md:rounded-[2rem] md:p-6"
               >
                 <p className="safe-text text-xs tracking-[0.3em] text-white/30">
                   {item.label}
                 </p>
 
-                <h3 className="safe-text mt-4 line-clamp-2 text-2xl font-light">
+                <h3 className="safe-text mt-4 line-clamp-2 break-all text-xl font-light md:text-2xl">
                   {item.title}
                 </h3>
 
-                <p className="safe-pre mt-4 text-sm leading-7 text-white/45">
+                <p className="safe-pre mt-3 text-sm leading-7 text-white/45 md:mt-4">
                   {item.desc}
                 </p>
               </Link>
@@ -356,19 +364,19 @@ export default function HomePage() {
         </section>
 
         {onlineResidents.length > 0 && (
-          <section className="relative z-10 px-6 pb-16">
-            <div className="mx-auto max-w-6xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[0.035] p-8 backdrop-blur-2xl shadow-[0_0_70px_rgba(255,255,255,0.035)]">
-              <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
+          <section className="relative z-10 px-5 pb-24 md:px-6 md:pb-32">
+            <div className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_70px_rgba(255,255,255,0.035)] md:rounded-[2.5rem] md:p-8">
+              <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center md:gap-6">
                 <div className="min-w-0">
                   <p className="text-xs tracking-[0.35em] text-white/25">
                     AWAKE RESIDENTS
                   </p>
 
-                  <h2 className="safe-text mt-4 text-3xl font-light">
+                  <h2 className="safe-text mt-4 text-2xl font-light md:text-3xl">
                     深夜还亮着灯的房间
                   </h2>
 
-                  <p className="safe-pre mt-4 max-w-xl text-sm leading-7 text-white/35">
+                  <p className="safe-pre mt-3 max-w-xl text-sm leading-7 text-white/35 md:mt-4">
                     有些居民还没有睡，正在这个世界里慢慢经过。
                   </p>
                 </div>
@@ -381,7 +389,7 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              <div className="mt-8 flex flex-wrap gap-4">
+              <div className="mt-7 flex flex-wrap gap-3 md:mt-8 md:gap-4">
                 {onlineResidents.map((resident) => {
                   const href = resident.username
                     ? `/u/${encodeURIComponent(resident.username)}`
@@ -391,10 +399,10 @@ export default function HomePage() {
                     <Link
                       key={resident.id}
                       href={href}
-                      className="group flex min-w-0 items-center gap-4 rounded-2xl border border-white/10 bg-black/35 px-5 py-4 transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
+                      className="group flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/35 px-4 py-3 transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] md:gap-4 md:px-5 md:py-4"
                     >
                       <div className="relative shrink-0">
-                        <div className="h-12 w-12 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
+                        <div className="h-11 w-11 overflow-hidden rounded-full border border-white/10 bg-white/[0.04] md:h-12 md:w-12">
                           {resident.avatar_url ? (
                             <img
                               src={resident.avatar_url}
@@ -431,74 +439,6 @@ export default function HomePage() {
             </div>
           </section>
         )}
-
-        <section className="relative z-10 px-6 pb-16">
-          <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-3">
-            <div className="rounded-[2rem] border border-violet-500/20 bg-violet-500/[0.055] p-6 backdrop-blur-2xl">
-              <p className="text-xs tracking-[0.3em] text-violet-100/35">
-                LIGHT
-              </p>
-
-              <h2 className="mt-4 text-3xl font-light text-white">
-                {exp.toFixed(2)}
-              </h2>
-
-              <p className="mt-4 text-sm leading-7 text-white/40">
-                你在小时代留下的光。
-              </p>
-            </div>
-
-            <div className="rounded-[2rem] border border-emerald-500/20 bg-emerald-500/[0.055] p-6 backdrop-blur-2xl">
-              <p className="text-xs tracking-[0.3em] text-emerald-100/35">
-                TRUST
-              </p>
-
-              <h2 className="mt-4 text-3xl font-light text-white">
-                {trustScore.toFixed(2)}
-              </h2>
-
-              <p className="mt-4 text-sm leading-7 text-white/40">
-                你的社区信任记录。
-              </p>
-            </div>
-
-            <div className="rounded-[2rem] border border-yellow-500/20 bg-yellow-500/[0.055] p-6 backdrop-blur-2xl">
-              <p className="text-xs tracking-[0.3em] text-yellow-100/35">
-                BADGES
-              </p>
-
-              <h2 className="mt-4 text-3xl font-light text-white">
-                {badgeCount}
-              </h2>
-
-              <p className="mt-4 text-sm leading-7 text-white/40">
-                你已经获得的徽章。
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="relative z-10 px-6 pb-32">
-          <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-4">
-            {quickCards.map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_50px_rgba(255,255,255,0.04)] transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.015] hover:border-white/20 hover:bg-white/[0.055] hover:shadow-[0_0_80px_rgba(255,255,255,0.06)]"
-              >
-                <div className="mb-8 text-3xl">{item.icon}</div>
-
-                <h2 className="safe-text text-lg font-light text-white/85">
-                  {item.title}
-                </h2>
-
-                <p className="safe-pre mt-4 text-sm leading-6 text-white/35">
-                  {item.desc}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
       </main>
     </PageTransition>
   );

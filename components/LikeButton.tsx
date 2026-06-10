@@ -7,11 +7,18 @@ import { addUserGrowth } from "@/lib/community-growth";
 type Props = {
   postId: number;
   authorId: string;
+  initialCount?: number;
+  compact?: boolean;
 };
 
-export default function LikeButton({ postId, authorId }: Props) {
+export default function LikeButton({
+  postId,
+  authorId,
+  initialCount = 0,
+  compact = false,
+}: Props) {
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [likeCount, setLikeCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
 
@@ -27,17 +34,6 @@ export default function LikeButton({ postId, authorId }: Props) {
     if (!user) return;
 
     setCurrentUserId(user.id);
-
-    const { count } = await supabase
-      .from("post_likes")
-      .select("id", {
-        count: "exact",
-        head: true,
-      })
-      .eq("post_id", postId)
-      .eq("is_active", true);
-
-    setLikeCount(count || 0);
 
     const { data: myLike } = await supabase
       .from("post_likes")
@@ -179,13 +175,15 @@ export default function LikeButton({ postId, authorId }: Props) {
       type="button"
       onClick={toggleLike}
       disabled={loading}
-      className={`rounded-full border px-5 py-3 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`rounded-full border transition disabled:cursor-not-allowed disabled:opacity-40 ${
+        compact ? "px-3 py-1 text-xs" : "px-5 py-3 text-sm"
+      } ${
         liked
           ? "border-pink-500/30 bg-pink-500/10 text-pink-200"
           : "border-white/10 bg-white/[0.04] text-white/45 hover:border-pink-500/25 hover:text-pink-100"
       }`}
     >
-      {liked ? "已喜欢" : "喜欢"} · {likeCount}
+      {liked ? "❤️ 已喜欢" : "🤍 喜欢"} {likeCount}
     </button>
   );
 }

@@ -115,7 +115,6 @@ export default function ArticleDetailPage() {
 
   const articleDate = article.published_at || article.created_at;
   const isAuthor = article.isAuthor || article.author_id === currentUserId;
-  const backHref = isAuthor ? "/articles" : "/space/articles";
 
   const authorProfile = getProfile(article.profiles);
   const authorHref = authorProfile?.username
@@ -128,12 +127,13 @@ export default function ArticleDetailPage() {
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
       <article className="mx-auto max-w-4xl min-w-0 overflow-hidden">
-        <Link
-          href={backHref}
+        <button
+          type="button"
+          onClick={() => router.back()}
           className="text-sm text-white/35 transition hover:text-white/70"
         >
-          {isAuthor ? "← 回到我的文章" : "← 回到文章广场"}
-        </Link>
+          ← 回到上一页
+        </button>
 
         <header className="mt-14 min-w-0 overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-9 backdrop-blur-2xl">
           <p className="text-xs tracking-[0.38em] text-white/25">ARTICLE</p>
@@ -252,12 +252,13 @@ export default function ArticleDetailPage() {
             )}
           </div>
 
-          <Link
-            href={backHref}
+          <button
+            type="button"
+            onClick={() => router.back()}
             className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
           >
-            {isAuthor ? "回到我的文章" : "回到文章广场"}
-          </Link>
+            回到上一页
+          </button>
         </footer>
 
         <PostComments postId={article.id} />

@@ -33,6 +33,14 @@ export default function AdminUserDetailPage() {
     return toNumber(value).toFixed(2);
   }
 
+  function isTargetOwner() {
+    return profile?.role === "owner";
+  }
+
+  function isSelf(userId: string) {
+    return profile?.id === userId;
+  }
+
   async function fetchUser() {
     const { data: profileData } = await supabase
       .from("profiles")
@@ -66,9 +74,7 @@ export default function AdminUserDetailPage() {
       .from("posts")
       .select("id, title, slug, content, type, status, visibility, created_at, published_at")
       .eq("author_id", id)
-      .order("created_at", {
-        ascending: false,
-      })
+      .order("created_at", { ascending: false })
       .limit(8);
 
     setUserPosts(postsData || []);
@@ -102,9 +108,7 @@ export default function AdminUserDetailPage() {
       .from("comments")
       .select("id, content, post_id, created_at, is_hidden, is_deleted")
       .eq("author_id", id)
-      .order("created_at", {
-        ascending: false,
-      })
+      .order("created_at", { ascending: false })
       .limit(8);
 
     setUserComments(commentsData || []);
@@ -120,9 +124,7 @@ export default function AdminUserDetailPage() {
           username
         )
       `)
-      .order("created_at", {
-        ascending: false,
-      })
+      .order("created_at", { ascending: false })
       .limit(100);
 
     const filteredReports = (reportsData || []).filter((report: any) => {
@@ -149,9 +151,7 @@ export default function AdminUserDetailPage() {
       .select("*")
       .eq("target_type", "user")
       .eq("target_id", id)
-      .order("created_at", {
-        ascending: false,
-      })
+      .order("created_at", { ascending: false })
       .limit(8);
 
     setAdminLogs(logsData || []);
@@ -217,16 +217,12 @@ export default function AdminUserDetailPage() {
       }
     }
 
-    if (profile.role === "owner" && profile.id !== user.id) {
-      alert("不能修改 owner 身份");
+    if (profile.role === "owner" && !isSelf(user.id)) {
+      alert("不能修改其他 owner 身份");
       return;
     }
 
-    if (
-      profile.id === user.id &&
-      profile.role === "owner" &&
-      newRole !== "owner"
-    ) {
+    if (isSelf(user.id) && profile.role === "owner" && newRole !== "owner") {
       alert("不能把自己的 owner 权限降级，否则会失去最高权限。");
       return;
     }
@@ -271,6 +267,16 @@ export default function AdminUserDetailPage() {
       return;
     }
 
+    if (isTargetOwner() && !isSelf(user.id)) {
+      alert("不能修改其他 owner 的状态。");
+      return;
+    }
+
+    if (isTargetOwner() && newStatus !== "active") {
+      alert("owner 不能被警告、禁言或封禁。");
+      return;
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -302,8 +308,7 @@ export default function AdminUserDetailPage() {
 
     if (newStatus === "banned") {
       notificationTitle = "🚫 账号已封禁";
-      notificationContent =
-        "由于违反社区规范，你的账号已被封禁。";
+      notificationContent = "由于违反社区规范，你的账号已被封禁。";
     }
 
     if (notificationTitle && notificationContent) {
@@ -316,6 +321,8 @@ export default function AdminUserDetailPage() {
           is_important: true,
         },
       ]);
+
+      window.dispatchEvent(new Event("notifications-updated"));
     }
 
     setProfile((current: any) => ({
@@ -330,6 +337,11 @@ export default function AdminUserDetailPage() {
   async function updateGrowth(updates: any, message: string) {
     if (currentRole !== "owner" && currentRole !== "admin") {
       alert("只有 owner / admin 可以调整成长数值。");
+      return false;
+    }
+
+    if (currentRole === "admin" && profile.role === "owner") {
+      alert("admin 无法调整 owner 的成长数值。");
       return false;
     }
 
@@ -375,8 +387,9 @@ export default function AdminUserDetailPage() {
         type: "system",
       },
     ]);
+
+    window.dispatchEvent(new Event("notifications-updated"));
   }
-  
 
   async function adjustTrust(amount: number) {
     const currentTrust = toNumber(profile.trust_score);
@@ -401,10 +414,12 @@ export default function AdminUserDetailPage() {
         type: "system",
       },
     ]);
+
+    window.dispatchEvent(new Event("notifications-updated"));
   }
 
   async function changeLevel(amount: number) {
-    const nextLevel = Math.min(3, Math.max(1, (profile.level || 1) + amount));
+    const nextLevel = Math.min(5, Math.max(1, (profile.level || 1) + amount));
 
     const success = await updateGrowth(
       {
@@ -424,6 +439,8 @@ export default function AdminUserDetailPage() {
         is_important: true,
       },
     ]);
+
+    window.dispatchEvent(new Event("notifications-updated"));
   }
 
   function getRoleStyle(role: string) {
@@ -467,7 +484,6 @@ export default function AdminUserDetailPage() {
   function getPostHref(post: any) {
     if (post.type === "diary") return `/diary/${post.id}`;
     if (post.type === "article" && post.slug) return `/articles/${post.slug}`;
-
     return "/admin/content";
   }
 
@@ -524,13 +540,8 @@ export default function AdminUserDetailPage() {
                   <option value="user">user</option>
                   <option value="moderator">moderator</option>
 
-                  {currentRole === "owner" && (
-                    <option value="admin">admin</option>
-                  )}
-
-                  {currentRole === "owner" && (
-                    <option value="owner">owner</option>
-                  )}
+                  {currentRole === "owner" && <option value="admin">admin</option>}
+                  {currentRole === "owner" && <option value="owner">owner</option>}
                 </select>
               ) : (
                 <span
@@ -590,61 +601,38 @@ export default function AdminUserDetailPage() {
 
       {(currentRole === "owner" || currentRole === "admin") && (
         <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-          <h2 className="text-2xl font-bold">
-            成长数值调整
-          </h2>
+          <h2 className="text-2xl font-bold">成长数值调整</h2>
 
           <p className="mt-2 text-sm text-zinc-500">
-            「留下的光」和「社区信任」采用慢成长小数系统，避免等级成长过快。
+            Alpha 当前最高 Lv5。后续 Beta 可以扩展到更高等级。
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              onClick={() => addLight(0.03)}
-              className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
-            >
+            <button onClick={() => addLight(0.03)} className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20">
               +0.03 光
             </button>
 
-            <button
-              onClick={() => addLight(0.05)}
-              className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
-            >
+            <button onClick={() => addLight(0.05)} className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20">
               +0.05 光
             </button>
 
-            <button
-              onClick={() => addLight(0.10)}
-              className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
-            >
+            <button onClick={() => addLight(0.10)} className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20">
               +0.10 光
             </button>
 
-            <button
-              onClick={() => changeLevel(1)}
-              className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20"
-            >
+            <button onClick={() => changeLevel(1)} className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20">
               等级 +1
             </button>
 
-            <button
-              onClick={() => changeLevel(-1)}
-              className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20"
-            >
+            <button onClick={() => changeLevel(-1)} className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20">
               等级 -1
             </button>
 
-            <button
-              onClick={() => adjustTrust(0.02)}
-              className="rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20"
-            >
+            <button onClick={() => adjustTrust(0.02)} className="rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20">
               +0.02 信任
             </button>
 
-            <button
-              onClick={() => adjustTrust(-0.02)}
-              className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20"
-            >
+            <button onClick={() => adjustTrust(-0.02)} className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20">
               -0.02 信任
             </button>
           </div>
@@ -652,9 +640,7 @@ export default function AdminUserDetailPage() {
       )}
 
       <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <p className="text-sm text-zinc-500">
-          居民简介
-        </p>
+        <p className="text-sm text-zinc-500">居民简介</p>
 
         <p className="safe-pre mt-3 text-zinc-300">
           {profile.bio || "这个居民还没有留下简介。"}
@@ -662,15 +648,11 @@ export default function AdminUserDetailPage() {
       </div>
 
       <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <h2 className="text-2xl font-bold">
-          最近内容
-        </h2>
+        <h2 className="text-2xl font-bold">最近内容</h2>
 
         <div className="mt-5 space-y-3">
           {userPosts.length === 0 && (
-            <p className="text-sm text-zinc-600">
-              这个居民还没有发布内容。
-            </p>
+            <p className="text-sm text-zinc-600">这个居民还没有发布内容。</p>
           )}
 
           {userPosts.map((post) => (
@@ -693,15 +675,11 @@ export default function AdminUserDetailPage() {
       </section>
 
       <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <h2 className="text-2xl font-bold">
-          最近评论
-        </h2>
+        <h2 className="text-2xl font-bold">最近评论</h2>
 
         <div className="mt-5 space-y-3">
           {userComments.length === 0 && (
-            <p className="text-sm text-zinc-600">
-              这个居民还没有留下评论。
-            </p>
+            <p className="text-sm text-zinc-600">这个居民还没有留下评论。</p>
           )}
 
           {userComments.map((comment) => (
@@ -727,15 +705,11 @@ export default function AdminUserDetailPage() {
       </section>
 
       <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <h2 className="text-2xl font-bold">
-          相关举报记录
-        </h2>
+        <h2 className="text-2xl font-bold">相关举报记录</h2>
 
         <div className="mt-5 space-y-3">
           {relatedReports.length === 0 && (
-            <p className="text-sm text-zinc-600">
-              暂无相关举报记录。
-            </p>
+            <p className="text-sm text-zinc-600">暂无相关举报记录。</p>
           )}
 
           {relatedReports.map((report) => (
@@ -744,47 +718,34 @@ export default function AdminUserDetailPage() {
               href="/admin/reports"
               className="block min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4 transition hover:border-zinc-500"
             >
-              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                <div className="min-w-0">
-                  <p className="safe-text font-semibold text-red-100">
-                    🚩 {report.reason || "没有填写原因"}
-                  </p>
+              <p className="safe-text font-semibold text-red-100">
+                🚩 {report.reason || "没有填写原因"}
+              </p>
 
-                  {report.details && (
-                    <p className="safe-pre mt-2 text-sm leading-7 text-zinc-400">
-                      {report.details}
-                    </p>
-                  )}
+              {report.details && (
+                <p className="safe-pre mt-2 text-sm leading-7 text-zinc-400">
+                  {report.details}
+                </p>
+              )}
 
-                  <p className="mt-2 text-xs text-zinc-600">
-                    举报人：
-                    {report.profiles?.username || "未知居民"} · 目标：
-                    {report.target_type || "未知"} ·{" "}
-                    {report.created_at
-                      ? new Date(report.created_at).toLocaleString("zh-CN")
-                      : "未知时间"}
-                  </p>
-                </div>
-
-                <span className="shrink-0 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs text-yellow-300">
-                  {report.status || "pending"}
-                </span>
-              </div>
+              <p className="mt-2 text-xs text-zinc-600">
+                举报人：{report.profiles?.username || "未知居民"} · 目标：
+                {report.target_type || "未知"} ·{" "}
+                {report.created_at
+                  ? new Date(report.created_at).toLocaleString("zh-CN")
+                  : "未知时间"}
+              </p>
             </Link>
           ))}
         </div>
       </section>
 
       <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <p className="text-sm text-zinc-500">
-          已拥有徽章
-        </p>
+        <p className="text-sm text-zinc-500">已拥有徽章</p>
 
         <div className="mt-4 flex flex-wrap gap-3">
           {badges.length === 0 && (
-            <p className="text-sm text-zinc-600">
-              暂无徽章
-            </p>
+            <p className="text-sm text-zinc-600">暂无徽章</p>
           )}
 
           {badges.map((item: any) => {
@@ -809,15 +770,11 @@ export default function AdminUserDetailPage() {
       </div>
 
       <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <h2 className="text-2xl font-bold">
-          最近管理记录
-        </h2>
+        <h2 className="text-2xl font-bold">最近管理记录</h2>
 
         <div className="mt-5 space-y-3">
           {adminLogs.length === 0 && (
-            <p className="text-sm text-zinc-600">
-              暂无管理记录。
-            </p>
+            <p className="text-sm text-zinc-600">暂无管理记录。</p>
           )}
 
           {adminLogs.map((log) => (
@@ -844,9 +801,7 @@ export default function AdminUserDetailPage() {
       </section>
 
       <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <p className="text-sm text-zinc-500">
-          注册时间
-        </p>
+        <p className="text-sm text-zinc-500">注册时间</p>
 
         <p className="mt-3 text-zinc-300">
           {profile.created_at
@@ -867,13 +822,9 @@ function StatCard({
 }) {
   return (
     <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-5">
-      <p className="text-sm text-zinc-500">
-        {title}
-      </p>
+      <p className="text-sm text-zinc-500">{title}</p>
 
-      <p className="safe-text mt-3 text-2xl font-bold">
-        {value}
-      </p>
+      <p className="safe-text mt-3 text-2xl font-bold">{value}</p>
     </div>
   );
 }

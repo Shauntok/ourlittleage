@@ -1,5 +1,18 @@
 "use client";
 
+/**
+ * ===== app/settings/profile/page.tsx =====
+ * 房间资料设置页 / Room Profile Settings
+ *
+ * 注意：
+ * 1. 这不是 Landing Page。
+ * 2. 这不是 /u/[username] 个人公开房间页。
+ * 3. 本页包含一个「ROOM PREVIEW」右侧预览组件，
+ *    只是让用户在设置页预览自己的房间外观。
+ * 4. 手机版会隐藏 ROOM PREVIEW，避免页面太长。
+ * 5. 今日状态已移到 /home 的「今日状态」弹窗里。
+ */
+
 import { ChangeEvent, useEffect, useState } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import { useRouter } from "next/navigation";
@@ -66,13 +79,9 @@ export default function ProfileSettingsPage() {
   const [bio, setBio] = useState("");
   const [theme, setTheme] = useState("midnight");
 
-  const [moodEmoji, setMoodEmoji] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
-
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
-  const [statusSaving, setStatusSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [bannerPreviewUrl, setBannerPreviewUrl] = useState("");
@@ -105,8 +114,6 @@ export default function ProfileSettingsPage() {
       setUsername(profileData?.username || "");
       setBio(profileData?.bio || "");
       setTheme(profileData?.theme || "midnight");
-      setMoodEmoji(profileData?.mood_emoji || "");
-      setStatusMessage(profileData?.status_message || "");
 
       setLoading(false);
     }
@@ -153,6 +160,40 @@ export default function ProfileSettingsPage() {
 
     if (!usernameRegex.test(cleanUsername)) {
       alert("居民名字只能使用中文、英文、数字和底线。");
+      return;
+    }
+
+    const reservedNames = [
+      "admin",
+      "api",
+      "home",
+      "space",
+      "diary",
+      "articles",
+      "article",
+      "settings",
+      "notifications",
+      "login",
+      "register",
+      "u",
+      "www",
+      "ourlittleage",
+    ];
+
+    if (reservedNames.includes(cleanUsername.toLowerCase())) {
+      alert("这个居民名字不能使用，请换一个。");
+      return;
+    }
+
+    const { data: existingUser } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("username", cleanUsername)
+      .neq("id", user.id)
+      .maybeSingle();
+
+    if (existingUser) {
+      alert("这个居民名字已经有人使用了。");
       return;
     }
 
@@ -203,9 +244,7 @@ export default function ProfileSettingsPage() {
 
     const { error } = await supabase.storage
       .from("avatars")
-      .upload(fileName, file, {
-        upsert: true,
-      });
+      .upload(fileName, file, { upsert: true });
 
     if (error) {
       setUploading(false);
@@ -338,81 +377,6 @@ export default function ProfileSettingsPage() {
     setBannerUploading(false);
   }
 
-  async function saveMoodStatus() {
-    if (!user) return;
-
-    if (!moodEmoji && !statusMessage.trim()) {
-      alert("请先选择心情或写一句状态。");
-      return;
-    }
-
-    setStatusSaving(true);
-
-    const expiresAt = new Date(
-      Date.now() + 18 * 60 * 60 * 1000
-    ).toISOString();
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        mood_emoji: moodEmoji || null,
-        status_message: statusMessage.trim() || null,
-        status_expires_at: expiresAt,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id);
-
-    setStatusSaving(false);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setProfile((current: any) => ({
-      ...current,
-      mood_emoji: moodEmoji || null,
-      status_message: statusMessage.trim() || null,
-      status_expires_at: expiresAt,
-    }));
-
-    alert("今日状态已设置。");
-  }
-
-  async function clearMoodStatus() {
-    if (!user) return;
-
-    const confirmed = confirm("确定清除今日状态吗？");
-    if (!confirmed) return;
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        mood_emoji: null,
-        status_message: null,
-        status_expires_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setMoodEmoji("");
-    setStatusMessage("");
-
-    setProfile((current: any) => ({
-      ...current,
-      mood_emoji: null,
-      status_message: null,
-      status_expires_at: null,
-    }));
-
-    alert("今日状态已清除。");
-  }
-
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -425,6 +389,7 @@ export default function ProfileSettingsPage() {
 
   const previewUsername = username || "居民";
   const previewBio = bio || "这个房间暂时还很安静。";
+
   const previewTheme =
     theme === "ocean"
       ? "from-blue-950 via-slate-950 to-black"
@@ -439,26 +404,26 @@ export default function ProfileSettingsPage() {
   return (
     <div className="w-full overflow-hidden text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[620px] md:w-[620px]" />
 
-      <div className="grid w-full max-w-full gap-10 xl:grid-cols-[minmax(720px,1fr)_380px] 2xl:grid-cols-[minmax(900px,1fr)_420px]">
-        <section className="space-y-8">
+      <div className="grid w-full max-w-full gap-8 xl:grid-cols-[minmax(720px,1fr)_380px] 2xl:grid-cols-[minmax(900px,1fr)_420px]">
+        <section className="space-y-6 md:space-y-8">
           <div>
-            <p className="text-xs tracking-[0.4em] text-white/25">
+            <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.4em]">
               ROOM SETTINGS
             </p>
 
-            <h1 className="mt-6 text-5xl font-light tracking-tight">
+            <h1 className="mt-4 text-4xl font-light tracking-tight md:mt-6 md:text-5xl">
               装修你的房间
             </h1>
 
-            <p className="mt-6 max-w-xl text-sm leading-8 text-white/40">
-              头像、横幅、简介和今日状态，都会成为别人进入你房间时看见的第一束光。
+            <p className="mt-4 max-w-xl text-sm leading-7 text-white/40 md:mt-6 md:leading-8">
+              头像、横幅、简介和房间主题，会成为别人进入你房间时看见的第一束光。
             </p>
           </div>
 
-          <section className="overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
-            <div className="relative z-20 h-56 overflow-hidden border-b border-white/10 bg-black/40">
+          <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl md:rounded-[2.4rem]">
+            <div className="relative z-20 h-44 overflow-hidden border-b border-white/10 bg-black/40 md:h-56">
               {profile?.banner_url ? (
                 <img
                   src={profile.banner_url}
@@ -471,7 +436,7 @@ export default function ProfileSettingsPage() {
 
               <div className="pointer-events-none absolute inset-0 bg-black/50" />
 
-              <label className="absolute bottom-5 right-5 z-30 cursor-pointer rounded-full border border-white/15 bg-black/65 px-5 py-3 text-sm text-white/70 backdrop-blur-xl transition hover:border-white/30 hover:text-white">
+              <label className="absolute bottom-4 right-4 z-30 cursor-pointer rounded-full border border-white/15 bg-black/65 px-4 py-2.5 text-xs text-white/70 backdrop-blur-xl transition hover:border-white/30 hover:text-white md:bottom-5 md:right-5 md:px-5 md:py-3 md:text-sm">
                 {bannerUploading ? "上传中..." : "更换横幅"}
                 <input
                   type="file"
@@ -482,10 +447,10 @@ export default function ProfileSettingsPage() {
               </label>
             </div>
 
-            <div className="relative z-10 p-7">
-              <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-start">
-                <div className="space-y-4">
-                  <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_45px_rgba(255,255,255,0.12)]">
+            <div className="relative z-10 p-5 md:p-7">
+              <div className="flex flex-col gap-5 md:mt-6 md:flex-row md:items-start md:gap-6">
+                <div className="space-y-3 md:space-y-4">
+                  <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_45px_rgba(255,255,255,0.12)] md:h-32 md:w-32">
                     {profile?.avatar_url ? (
                       <img
                         src={profile.avatar_url}
@@ -493,13 +458,13 @@ export default function ProfileSettingsPage() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-5xl text-white/25">
+                      <div className="flex h-full w-full items-center justify-center text-4xl text-white/25 md:text-5xl">
                         👤
                       </div>
                     )}
                   </div>
 
-                  <label className="inline-flex cursor-pointer rounded-full border border-white/10 bg-black/60 px-5 py-3 text-sm text-white/65 transition hover:border-white/25 hover:text-white">
+                  <label className="inline-flex cursor-pointer rounded-full border border-white/10 bg-black/60 px-4 py-2.5 text-xs text-white/65 transition hover:border-white/25 hover:text-white md:px-5 md:py-3 md:text-sm">
                     {uploading ? "上传中..." : "更换头像"}
                     <input
                       type="file"
@@ -510,12 +475,12 @@ export default function ProfileSettingsPage() {
                   </label>
                 </div>
 
-                <div className="pb-2">
-                  <p className="text-xs tracking-[0.35em] text-white/25">
+                <div className="pb-1 md:pb-2">
+                  <p className="text-xs tracking-[0.3em] text-white/25 md:tracking-[0.35em]">
                     ROOM PROFILE
                   </p>
 
-                  <h2 className="mt-4 text-3xl font-light">
+                  <h2 className="mt-3 text-2xl font-light md:mt-4 md:text-3xl">
                     🏠 房间资料
                   </h2>
 
@@ -525,7 +490,7 @@ export default function ProfileSettingsPage() {
                 </div>
               </div>
 
-              <div className="mt-8 grid gap-5">
+              <div className="mt-6 grid gap-5 md:mt-8">
                 <div className="space-y-2">
                   <p className="text-sm text-white/45">居民名字</p>
 
@@ -537,7 +502,7 @@ export default function ProfileSettingsPage() {
                       setUsername(e.target.value);
                       setHasUnsavedChanges(true);
                     }}
-                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-white outline-none transition focus:border-white/30"
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-5 py-3.5 text-white outline-none transition focus:border-white/30 md:py-4"
                     placeholder="给你的房间留一个名字"
                   />
 
@@ -556,14 +521,14 @@ export default function ProfileSettingsPage() {
                   </div>
 
                   <textarea
-                    rows={6}
+                    rows={5}
                     value={bio}
                     maxLength={BIO_LIMIT}
                     onChange={(e) => {
                       setBio(e.target.value);
                       setHasUnsavedChanges(true);
                     }}
-                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 p-4 leading-8 text-white outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30"
+                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 p-4 leading-7 text-white outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30 md:leading-8"
                     placeholder="介绍一下自己，或者写一句这个房间的门牌。"
                   />
                 </div>
@@ -571,98 +536,12 @@ export default function ProfileSettingsPage() {
             </div>
           </section>
 
-          <section className="rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-2xl">
-            <p className="text-xs tracking-[0.35em] text-white/25">
-              TODAY STATUS
-            </p>
-
-            <h2 className="mt-4 text-2xl font-light">
-              🌙 今日状态
-            </h2>
-
-            <p className="mt-3 text-sm leading-7 text-white/35">
-              状态会在 18 小时后自动消失，像夜里慢慢暗下来的灯。
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              {["🌙", "☁️", "🌧️", "🎧", "☕", "✨", "💭", "📖", "🌫️", "🫧"].map(
-                (emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => setMoodEmoji(emoji)}
-                    className={
-                      moodEmoji === emoji
-                        ? "flex h-12 w-12 items-center justify-center rounded-2xl border border-white/30 bg-white/10 text-2xl"
-                        : "flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/40 text-2xl transition hover:border-white/25"
-                    }
-                  >
-                    {emoji}
-                  </button>
-                )
-              )}
-
-              <input
-                value={moodEmoji}
-                onChange={(e) => setMoodEmoji(e.target.value)}
-                placeholder="自定义"
-                maxLength={2}
-                className="h-12 w-24 rounded-2xl border border-white/10 bg-black/40 text-center text-xl outline-none transition focus:border-white/30"
-              />
-            </div>
-
-            <textarea
-              placeholder="写下今天的状态..."
-              value={statusMessage}
-              onChange={(e) => setStatusMessage(e.target.value)}
-              rows={3}
-              className="mt-5 w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-5 py-4 leading-7 outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30"
-            />
-
-            {(moodEmoji || statusMessage) && (
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-white/70">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{moodEmoji || "🌙"}</span>
-
-                  {statusMessage && (
-                    <span className="break-words text-sm text-white/80 [overflow-wrap:anywhere]">
-                      {statusMessage}
-                    </span>
-                  )}
-                </div>
-
-                <p className="mt-2 text-xs text-white/30">
-                  今日状态将在夜里安静下来。
-                </p>
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                onClick={saveMoodStatus}
-                disabled={statusSaving}
-                className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
-              >
-                {statusSaving ? "保存中..." : "设置今日状态"}
-              </button>
-
-              {(moodEmoji || statusMessage) && (
-                <button
-                  onClick={clearMoodStatus}
-                  className="rounded-full border border-white/10 bg-white/[0.03] px-6 py-3 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
-                >
-                  取消状态
-                </button>
-              )}
-            </div>
-          </section>
-
-          <section className="rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-2xl">
-            <p className="text-xs tracking-[0.35em] text-white/25">
+          <section className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-2xl md:rounded-[2.4rem] md:p-7">
+            <p className="text-xs tracking-[0.3em] text-white/25 md:tracking-[0.35em]">
               ROOM THEME
             </p>
 
-            <h2 className="mt-4 text-2xl font-light">
+            <h2 className="mt-3 text-2xl font-light md:mt-4">
               🎨 房间主题
             </h2>
 
@@ -670,7 +549,7 @@ export default function ProfileSettingsPage() {
               选择别人进入你房间时看见的氛围。
             </p>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 md:mt-6">
               {[
                 { key: "midnight", name: "🌙 深夜黑" },
                 { key: "ocean", name: "🌊 深海蓝" },
@@ -685,7 +564,7 @@ export default function ProfileSettingsPage() {
                     setTheme(item.key);
                     setHasUnsavedChanges(true);
                   }}
-                  className={`rounded-2xl border p-4 text-left transition ${
+                  className={`rounded-2xl border p-3.5 text-left text-sm transition md:p-4 md:text-base ${
                     theme === item.key
                       ? "border-white bg-white text-black"
                       : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/25"
@@ -697,7 +576,7 @@ export default function ProfileSettingsPage() {
             </div>
           </section>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:gap-4">
             <button
               onClick={saveProfile}
               disabled={saving}
@@ -714,7 +593,7 @@ export default function ProfileSettingsPage() {
           </div>
         </section>
 
-        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+        <aside className="hidden space-y-6 xl:sticky xl:top-24 xl:block xl:self-start">
           <div
             className={`overflow-hidden rounded-[2.4rem] border border-white/10 bg-gradient-to-b ${previewTheme} backdrop-blur-2xl`}
           >
@@ -730,19 +609,6 @@ export default function ProfileSettingsPage() {
               )}
 
               <div className="absolute inset-0 bg-black/50" />
-
-              {(moodEmoji || statusMessage) && (
-                <div className="absolute right-4 top-4 max-w-[220px] rounded-2xl border border-violet-500/20 bg-black/60 px-4 py-3 backdrop-blur-2xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{moodEmoji || "🌙"}</span>
-                    {statusMessage && (
-                      <span className="truncate text-xs text-white/75">
-                        {statusMessage}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="relative px-7 pb-8">
@@ -764,11 +630,11 @@ export default function ProfileSettingsPage() {
                 ROOM PREVIEW
               </p>
 
-              <h2 className="safe-text mt-4 text-3xl font-light">
+              <h2 className="safe-text mt-4 line-clamp-2 break-all text-3xl font-light">
                 {previewUsername}
               </h2>
 
-              <p className="safe-pre mt-4 text-sm leading-7 text-white/45">
+              <p className="safe-pre mt-4 line-clamp-5 text-sm leading-7 text-white/45">
                 {previewBio}
               </p>
 
@@ -778,7 +644,7 @@ export default function ProfileSettingsPage() {
                 </p>
 
                 <p className="mt-3 text-sm leading-7 text-white/40">
-                  隐私显示项目已经搬到「隐私设置」。这里专心预览你的房间外观。
+                  今日状态已经移到首页。这里专心预览你的长期房间外观。
                 </p>
               </div>
             </div>
@@ -787,10 +653,10 @@ export default function ProfileSettingsPage() {
       </div>
 
       {cropOpen && bannerPreviewUrl && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-6 backdrop-blur-xl">
-          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950">
-            <div className="border-b border-white/10 p-5">
-              <h2 className="text-2xl font-light">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 backdrop-blur-xl md:px-6">
+          <div className="w-full max-w-4xl overflow-hidden rounded-[1.5rem] border border-white/10 bg-zinc-950 md:rounded-[2rem]">
+            <div className="border-b border-white/10 p-4 md:p-5">
+              <h2 className="text-xl font-light md:text-2xl">
                 裁剪房间横幅
               </h2>
 
@@ -799,7 +665,7 @@ export default function ProfileSettingsPage() {
               </p>
             </div>
 
-            <div className="relative h-[420px] bg-black">
+            <div className="relative h-[300px] bg-black md:h-[420px]">
               <Cropper
                 image={bannerPreviewUrl}
                 crop={crop}
@@ -813,7 +679,7 @@ export default function ProfileSettingsPage() {
               />
             </div>
 
-            <div className="space-y-4 border-t border-white/10 p-5">
+            <div className="space-y-4 border-t border-white/10 p-4 md:p-5">
               <input
                 type="range"
                 min={1}
@@ -824,7 +690,7 @@ export default function ProfileSettingsPage() {
                 className="w-full"
               />
 
-              <div className="flex flex-wrap justify-end gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeCropModal}

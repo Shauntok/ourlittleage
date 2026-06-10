@@ -80,8 +80,7 @@ export default function DiaryDetailPage() {
 
       const canView =
         isOwner ||
-        (data.visibility === "public" &&
-          data.status === "published");
+        (data.visibility === "public" && data.status === "published");
 
       if (!canView) {
         router.push("/diary");
@@ -100,10 +99,25 @@ export default function DiaryDetailPage() {
         authorProfile = profileData;
       }
 
+      const { count: likeCount } = await supabase
+        .from("post_likes")
+        .select("id", { count: "exact", head: true })
+        .eq("post_id", data.id)
+        .eq("is_active", true);
+
+      const { count: commentCount } = await supabase
+        .from("comments")
+        .select("id", { count: "exact", head: true })
+        .eq("post_id", data.id)
+        .eq("is_deleted", false)
+        .eq("is_hidden", false);
+
       setDiary({
         ...data,
         isOwner,
         authorProfile,
+        likeCount: likeCount || 0,
+        commentCount: commentCount || 0,
       });
 
       setLoading(false);
@@ -134,25 +148,26 @@ export default function DiaryDetailPage() {
     : null;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-black px-5 py-20 text-white md:px-6 md:py-24">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
 
-      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[560px] md:w-[560px]" />
 
       <article className="mx-auto max-w-3xl min-w-0 overflow-hidden">
-        <Link
-          href={diary.isOwner ? "/diary" : "/space/diaries"}
+        <button
+          type="button"
+          onClick={() => router.back()}
           className="text-sm text-white/35 transition hover:text-white/70"
         >
-          {diary.isOwner ? "← 回到总日记" : "← 回到日记广场"}
-        </Link>
+          ← 回到上一页
+        </button>
 
-        <header className="mt-14 min-w-0 overflow-hidden rounded-[2.3rem] border border-white/10 bg-white/[0.035] p-9 backdrop-blur-2xl shadow-[0_0_80px_rgba(255,255,255,0.045)]">
-          <p className="text-xs tracking-[0.38em] text-white/25">
+        <header className="mt-10 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_80px_rgba(255,255,255,0.045)] md:mt-14 md:rounded-[2.3rem] md:p-9">
+          <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.38em]">
             那一天
           </p>
 
-          <h1 className="safe-text mt-5 text-5xl font-light tracking-tight md:text-6xl">
+          <h1 className="safe-text mt-5 text-4xl font-light tracking-tight md:text-6xl">
             {formatDate(diaryDate)}
           </h1>
 
@@ -176,7 +191,7 @@ export default function DiaryDetailPage() {
                   )}
                 </div>
 
-                <span className="safe-text text-sm text-white/60 transition group-hover:text-white">
+                <span className="safe-text truncate text-sm text-white/60 transition group-hover:text-white">
                   {authorProfile?.username || "已离开的居民"}
                 </span>
               </Link>
@@ -211,17 +226,18 @@ export default function DiaryDetailPage() {
           </div>
         </header>
 
-        <section className="mt-10 min-w-0 overflow-hidden rounded-[2.3rem] border border-white/10 bg-white/[0.03] p-9 backdrop-blur-2xl">
+        <section className="mt-8 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl md:mt-10 md:rounded-[2.3rem] md:p-9">
           <article
             className="
               prose prose-invert max-w-none
               overflow-hidden break-words
-              prose-p:break-words prose-p:text-white/75 prose-p:leading-[2.4]
+              prose-p:break-words prose-p:text-white/75 prose-p:leading-[2.2]
               prose-headings:break-words prose-headings:font-light prose-headings:text-white/90
               prose-blockquote:border-white/20 prose-blockquote:text-white/55
               prose-pre:whitespace-pre-wrap prose-pre:break-words
               prose-code:break-words
-              text-[17px] leading-[2.4]
+              text-[16px] leading-[2.2]
+              md:text-[17px] md:leading-[2.4]
               [&_*]:break-words
               [&_*]:[overflow-wrap:anywhere]
             "
@@ -230,8 +246,8 @@ export default function DiaryDetailPage() {
           </article>
         </section>
 
-        <footer className="mt-10 space-y-6">
-          <div className="safe-pre rounded-[2rem] border border-white/10 bg-white/[0.025] p-6 text-sm leading-7 text-white/35 backdrop-blur-2xl">
+        <footer className="mt-8 space-y-6 md:mt-10">
+          <div className="safe-pre rounded-[1.7rem] border border-white/10 bg-white/[0.025] p-5 text-sm leading-7 text-white/35 backdrop-blur-2xl md:rounded-[2rem] md:p-6">
             {diary.edited_at ? (
               <>
                 <p>后来又回来补写了一些东西。</p>
@@ -247,18 +263,33 @@ export default function DiaryDetailPage() {
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap gap-3">
-
               {!diary.isOwner && (
                 <LikeButton
                   postId={diary.id}
                   authorId={diary.author_id}
+                  initialCount={diary.likeCount || 0}
                 />
               )}
+
+              <a
+                href="#comments"
+                className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-5 py-3 text-sm text-blue-100/60 transition hover:border-blue-400/30 hover:text-blue-100 md:px-6"
+              >
+                评论 · {diary.commentCount || 0}
+              </a>
+
+              <button
+                type="button"
+                disabled
+                className="cursor-not-allowed rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-white/25 md:px-6"
+              >
+                收藏 · Soon
+              </button>
 
               {diary.isOwner && (
                 <Link
                   href={`/diary/${diary.id}/edit`}
-                  className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-white/60 transition hover:text-white md:px-6"
                 >
                   编辑日记
                 </Link>
@@ -274,16 +305,21 @@ export default function DiaryDetailPage() {
               )}
             </div>
 
-            <Link
-              href={diary.isOwner ? "/diary" : "/space/diaries"}
-              className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90 md:px-6"
             >
-              {diary.isOwner ? "回到日记页" : "回到日记广场"}
-            </Link>
+              回到上一页
+            </button>
           </div>
         </footer>
 
-        {canComment && <PostComments postId={diary.id} />}
+        {canComment && (
+          <section id="comments">
+            <PostComments postId={diary.id} />
+          </section>
+        )}
       </article>
     </main>
   );

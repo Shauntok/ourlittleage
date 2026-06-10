@@ -142,11 +142,6 @@ export default function AdminSidebar() {
 
   const ownerLinks: AdminLink[] = [
     {
-      href: "/admin/roles",
-      label: "权限管理",
-      icon: "👑",
-    },
-    {
       href: "/admin/logs",
       label: "操作日志",
       icon: "📜",

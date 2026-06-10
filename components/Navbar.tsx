@@ -283,15 +283,6 @@ export default function Navbar() {
                     </Link>
 
                     <Link
-                      href="/write"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
-                    >
-                      <span>✍️</span>
-                      <span>写故事</span>
-                    </Link>
-
-                    <Link
                       href="/notifications"
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
