@@ -3,20 +3,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-
-type StatusFilter =
-  | "all"
-  | "active"
-  | "warned"
-  | "muted"
-  | "banned";
-
-type RoleFilter =
-  | "all"
-  | "owner"
-  | "admin"
-  | "moderator"
-  | "user";
+import UserListStats from "@/components/admin/users/UserListStats";
+import UserListFilters, {
+  type StatusFilter,
+  type RoleFilter,
+} from "@/components/admin/users/UserListFilters";
+import UserListCard from "@/components/admin/users/UserListCard";
 
 export default function AdminUsersPage() {
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -113,42 +105,7 @@ export default function AdminUsersPage() {
         </button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-5">
-        <StatCard title="总居民" value={profiles.length} />
-
-        <StatCard
-          title="正常"
-          value={
-            profiles.filter(
-              (p) => (p.status || "active") === "active"
-            ).length
-          }
-        />
-
-        <StatCard
-          title="观察"
-          value={
-            profiles.filter((p) => p.status === "warned")
-              .length
-          }
-        />
-
-        <StatCard
-          title="禁言"
-          value={
-            profiles.filter((p) => p.status === "muted")
-              .length
-          }
-        />
-
-        <StatCard
-          title="封禁"
-          value={
-            profiles.filter((p) => p.status === "banned")
-              .length
-          }
-        />
-      </div>
+      <UserListStats profiles={profiles} />
 
       <input
         type="text"
@@ -158,83 +115,13 @@ export default function AdminUsersPage() {
         className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-4 outline-none transition focus:border-white"
       />
 
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-3">
-          {[
-            { key: "all", label: "全部状态", count: profiles.length },
-            {
-              key: "active",
-              label: "正常",
-              count: profiles.filter(
-                (item) => (item.status || "active") === "active"
-              ).length,
-            },
-            {
-              key: "warned",
-              label: "观察",
-              count: profiles.filter(
-                (item) => item.status === "warned"
-              ).length,
-            },
-            {
-              key: "muted",
-              label: "禁言",
-              count: profiles.filter(
-                (item) => item.status === "muted"
-              ).length,
-            },
-            {
-              key: "banned",
-              label: "封禁",
-              count: profiles.filter(
-                (item) => item.status === "banned"
-              ).length,
-            },
-          ].map((item) => (
-            <button
-              key={item.key}
-              onClick={() =>
-                setStatusFilter(item.key as StatusFilter)
-              }
-              className={
-                statusFilter === item.key
-                  ? "rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition"
-                  : "rounded-full border border-zinc-800 bg-zinc-950 px-5 py-3 text-sm text-zinc-400 transition hover:border-zinc-500 hover:text-white"
-              }
-            >
-              {item.label}
-
-              <span className="ml-2 text-xs opacity-60">
-                {item.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          {[
-            { key: "all", label: "全部身份" },
-            { key: "owner", label: "owner" },
-            { key: "admin", label: "admin" },
-            { key: "moderator", label: "moderator" },
-            { key: "user", label: "user" },
-          ].map((item) => (
-            <button
-              key={item.key}
-              onClick={() =>
-                setRoleFilter(item.key as RoleFilter)
-              }
-              className={
-                roleFilter === item.key
-                  ? "rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition"
-                  : "rounded-full border border-zinc-800 bg-zinc-950 px-5 py-3 text-sm text-zinc-400 transition hover:border-zinc-500 hover:text-white"
-              }
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <UserListFilters
+        profiles={profiles}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        roleFilter={roleFilter}
+        setRoleFilter={setRoleFilter}
+      />
 
       <div className="rounded-full border border-zinc-800 bg-zinc-950 px-5 py-3 text-sm text-zinc-400">
         显示 {filteredProfiles.length} / {profiles.length} 位居民
@@ -247,128 +134,15 @@ export default function AdminUsersPage() {
           </div>
         )}
 
-        {filteredProfiles.map((profile) => {
-          const status = profile.status || "active";
-          const role = profile.role || "user";
-
-          const roomHref = profile.username
-            ? `/u/${encodeURIComponent(profile.username)}`
-            : "/admin/users";
-
-          return (
-            <div
-              key={profile.id}
-              className="min-w-0 overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/50 p-5 transition hover:border-zinc-600"
-            >
-              <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
-                <div className="flex min-w-0 items-center gap-4">
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-zinc-800 bg-zinc-900">
-                    {profile.avatar_url ? (
-                      <img
-                        src={profile.avatar_url}
-                        alt={profile.username || "居民"}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-lg text-zinc-600">
-                        👤
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 space-y-2">
-                    <Link
-                      href={`/admin/users/${profile.id}`}
-                      className="safe-text block text-lg font-bold transition hover:text-zinc-400"
-                    >
-                      {profile.username || "无名居民"}
-                    </Link>
-
-                    <p className="break-all text-xs text-zinc-600">
-                      {profile.id}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
-                      <span>Lv.{profile.level || 1}</span>
-                      <span>EXP {profile.exp || 0}</span>
-                      <span>信任 {profile.trust_score || 0}</span>
-                    </div>
-
-                    <p className="text-xs text-zinc-600">
-                      最近上线：
-                      {profile.last_seen_at
-                        ? new Date(
-                            profile.last_seen_at
-                          ).toLocaleString("zh-CN")
-                        : "从未"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                  <span
-                    className={`rounded-full border px-3 py-1 text-sm ${getRoleStyle(
-                      role
-                    )}`}
-                  >
-                    {role}
-                  </span>
-
-                  <span
-                    className={`rounded-full border px-3 py-1 text-sm ${getStatusStyle(
-                      status
-                    )}`}
-                  >
-                    {status}
-                  </span>
-
-                  <Link
-                    href={roomHref}
-                    target="_blank"
-                    className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-300 transition hover:border-white hover:text-white"
-                  >
-                    看房间 ↗
-                  </Link>
-
-                  <Link
-                    href={`/admin/broadcast?user=${profile.id}`}
-                    className="rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-sm text-violet-300 transition hover:bg-violet-500/20"
-                  >
-                    📬 发信
-                  </Link>
-
-                  <Link
-                    href={`/admin/users/${profile.id}`}
-                    className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-300 transition hover:border-white hover:text-white"
-                  >
-                    管理
-                  </Link>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {filteredProfiles.map((profile) => (
+          <UserListCard
+            key={profile.id}
+            profile={profile}
+            getRoleStyle={getRoleStyle}
+            getStatusStyle={getStatusStyle}
+          />
+        ))}
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: string | number;
-}) {
-  return (
-    <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-5">
-      <p className="text-sm text-zinc-500">
-        {title}
-      </p>
-
-      <p className="safe-text mt-3 text-2xl font-bold">
-        {value}
-      </p>
     </div>
   );
 }
