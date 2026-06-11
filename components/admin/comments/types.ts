@@ -1,0 +1,1 @@
+export type CommentFilter = "active" | "hidden" | "deleted";

@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+
+import CommentFilters from "@/components/admin/comments/CommentFilters";
+import CommentCard from "@/components/admin/comments/CommentCard";
+import CommentSearch from "@/components/admin/comments/CommentSearch";
+
+import type { CommentFilter } from "@/components/admin/comments/types";
 
 export default function AdminCommentsPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"active" | "hidden" | "deleted">(
-    "active"
-  );
+  const [filter, setFilter] = useState<CommentFilter>("active");
+  const [search, setSearch] = useState("");
+  const [allComments, setAllComments] = useState<any[]>([]);
 
   useEffect(() => {
     fetchComments();
@@ -17,6 +22,12 @@ export default function AdminCommentsPage() {
 
   async function fetchComments() {
     setLoading(true);
+
+    const { data: allRows } = await supabase
+      .from("comments")
+      .select("id,is_hidden,is_deleted");
+
+    setAllComments(allRows || []);
 
     let query = supabase
       .from("comments")
@@ -57,7 +68,9 @@ export default function AdminCommentsPage() {
       return;
     }
 
-    setComments(data || []);
+    const rows = data || [];
+
+    setComments(rows);
     setLoading(false);
   }
 
@@ -140,6 +153,42 @@ export default function AdminCommentsPage() {
     fetchComments();
   }
 
+  const totalComments = allComments.length;
+
+  const activeCount = allComments.filter(
+    (item) => !item.is_hidden && !item.is_deleted
+  ).length;
+
+  const hiddenCount = allComments.filter(
+    (item) => item.is_hidden && !item.is_deleted
+  ).length;
+
+  const deletedCount = allComments.filter(
+    (item) => item.is_deleted
+  ).length;
+
+  const filteredComments = comments.filter((comment) => {
+  const keyword = search.toLowerCase().trim();
+
+  if (!keyword) return true;
+
+  const profile = Array.isArray(comment.profiles)
+    ? comment.profiles[0]
+    : comment.profiles;
+
+  const post = Array.isArray(comment.posts)
+    ? comment.posts[0]
+    : comment.posts;
+
+  return (
+    String(comment.id).toLowerCase().includes(keyword) ||
+    comment.content?.toLowerCase().includes(keyword) ||
+    profile?.username?.toLowerCase().includes(keyword) ||
+    post?.title?.toLowerCase().includes(keyword) ||
+    post?.slug?.toLowerCase().includes(keyword)
+  );
+});
+
   function getPostHref(comment: any) {
     const post = comment.posts;
 
@@ -170,34 +219,31 @@ export default function AdminCommentsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        {[
-          {
-            key: "active",
-            label: "正常评论",
-          },
-          {
-            key: "hidden",
-            label: "已隐藏",
-          },
-          {
-            key: "deleted",
-            label: "已删除",
-          },
-        ].map((item) => (
-          <button
-            key={item.key}
-            onClick={() => setFilter(item.key as any)}
-            className={
-              filter === item.key
-                ? "rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition"
-                : "rounded-full border border-zinc-800 bg-zinc-950 px-5 py-3 text-sm text-zinc-400 transition hover:border-zinc-500 hover:text-white"
-            }
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard
+          title="总评论"
+          value={totalComments}
+        />
+
+        <StatCard
+          title="正常评论"
+          value={activeCount}
+        />
+
+        <StatCard
+          title="已隐藏"
+          value={hiddenCount}
+        />
+
+        <StatCard
+          title="已删除"
+          value={deletedCount}
+        />
       </div>
+
+      <CommentSearch search={search} setSearch={setSearch} />
+
+      <CommentFilters filter={filter} setFilter={setFilter} />
 
       {loading && (
         <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-8 text-zinc-500">
@@ -212,109 +258,39 @@ export default function AdminCommentsPage() {
       )}
 
       <div className="space-y-4">
-        {comments.map((comment) => {
-          const profile = Array.isArray(comment.profiles)
-            ? comment.profiles[0]
-            : comment.profiles;
-
-          const post = Array.isArray(comment.posts)
-            ? comment.posts[0]
-            : comment.posts;
-
-          return (
-            <div
-              key={comment.id}
-              className="min-w-0 overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6"
-            >
-              <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
-                <div className="min-w-0 flex-1 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-zinc-800 bg-zinc-900">
-                      {profile?.avatar_url ? (
-                        <img
-                          src={profile.avatar_url}
-                          alt={profile.username || "居民"}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-sm">
-                          🌙
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className="safe-text font-semibold text-zinc-100">
-                        {profile?.username || "未知居民"}
-                      </p>
-
-                      <p className="text-xs text-zinc-600">
-                        {new Date(comment.created_at).toLocaleString("zh-CN")}
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="safe-pre rounded-2xl border border-zinc-800 bg-black/30 p-4 text-sm leading-8 text-zinc-300">
-                    {comment.content}
-                  </p>
-
-                  <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
-                    <span>
-                      目标：
-                      {post?.type === "diary"
-                        ? "日记"
-                        : post?.type === "article"
-                        ? "文章"
-                        : "未知内容"}
-                    </span>
-
-                    {post && (
-                      <Link
-                        href={getPostHref(comment)}
-                        target="_blank"
-                        className="text-zinc-400 transition hover:text-white"
-                      >
-                        查看原文 ↗
-                      </Link>
-                    )}
-
-                    <span>ID: {comment.id}</span>
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 flex-wrap gap-2 md:flex-col">
-                  {!comment.is_hidden && !comment.is_deleted && (
-                    <button
-                      onClick={() => hideComment(comment.id)}
-                      className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300 transition hover:bg-yellow-500/20"
-                    >
-                      隐藏
-                    </button>
-                  )}
-
-                  {(comment.is_hidden || comment.is_deleted) && (
-                    <button
-                      onClick={() => restoreComment(comment.id)}
-                      className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
-                    >
-                      恢复
-                    </button>
-                  )}
-
-                  {!comment.is_deleted && (
-                    <button
-                      onClick={() => deleteComment(comment.id)}
-                      className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20"
-                    >
-                      删除
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {comments.map((comment) => (
+          <CommentCard
+            key={comment.id}
+            comment={comment}
+            getPostHref={getPostHref}
+            hideComment={hideComment}
+            restoreComment={restoreComment}
+            deleteComment={deleteComment}
+          />
+        ))}
       </div>
+
     </div>
   );
 }
+
+function StatCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-5">
+      <p className="text-sm text-zinc-500">
+        {title}
+      </p>
+
+      <p className="mt-3 text-3xl font-bold text-white">
+        {value}
+      </p>
+    </div>
+  );
+}
+

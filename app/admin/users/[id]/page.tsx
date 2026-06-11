@@ -4,6 +4,18 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import UserStats from "@/components/admin/users/UserStats";
+import UserGrowthActions from "@/components/admin/users/UserGrowthActions";
+import UserRecentPosts from "@/components/admin/users/UserRecentPosts";
+import UserRecentComments from "@/components/admin/users/UserRecentComments";
+import UserRelatedReports from "@/components/admin/users/UserRelatedReports";
+import UserBadges from "@/components/admin/users/UserBadges";
+import UserAdminLogs from "@/components/admin/users/UserAdminLogs";
+import UserProfileHeader from "@/components/admin/users/UserProfileHeader";
+import UserBioCard from "@/components/admin/users/UserBioCard";
+import UserJoinedCard from "@/components/admin/users/UserJoinedCard";
+import { fetchUserDetailData }
+from "@/components/admin/users/userDetailData";
 
 export default function AdminUserDetailPage() {
   const params = useParams();
@@ -42,133 +54,16 @@ export default function AdminUserDetailPage() {
   }
 
   async function fetchUser() {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", id)
-      .single();
+    const data = await fetchUserDetailData(id);
 
-    setProfile(profileData);
-
-    const { data: badgeData } = await supabase
-      .from("user_badges")
-      .select(`
-        id,
-        created_at,
-        badges (
-          id,
-          name,
-          color,
-          description
-        ),
-        assigner:assigned_by (
-          id,
-          username
-        )
-      `)
-      .eq("user_id", id);
-
-    setBadges(badgeData || []);
-
-    const { data: postsData } = await supabase
-      .from("posts")
-      .select("id, title, slug, content, type, status, visibility, created_at, published_at")
-      .eq("author_id", id)
-      .order("created_at", { ascending: false })
-      .limit(8);
-
-    setUserPosts(postsData || []);
-
-    const { count: articleTotal } = await supabase
-      .from("posts")
-      .select("id", { count: "exact", head: true })
-      .eq("author_id", id)
-      .eq("type", "article");
-
-    const { count: diaryTotal } = await supabase
-      .from("posts")
-      .select("id", { count: "exact", head: true })
-      .eq("author_id", id)
-      .eq("type", "diary");
-
-    const { count: commentTotal } = await supabase
-      .from("comments")
-      .select("id", { count: "exact", head: true })
-      .eq("author_id", id)
-      .eq("is_deleted", false);
-
-    setStats({
-      articleTotal: articleTotal || 0,
-      diaryTotal: diaryTotal || 0,
-      commentTotal: commentTotal || 0,
-      reportTotal: 0,
-    });
-
-    const { data: commentsData } = await supabase
-      .from("comments")
-      .select("id, content, post_id, created_at, is_hidden, is_deleted")
-      .eq("author_id", id)
-      .order("created_at", { ascending: false })
-      .limit(8);
-
-    setUserComments(commentsData || []);
-
-    const postIds = (postsData || []).map((post) => String(post.id));
-    const commentIds = (commentsData || []).map((comment) => String(comment.id));
-
-    const { data: reportsData } = await supabase
-      .from("reports")
-      .select(`
-        *,
-        profiles (
-          username
-        )
-      `)
-      .order("created_at", { ascending: false })
-      .limit(100);
-
-    const filteredReports = (reportsData || []).filter((report: any) => {
-      const targetId = String(report.target_id || "");
-
-      return (
-        report.target_user_id === id ||
-        report.reported_user_id === id ||
-        report.user_id === id ||
-        postIds.includes(targetId) ||
-        commentIds.includes(targetId)
-      );
-    });
-
-    setRelatedReports(filteredReports.slice(0, 8));
-
-    setStats((current) => ({
-      ...current,
-      reportTotal: filteredReports.length,
-    }));
-
-    const { data: logsData } = await supabase
-      .from("admin_logs")
-      .select("*")
-      .eq("target_type", "user")
-      .eq("target_id", id)
-      .order("created_at", { ascending: false })
-      .limit(8);
-
-    setAdminLogs(logsData || []);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      const { data: myProfile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      setCurrentRole(myProfile?.role || "user");
-    }
+    setProfile(data.profileData);
+    setBadges(data.badgeData || []);
+    setUserPosts(data.postsData || []);
+    setUserComments(data.commentsData || []);
+    setRelatedReports(data.filteredReports || []);
+    setAdminLogs(data.logsData || []);
+    setCurrentRole(data.currentRole);
+    setStats(data.stats);
   }
 
   useEffect(() => {
@@ -501,330 +396,47 @@ export default function AdminUserDetailPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
-        <div className="flex min-w-0 items-center gap-5">
-          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-full border border-zinc-800 bg-zinc-900">
-            {profile.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={profile.username || "居民"}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-3xl text-zinc-600">
-                👤
-              </div>
-            )}
-          </div>
+      
+      <UserProfileHeader
+        profile={profile}
+        currentRole={currentRole}
+        roomHref={roomHref}
+        updateRole={updateRole}
+        updateStatus={updateStatus}
+        getRoleStyle={getRoleStyle}
+        getStatusStyle={getStatusStyle}
+      />
 
-          <div className="min-w-0 space-y-3">
-            <div>
-              <h1 className="safe-text text-4xl font-bold">
-                {profile.username || "无名居民"}
-              </h1>
+      <UserStats
+        profile={profile}
+        stats={stats}
+        badgeTotal={badges.length}
+        formatDecimal={formatDecimal}
+      />
 
-              <p className="mt-2 break-all text-sm text-zinc-500">
-                {profile.id}
-              </p>
-            </div>
+      <UserGrowthActions
+        currentRole={currentRole}
+        addLight={addLight}
+        adjustTrust={adjustTrust}
+        changeLevel={changeLevel}
+      />
 
-            <div className="flex flex-wrap gap-3">
-              {currentRole === "owner" || currentRole === "admin" ? (
-                <select
-                  value={profile.role || "user"}
-                  onChange={(e) => updateRole(e.target.value)}
-                  className={`rounded-full border bg-black px-3 py-1 text-sm outline-none ${getRoleStyle(
-                    profile.role || "user"
-                  )}`}
-                >
-                  <option value="user">user</option>
-                  <option value="moderator">moderator</option>
+      <UserBioCard bio={profile.bio} />
 
-                  {currentRole === "owner" && <option value="admin">admin</option>}
-                  {currentRole === "owner" && <option value="owner">owner</option>}
-                </select>
-              ) : (
-                <span
-                  className={`inline-flex rounded-full border px-3 py-1 text-sm ${getRoleStyle(
-                    profile.role || "user"
-                  )}`}
-                >
-                  {profile.role || "user"}
-                </span>
-              )}
+      <UserBadges badges={badges} />
 
-              {currentRole === "owner" || currentRole === "admin" ? (
-                <select
-                  value={profile.status || "active"}
-                  onChange={(e) => updateStatus(e.target.value)}
-                  className={`rounded-full border bg-black px-3 py-1 text-sm outline-none ${getStatusStyle(
-                    profile.status || "active"
-                  )}`}
-                >
-                  <option value="active">active</option>
-                  <option value="warned">warned</option>
-                  <option value="muted">muted</option>
-                  <option value="banned">banned</option>
-                </select>
-              ) : (
-                <span
-                  className={`inline-flex rounded-full border px-3 py-1 text-sm ${getStatusStyle(
-                    profile.status || "active"
-                  )}`}
-                >
-                  {profile.status || "active"}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+      <UserRecentPosts
+        posts={userPosts}
+        getPostHref={getPostHref}
+        getPostTitle={getPostTitle}
+      />
 
-        <Link
-          href={roomHref}
-          target="_blank"
-          className="rounded-full border border-zinc-700 bg-zinc-900 px-5 py-3 text-sm text-zinc-300 transition hover:border-white hover:text-white"
-        >
-          查看居民房间 ↗
-        </Link>
-      </div>
+      <UserRecentComments comments={userComments} />
 
-      <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
-        <StatCard title="等级" value={`Lv${profile.level || 1}`} />
-        <StatCard title="留下的光" value={formatDecimal(profile.exp)} />
-        <StatCard title="社区信任" value={formatDecimal(profile.trust_score)} />
-        <StatCard title="文章" value={stats.articleTotal} />
-        <StatCard title="日记" value={stats.diaryTotal} />
-        <StatCard title="评论" value={stats.commentTotal} />
-        <StatCard title="举报" value={stats.reportTotal} />
-        <StatCard title="徽章" value={badges.length} />
-      </div>
+      <UserRelatedReports reports={relatedReports} />
+      <UserAdminLogs logs={adminLogs} />
 
-      {(currentRole === "owner" || currentRole === "admin") && (
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-          <h2 className="text-2xl font-bold">成长数值调整</h2>
-
-          <p className="mt-2 text-sm text-zinc-500">
-            Alpha 当前最高 Lv5。后续 Beta 可以扩展到更高等级。
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button onClick={() => addLight(0.03)} className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20">
-              +0.03 光
-            </button>
-
-            <button onClick={() => addLight(0.05)} className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20">
-              +0.05 光
-            </button>
-
-            <button onClick={() => addLight(0.10)} className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20">
-              +0.10 光
-            </button>
-
-            <button onClick={() => changeLevel(1)} className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20">
-              等级 +1
-            </button>
-
-            <button onClick={() => changeLevel(-1)} className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20">
-              等级 -1
-            </button>
-
-            <button onClick={() => adjustTrust(0.02)} className="rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20">
-              +0.02 信任
-            </button>
-
-            <button onClick={() => adjustTrust(-0.02)} className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20">
-              -0.02 信任
-            </button>
-          </div>
-        </section>
-      )}
-
-      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <p className="text-sm text-zinc-500">居民简介</p>
-
-        <p className="safe-pre mt-3 text-zinc-300">
-          {profile.bio || "这个居民还没有留下简介。"}
-        </p>
-      </div>
-
-      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <h2 className="text-2xl font-bold">最近内容</h2>
-
-        <div className="mt-5 space-y-3">
-          {userPosts.length === 0 && (
-            <p className="text-sm text-zinc-600">这个居民还没有发布内容。</p>
-          )}
-
-          {userPosts.map((post) => (
-            <Link
-              key={post.id}
-              href={getPostHref(post)}
-              target="_blank"
-              className="block min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4 transition hover:border-zinc-500"
-            >
-              <p className="safe-text font-semibold text-zinc-100">
-                {getPostTitle(post)}
-              </p>
-
-              <p className="mt-1 text-xs text-zinc-600">
-                {post.type} · {post.status} · {post.visibility}
-              </p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <h2 className="text-2xl font-bold">最近评论</h2>
-
-        <div className="mt-5 space-y-3">
-          {userComments.length === 0 && (
-            <p className="text-sm text-zinc-600">这个居民还没有留下评论。</p>
-          )}
-
-          {userComments.map((comment) => (
-            <div
-              key={comment.id}
-              className="min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4"
-            >
-              <p className="safe-pre text-sm leading-7 text-zinc-300">
-                {comment.content}
-              </p>
-
-              <p className="mt-2 text-xs text-zinc-600">
-                {new Date(comment.created_at).toLocaleString("zh-CN")} ·{" "}
-                {comment.is_deleted
-                  ? "已删除"
-                  : comment.is_hidden
-                  ? "已隐藏"
-                  : "正常"}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <h2 className="text-2xl font-bold">相关举报记录</h2>
-
-        <div className="mt-5 space-y-3">
-          {relatedReports.length === 0 && (
-            <p className="text-sm text-zinc-600">暂无相关举报记录。</p>
-          )}
-
-          {relatedReports.map((report) => (
-            <Link
-              key={report.id}
-              href="/admin/reports"
-              className="block min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4 transition hover:border-zinc-500"
-            >
-              <p className="safe-text font-semibold text-red-100">
-                🚩 {report.reason || "没有填写原因"}
-              </p>
-
-              {report.details && (
-                <p className="safe-pre mt-2 text-sm leading-7 text-zinc-400">
-                  {report.details}
-                </p>
-              )}
-
-              <p className="mt-2 text-xs text-zinc-600">
-                举报人：{report.profiles?.username || "未知居民"} · 目标：
-                {report.target_type || "未知"} ·{" "}
-                {report.created_at
-                  ? new Date(report.created_at).toLocaleString("zh-CN")
-                  : "未知时间"}
-              </p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <p className="text-sm text-zinc-500">已拥有徽章</p>
-
-        <div className="mt-4 flex flex-wrap gap-3">
-          {badges.length === 0 && (
-            <p className="text-sm text-zinc-600">暂无徽章</p>
-          )}
-
-          {badges.map((item: any) => {
-            const badge = item.badges;
-            const assigner = Array.isArray(item.assigner)
-              ? item.assigner[0]
-              : item.assigner;
-
-            if (!badge) return null;
-
-            return (
-              <div
-                key={item.id}
-                className="safe-text rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm"
-              >
-                🎖️ {badge.name}
-                {assigner?.username ? ` · ${assigner.username}` : ""}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <h2 className="text-2xl font-bold">最近管理记录</h2>
-
-        <div className="mt-5 space-y-3">
-          {adminLogs.length === 0 && (
-            <p className="text-sm text-zinc-600">暂无管理记录。</p>
-          )}
-
-          {adminLogs.map((log) => (
-            <div
-              key={log.id}
-              className="min-w-0 overflow-hidden rounded-2xl border border-zinc-800 bg-black/30 p-4"
-            >
-              <p className="safe-text font-semibold text-zinc-100">
-                {log.action}
-              </p>
-
-              <p className="safe-pre mt-1 text-sm text-zinc-500">
-                {log.details}
-              </p>
-
-              <p className="mt-2 text-xs text-zinc-600">
-                {log.created_at
-                  ? new Date(log.created_at).toLocaleString("zh-CN")
-                  : "未知时间"}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
-        <p className="text-sm text-zinc-500">注册时间</p>
-
-        <p className="mt-3 text-zinc-300">
-          {profile.created_at
-            ? new Date(profile.created_at).toLocaleString("zh-CN")
-            : "未知"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: string | number;
-}) {
-  return (
-    <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-5">
-      <p className="text-sm text-zinc-500">{title}</p>
-
-      <p className="safe-text mt-3 text-2xl font-bold">{value}</p>
+      <UserJoinedCard createdAt={profile.created_at} />
     </div>
   );
 }
