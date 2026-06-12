@@ -72,7 +72,8 @@ export default function ArticleDetailPage() {
 
       const canView =
         isAuthor ||
-        (data.visibility === "public" && data.status === "published");
+        (data.status === "published" &&
+          (data.visibility === "public" || data.visibility === "unlisted"));
 
       if (!canView) {
         router.push("/articles");
@@ -122,33 +123,35 @@ export default function ArticleDetailPage() {
     : null;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[560px] md:w-[560px]" />
 
       <article className="mx-auto max-w-4xl min-w-0 overflow-hidden">
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm text-white/35 transition hover:text-white/70"
+          className="mb-6 text-sm text-white/35 transition hover:text-white/70 md:mb-10"
         >
           ← 回到上一页
         </button>
 
-        <header className="mt-14 min-w-0 overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.035] p-9 backdrop-blur-2xl">
-          <p className="text-xs tracking-[0.38em] text-white/25">ARTICLE</p>
+        <header className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:rounded-[2.4rem] md:p-9">
+          <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.38em]">
+            ARTICLE
+          </p>
 
-          <h1 className="safe-text mt-6 text-5xl font-light leading-tight tracking-tight md:text-6xl">
+          <h1 className="safe-text mt-4 text-4xl font-light leading-tight tracking-tight md:mt-6 md:text-6xl">
             {article.title || "无标题文章"}
           </h1>
 
-          <div className="mt-7 flex flex-wrap items-center gap-4">
+          <div className="mt-6 flex flex-wrap items-center gap-3 md:mt-7 md:gap-4">
             {authorHref ? (
               <Link
                 href={authorHref}
-                className="group inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-black/30 px-4 py-2 transition hover:border-white/25 hover:bg-white/[0.05]"
+                className="group inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-black/30 px-3 py-2 transition hover:border-white/25 hover:bg-white/[0.05] md:px-4"
               >
-                <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
+                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04] md:h-9 md:w-9">
                   {authorProfile?.avatar_url ? (
                     <img
                       src={authorProfile.avatar_url}
@@ -167,8 +170,8 @@ export default function ArticleDetailPage() {
                 </span>
               </Link>
             ) : (
-              <div className="inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-black/30 px-4 py-2">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm">
+              <div className="inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-black/30 px-3 py-2 md:px-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm md:h-9 md:w-9">
                   🌙
                 </div>
 
@@ -178,24 +181,23 @@ export default function ArticleDetailPage() {
               </div>
             )}
 
-            <p className="safe-text text-sm text-white/35">
+            <p className="safe-text text-xs text-white/35 md:text-sm">
               {new Date(articleDate).toLocaleString("zh-CN")}
             </p>
           </div>
 
-          <div className="mt-7 flex flex-wrap items-center gap-3 text-xs text-white/40">
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-white/40 md:mt-7 md:gap-3">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 md:px-4 md:py-2">
               {article.status === "published" ? "已发布" : "草稿"}
             </span>
 
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 md:px-4 md:py-2">
               {getVisibilityLabel(article.visibility)}
             </span>
-
           </div>
 
           {article.tags && (
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-5 flex flex-wrap gap-2 md:mt-6">
               {article.tags
                 .split(",")
                 .map((tag: string) => tag.trim())
@@ -212,14 +214,34 @@ export default function ArticleDetailPage() {
           )}
         </header>
 
-        <section className="mt-10 min-w-0 overflow-hidden rounded-[2.4rem] border border-white/10 bg-white/[0.03] p-9 backdrop-blur-2xl">
-          <article className="prose prose-invert max-w-none overflow-hidden break-words prose-p:break-words prose-p:leading-[2.2] prose-headings:break-words prose-blockquote:break-words prose-pre:whitespace-pre-wrap prose-pre:break-words prose-code:break-words [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
+        <section className="mt-6 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl md:mt-10 md:rounded-[2.4rem] md:p-9">
+          <article
+            className="
+              prose prose-invert max-w-none
+              overflow-hidden break-words
+              prose-p:break-words
+              prose-p:leading-[2]
+              prose-p:text-white/70
+              prose-headings:break-words
+              prose-headings:font-light
+              prose-img:max-w-full
+              prose-img:rounded-2xl
+              prose-blockquote:break-words
+              prose-blockquote:border-white/20
+              prose-pre:whitespace-pre-wrap
+              prose-pre:break-words
+              prose-code:break-words
+              md:prose-p:leading-[2.2]
+              [&_*]:break-words
+              [&_*]:[overflow-wrap:anywhere]
+            "
+          >
             <TranslatedMarkdown content={article.content || ""} />
           </article>
         </section>
 
         {isAuthor && article.notes && (
-          <section className="safe-pre mt-8 rounded-[2rem] border border-yellow-500/15 bg-yellow-500/[0.05] p-6 text-sm leading-8 text-yellow-100/60">
+          <section className="safe-pre mt-6 rounded-[2rem] border border-yellow-500/15 bg-yellow-500/[0.05] p-5 text-sm leading-8 text-yellow-100/60 md:mt-8 md:p-6">
             <p className="mb-3 text-xs tracking-[0.3em] text-yellow-100/35">
               作者私密笔记
             </p>
@@ -227,7 +249,7 @@ export default function ArticleDetailPage() {
           </section>
         )}
 
-        <footer className="mt-10 flex flex-wrap items-center justify-between gap-4">
+        <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 md:mt-10">
           <div className="flex flex-wrap gap-3">
             {!isAuthor && (
               <>
@@ -261,7 +283,9 @@ export default function ArticleDetailPage() {
           </button>
         </footer>
 
-        <PostComments postId={article.id} />
+        <div className="mt-10 md:mt-14">
+          <PostComments postId={article.id} />
+        </div>
       </article>
     </main>
   );

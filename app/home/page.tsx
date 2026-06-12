@@ -236,21 +236,22 @@ export default function HomePage() {
         <div
           className={`
             fixed left-1/2 top-1/3 -z-10
-            h-[520px] w-[520px]
+            h-[420px] w-[420px]
             -translate-x-1/2 rounded-full
             ${atmosphere.glow}
             blur-3xl
+            md:h-[520px] md:w-[520px]
           `}
         />
 
-        <section className="relative z-10 flex min-h-[700px] items-center justify-center px-5 pb-10 pt-28 md:min-h-screen md:px-6 md:pb-20 md:pt-32">
+        <section className="relative z-10 flex min-h-[560px] items-start justify-center px-5 pb-8 pt-20 md:min-h-screen md:px-6 md:pb-20 md:pt-32">
           <div className="mx-auto max-w-5xl min-w-0 text-center">
-            <div className="safe-pre mx-auto mb-7 inline-flex max-w-full items-center gap-3 overflow-hidden rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-2.5 text-xs text-violet-100 backdrop-blur-xl md:mb-8 md:px-5 md:py-3 md:text-sm">
+            <div className="safe-pre mx-auto mb-4 inline-flex max-w-full items-center gap-2 overflow-hidden rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs text-violet-100 backdrop-blur-xl md:mb-8 md:gap-3 md:px-5 md:py-3 md:text-sm">
               <span className="shrink-0 animate-pulse">🌙</span>
               <span className="safe-pre line-clamp-1">{nightBroadcast}</span>
             </div>
 
-            <p className="mb-4 text-xs tracking-[0.45em] text-white/25 md:mb-5">
+            <p className="mb-3 text-xs tracking-[0.45em] text-white/25 md:mb-5">
               RESIDENT HOME
             </p>
 
@@ -258,11 +259,11 @@ export default function HomePage() {
               欢迎回来，{displayName}.
             </h1>
 
-            <h2 className="safe-text mt-5 text-xl font-light text-white/75 md:mt-6 md:text-2xl">
+            <h2 className="safe-text mt-4 text-xl font-light text-white/75 md:mt-6 md:text-2xl">
               {atmosphere.heroTitle}
             </h2>
 
-            <p className="safe-pre mx-auto mt-5 max-w-xl text-sm leading-7 text-white/45 md:mt-8">
+            <p className="safe-pre mx-auto mt-3 max-w-xl line-clamp-2 text-sm leading-7 text-white/45 md:mt-8 md:line-clamp-none">
               {atmosphere.heroText}
             </p>
 
@@ -271,7 +272,7 @@ export default function HomePage() {
             </p>
 
             {announcement && (
-              <div className="mx-auto mt-7 max-w-2xl min-w-0 overflow-hidden rounded-[1.5rem] border border-fuchsia-400/20 bg-fuchsia-500/[0.07] p-4 text-left shadow-[0_0_70px_rgba(217,70,239,0.09)] backdrop-blur-2xl md:mt-10 md:rounded-[2rem] md:p-6">
+              <div className="mx-auto mt-6 max-w-2xl min-w-0 overflow-hidden rounded-[1.5rem] border border-fuchsia-400/20 bg-fuchsia-500/[0.07] p-4 text-left shadow-[0_0_70px_rgba(217,70,239,0.09)] backdrop-blur-2xl md:mt-10 md:rounded-[2rem] md:p-6">
                 <p className="text-xs tracking-[0.25em] text-fuchsia-100/45 md:tracking-[0.35em]">
                   WORLD ANNOUNCEMENT
                 </p>
@@ -280,13 +281,13 @@ export default function HomePage() {
                   📢 {announcement.title}
                 </h3>
 
-                <p className="safe-pre mt-3 line-clamp-3 text-sm leading-7 text-white/55 md:mt-4 md:line-clamp-none md:leading-8">
+                <p className="safe-pre mt-2 line-clamp-2 text-sm leading-7 text-white/55 md:mt-4 md:line-clamp-none md:leading-8">
                   {announcement.content}
                 </p>
               </div>
             )}
 
-            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 md:mt-12 md:flex-row md:items-center md:gap-4">
+            <div className="mt-6 flex flex-col items-stretch justify-center gap-3 md:mt-12 md:flex-row md:items-center md:gap-4">
               <button
                 onClick={() => router.push("/diary/new")}
                 className="w-full rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition hover:bg-white/90 md:w-auto"
@@ -304,7 +305,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="relative z-10 px-5 pb-12 pt-2 md:px-6 md:pb-16 md:pt-4">
+        <section className="relative z-10 px-5 pb-12 pt-0 md:px-6 md:pb-16 md:pt-4">
           <div className="mx-auto grid max-w-6xl grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
             {quickCards.map((item) => (
               <Link

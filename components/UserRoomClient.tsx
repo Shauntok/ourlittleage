@@ -20,9 +20,9 @@ function getExcerpt(content: string) {
 function getPostTitle(post: any) {
   if (post.title) return post.title;
 
-  const date = new Date(
-    post.published_at || post.created_at
-  ).toLocaleDateString("zh-CN");
+  const date = new Date(post.published_at || post.created_at).toLocaleDateString(
+    "zh-CN"
+  );
 
   return `${date} 的日记`;
 }
@@ -52,7 +52,7 @@ export default function UserRoomClient({
 
   function MetaPills({ post }: { post: any }) {
     return (
-      <div className="mt-4 flex flex-wrap gap-2 md:mt-5">
+      <div className="mt-3 flex flex-wrap gap-2 md:mt-5">
         <span className="rounded-full border border-pink-500/20 bg-pink-500/[0.06] px-3 py-1 text-xs text-pink-100/55">
           喜欢 {likeCountMap.get(post.id) || 0}
         </span>
@@ -90,11 +90,11 @@ export default function UserRoomClient({
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-4 py-16 text-white md:px-6 md:py-20">
+    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
       <div className={`fixed inset-0 -z-10 bg-gradient-to-b ${roomTheme}`} />
       <div className="fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[620px] md:w-[620px]" />
 
-      <div className="mx-auto max-w-6xl space-y-8 md:space-y-12">
+      <div className="mx-auto max-w-6xl space-y-7 md:space-y-12">
         <Link
           href="/space"
           className="inline-flex text-sm text-white/35 transition hover:text-white/70"
@@ -103,7 +103,7 @@ export default function UserRoomClient({
         </Link>
 
         <section className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl md:rounded-[2.8rem]">
-          <div className="relative h-[190px] w-full md:h-[300px]">
+          <div className="relative h-[150px] w-full md:h-[300px]">
             {profile.banner_url ? (
               <img
                 src={profile.banner_url}
@@ -127,9 +127,9 @@ export default function UserRoomClient({
 
           <div
             id="about-user"
-            className="relative min-w-0 px-5 pb-8 scroll-mt-28 md:px-8 md:pb-10"
+            className="relative min-w-0 scroll-mt-28 px-5 pb-7 md:px-8 md:pb-10"
           >
-            <div className="-mt-12 h-24 w-24 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_55px_rgba(255,255,255,0.12)] md:-mt-16 md:h-32 md:w-32">
+            <div className="-mt-10 h-20 w-20 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_55px_rgba(255,255,255,0.12)] md:-mt-16 md:h-32 md:w-32">
               {profile.avatar_url ? (
                 <img
                   src={profile.avatar_url}
@@ -137,13 +137,13 @@ export default function UserRoomClient({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-4xl text-white/25 md:text-5xl">
+                <div className="flex h-full w-full items-center justify-center text-3xl text-white/25 md:text-5xl">
                   👤
                 </div>
               )}
             </div>
 
-            <div className="mt-6 min-w-0 space-y-5 md:mt-7 md:space-y-6">
+            <div className="mt-5 min-w-0 space-y-4 md:mt-7 md:space-y-6">
               <div className="inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 backdrop-blur-xl md:px-5 md:py-3">
                 <div className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-green-400" />
                 <p className="safe-text text-xs uppercase tracking-[0.25em] text-white/40 md:tracking-[0.28em]">
@@ -156,7 +156,7 @@ export default function UserRoomClient({
                   {profile.username}
                 </h1>
 
-                <p className="mt-3 text-sm text-white/35">
+                <p className="mt-2 text-sm text-white/35 md:mt-3">
                   {profile.show_joined_days
                     ? `已在小时代居住 ${joinedDays} 天。`
                     : "正在这个世界留下故事。"}
@@ -231,21 +231,21 @@ export default function UserRoomClient({
 
         <section
           id="public-writings"
-          className="space-y-7 scroll-mt-28 md:space-y-10"
+          className="space-y-6 scroll-mt-28 md:space-y-10"
         >
           <div>
             <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.4em]">
               PUBLIC WRITINGS
             </p>
 
-            <h2 className="mt-3 text-2xl font-light md:mt-4 md:text-3xl">
+            <h2 className="mt-2 text-2xl font-light md:mt-4 md:text-3xl">
               公开留下的东西
             </h2>
 
-            <div className="mt-5 flex gap-2 overflow-x-auto pb-1 md:mt-6 md:flex-wrap md:gap-3 md:overflow-visible md:pb-0">
+            <div className="mt-4 flex flex-wrap gap-2 md:mt-6 md:gap-3">
               <Link
                 href={`${profilePath}?tab=all#public-writings`}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${
+                className={`rounded-full border px-4 py-2 text-sm transition ${
                   activeTab === "all"
                     ? "border-white bg-white text-black"
                     : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
@@ -256,7 +256,7 @@ export default function UserRoomClient({
 
               <Link
                 href={`${profilePath}?tab=article#public-writings`}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${
+                className={`rounded-full border px-4 py-2 text-sm transition ${
                   activeTab === "article"
                     ? "border-white bg-white text-black"
                     : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
@@ -267,7 +267,7 @@ export default function UserRoomClient({
 
               <Link
                 href={`${profilePath}?tab=diary#public-writings`}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${
+                className={`rounded-full border px-4 py-2 text-sm transition ${
                   activeTab === "diary"
                     ? "border-white bg-white text-black"
                     : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:text-white/75"
@@ -311,7 +311,7 @@ export default function UserRoomClient({
                       ).toLocaleString("zh-CN")}
                     </p>
 
-                    <h3 className="safe-text mt-4 line-clamp-2 break-all text-xl font-light text-white/85 md:mt-5 md:text-2xl">
+                    <h3 className="safe-text mt-3 line-clamp-2 break-all text-xl font-light text-white/85 md:mt-5 md:text-2xl">
                       <TranslatedText text={title} />
                     </h3>
 
@@ -336,7 +336,7 @@ export default function UserRoomClient({
                       </p>
                     )}
 
-                    <p className="mt-6 text-sm text-white/25 md:mt-7">
+                    <p className="mt-5 text-sm text-white/25 md:mt-7">
                       阅读这篇文章 →
                     </p>
                   </Link>
@@ -371,7 +371,7 @@ export default function UserRoomClient({
                       ).toLocaleString("zh-CN")}
                     </p>
 
-                    <h3 className="safe-text mt-4 line-clamp-2 break-all text-xl font-light text-white/85 md:mt-5 md:text-2xl">
+                    <h3 className="safe-text mt-3 line-clamp-2 break-all text-xl font-light text-white/85 md:mt-5 md:text-2xl">
                       <TranslatedText text={title} />
                     </h3>
 
@@ -383,7 +383,7 @@ export default function UserRoomClient({
                       </p>
                     )}
 
-                    <p className="mt-6 text-sm text-white/25 md:mt-7">
+                    <p className="mt-5 text-sm text-white/25 md:mt-7">
                       翻开这一天 →
                     </p>
                   </Link>

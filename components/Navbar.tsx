@@ -8,9 +8,10 @@ export default function Navbar() {
   const [profile, setProfile] = useState<any>(null);
   const [currentRole, setCurrentRole] = useState("user");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [worldMenuOpen, setWorldMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const menuRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
 
   async function fetchUnreadCount() {
     const {
@@ -21,10 +22,7 @@ export default function Navbar() {
 
     const { count } = await supabase
       .from("notifications")
-      .select("*", {
-        count: "exact",
-        head: true,
-      })
+      .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("is_read", false)
       .is("deleted_at", null);
@@ -75,11 +73,7 @@ export default function Navbar() {
       .channel("navbar-notifications")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-        },
+        { event: "*", schema: "public", table: "notifications" },
         () => fetchUnreadCount()
       )
       .subscribe();
@@ -91,19 +85,14 @@ export default function Navbar() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node)
-      ) {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
+        setWorldMenuOpen(false);
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -111,10 +100,7 @@ export default function Navbar() {
       fetchUnreadCount();
     }
 
-    window.addEventListener(
-      "notifications-updated",
-      handleNotificationsUpdated
-    );
+    window.addEventListener("notifications-updated", handleNotificationsUpdated);
 
     return () => {
       window.removeEventListener(
@@ -128,23 +114,112 @@ export default function Navbar() {
     ? `/u/${encodeURIComponent(profile.username)}`
     : "/settings/profile";
 
+  function closeMenus() {
+    setMenuOpen(false);
+    setWorldMenuOpen(false);
+  }
+
   return (
-    <header className="sticky top-0 z-50 bg-transparent px-6 py-4">
+    
+    <header className="sticky top-0 z-50 overflow-visible bg-transparent px-4 py-3 md:px-6 md:py-4">
       <div
+        ref={navRef}
         className="
-          mx-auto flex max-w-6xl items-center justify-between
-          rounded-full border border-white/10
-          bg-white/[0.045] px-6 py-3
-          shadow-[0_0_60px_rgba(255,255,255,0.035)]
-          backdrop-blur-2xl
+          relative mx-auto flex max-w-6xl items-center justify-between
+          overflow-visible
+          rounded-full border border-white/10 bg-white/[0.045]
+          px-4 py-2.5 shadow-[0_0_60px_rgba(255,255,255,0.035)]
+          backdrop-blur-2xl md:px-6 md:py-3
         "
       >
-        <Link
-          href="/home"
-          className="text-sm font-semibold tracking-wide text-white/85 transition hover:text-white"
-        >
-          小时代
-        </Link>
+        <div className="relative">
+          {/* Mobile：小时代 ▼ */}
+          <button
+            type="button"
+            onClick={() => {
+              setWorldMenuOpen(!worldMenuOpen);
+              setMenuOpen(false);
+            }}
+            className="
+              flex items-center gap-2 rounded-full
+              border border-white/10 bg-white/[0.035]
+              px-4 py-2 text-sm font-semibold
+              tracking-wide text-white/85
+              transition hover:border-white/20 hover:bg-white/[0.06]
+              md:hidden
+            "
+          >
+            小时代
+            <span
+              className={`text-xs text-white/45 transition ${
+                worldMenuOpen ? "rotate-180" : ""
+              }`}
+            >
+              ▼
+            </span>
+          </button>
+
+          {/* Desktop：原本 Logo */}
+          <Link
+            href="/home"
+            className="
+              hidden text-sm font-semibold tracking-wide
+              text-white/85 transition hover:text-white
+              md:inline-flex
+            "
+          >
+            小时代
+          </Link>
+
+          {worldMenuOpen && (
+            <div className="fixed left-4 top-[76px] z-[60] w-64 overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:hidden">
+              <div className="border-b border-white/10 px-5 py-4">
+                <p className="text-xs tracking-[0.3em] text-white/25">
+                  OUR LITTLE AGE
+                </p>
+                <p className="mt-2 text-sm text-white/55">
+                  去你想去的地方。
+                </p>
+              </div>
+
+              <div className="py-2">
+                <Link href="/home" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
+                  <span>🏠</span>
+                  <span>首页</span>
+                </Link>
+
+                <Link href="/space" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
+                  <span>🌙</span>
+                  <span>深夜广场</span>
+                </Link>
+
+                <div className="my-1 border-t border-white/10" />
+
+                <Link href="/diary" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
+                  <span>📔</span>
+                  <span>我的日记</span>
+                </Link>
+
+                <Link href="/articles" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
+                  <span>📝</span>
+                  <span>我的文章</span>
+                </Link>
+
+                <div className="my-1 border-t border-white/10" />
+
+                <Link href="/diary/new" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
+                  <span>✍️</span>
+                  <span>写日记</span>
+                </Link>
+
+                <Link href="/articles/new" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
+                  <span>📖</span>
+                  <span>写文章</span>
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
 
         <nav className="hidden items-center gap-7 text-sm text-white/45 md:flex">
           <Link href="/home" className="transition hover:text-white">
@@ -164,51 +239,24 @@ export default function Navbar() {
           </Link>
 
           {profile && (
-            <Link
-              href={profileHref}
-              className="transition hover:text-white"
-            >
+            <Link href={profileHref} className="transition hover:text-white">
               我的房间
             </Link>
           )}
         </nav>
 
-        <div className="flex items-center gap-4">
-          {profile && (
-            <Link
-              href="/notifications"
-              className="
-                relative flex h-11 w-11 items-center justify-center
-                rounded-full border border-white/10
-                bg-white/[0.04] text-lg
-                transition hover:border-white/25 hover:bg-white/[0.08]
-              "
-              title="小时代信箱"
-            >
-              📬
-
-              {unreadCount > 0 && (
-                <span
-                  className="
-                    absolute -right-1 -top-1
-                    flex h-5 min-w-5 items-center justify-center
-                    rounded-full bg-red-500 px-1.5
-                    text-[10px] font-bold text-white
-                    shadow-[0_0_14px_rgba(239,68,68,0.75)]
-                  "
-                >
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </Link>
-          )}
+        <div className="flex items-center gap-3">
           {profile ? (
-            <div className="relative" ref={menuRef}>
+            <div className="relative">
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] p-1 pr-3 transition hover:border-white/25 hover:bg-white/[0.08]"
+                type="button"
+                onClick={() => {
+                  setMenuOpen(!menuOpen);
+                  setWorldMenuOpen(false);
+                }}
+                className="relative flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] p-1 transition hover:border-white/25 hover:bg-white/[0.08] md:pr-3"
               >
-                <div className="h-10 w-10 overflow-hidden rounded-full border border-white/10 bg-white/[0.05] shadow-[0_0_24px_rgba(255,255,255,0.08)]">
+                <div className="h-9 w-9 overflow-hidden rounded-full border border-white/10 bg-white/[0.05] shadow-[0_0_24px_rgba(255,255,255,0.08)] md:h-10 md:w-10">
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}
@@ -222,14 +270,19 @@ export default function Navbar() {
                   )}
                 </div>
 
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-[0_0_14px_rgba(239,68,68,0.75)]">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+
                 <span className="hidden max-w-[120px] truncate text-xs text-white/45 lg:inline">
                   {profile.username || "居民"}
                 </span>
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-4 w-72 overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl">
-                  <div className="border-b border-white/10 px-5 py-5">
+                  <div className="fixed right-4 top-[76px] z-[60] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl">                  <div className="border-b border-white/10 px-5 py-5">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
                         {profile.avatar_url ? (
@@ -253,7 +306,6 @@ export default function Navbar() {
                         {(profile.status_message || profile.mood_emoji) && (
                           <div className="mt-1 flex items-center gap-2 text-sm text-white/40">
                             <span>{profile.mood_emoji || "🌙"}</span>
-
                             <span className="truncate">
                               {profile.status_message || "还在小时代"}
                             </span>
@@ -266,7 +318,7 @@ export default function Navbar() {
                   <div className="py-2">
                     <Link
                       href={profileHref}
-                      onClick={() => setMenuOpen(false)}
+                      onClick={closeMenus}
                       className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
                     >
                       <span>🏠</span>
@@ -274,30 +326,27 @@ export default function Navbar() {
                     </Link>
 
                     <Link
+                      href="/notifications"
+                      onClick={closeMenus}
+                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
+                    >
+                      <span>📬</span>
+                      <span className="flex-1">小时代信箱</span>
+
+                      {unreadCount > 0 && (
+                        <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
+                    </Link>
+
+                    <Link
                       href="/settings/profile"
-                      onClick={() => setMenuOpen(false)}
+                      onClick={closeMenus}
                       className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
                     >
                       <span>⚙️</span>
                       <span>房间设置</span>
-                    </Link>
-
-                    <Link
-                      href="/notifications"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
-                    >
-                      <span>📬</span>
-
-                      <span className="flex-1">
-                        小时代信箱
-                      </span>
-
-                      {unreadCount > 0 && (
-                        <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
-                          {unreadCount}
-                        </span>
-                      )}
                     </Link>
                   </div>
 
@@ -305,7 +354,7 @@ export default function Navbar() {
                     <div className="border-t border-white/10 py-2">
                       <Link
                         href="/admin"
-                        onClick={() => setMenuOpen(false)}
+                        onClick={closeMenus}
                         className="flex items-center gap-3 px-5 py-4 text-violet-300 transition hover:bg-white/[0.05]"
                       >
                         <span>🛠</span>
@@ -316,6 +365,7 @@ export default function Navbar() {
 
                   <div className="border-t border-white/10 py-2">
                     <button
+                      type="button"
                       onClick={async () => {
                         await supabase.auth.signOut();
                         window.location.href = "/";
