@@ -205,6 +205,11 @@ export default function Navbar() {
                   <span>我的文章</span>
                 </Link>
 
+                <Link href="/drafts" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
+                  <span>📦</span>
+                  <span>草稿箱</span>
+                </Link>
+
                 <div className="my-1 border-t border-white/10" />
 
                 <Link href="/diary/new" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
@@ -338,6 +343,15 @@ export default function Navbar() {
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       )}
+                    </Link>
+
+                    <Link
+                      href="/drafts"
+                      onClick={closeMenus}
+                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
+                    >
+                      <span>📦</span>
+                      <span>草稿箱</span>
                     </Link>
 
                     <Link

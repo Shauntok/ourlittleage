@@ -3,6 +3,7 @@
 import Link from "next/link";
 import TranslatedText from "@/components/TranslatedText";
 import RoomStatusButton from "@/components/RoomStatusButton";
+import RoomGuestbook from "@/components/RoomGuestbook";
 
 function getImages(content: string) {
   return Array.from(content.matchAll(/!\[[^\]]*\]\((.*?)\)/g))
@@ -94,7 +95,7 @@ export default function UserRoomClient({
       <div className={`fixed inset-0 -z-10 bg-gradient-to-b ${roomTheme}`} />
       <div className="fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[620px] md:w-[620px]" />
 
-      <div className="mx-auto max-w-6xl space-y-7 md:space-y-12">
+      <div className="mx-auto max-w-6xl space-y-6 md:space-y-12">
         <Link
           href="/space"
           className="inline-flex text-sm text-white/35 transition hover:text-white/70"
@@ -103,7 +104,7 @@ export default function UserRoomClient({
         </Link>
 
         <section className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl md:rounded-[2.8rem]">
-          <div className="relative h-[150px] w-full md:h-[300px]">
+          <div className="relative h-[112px] w-full md:h-[300px]">
             {profile.banner_url ? (
               <img
                 src={profile.banner_url}
@@ -116,35 +117,48 @@ export default function UserRoomClient({
 
             <div className="absolute inset-0 bg-black/50" />
 
-            <RoomStatusButton
-              ownerId={profile.id}
-              initialMoodEmoji={!isStatusExpired ? profile.mood_emoji : null}
-              initialStatusMessage={
-                !isStatusExpired ? profile.status_message : null
-              }
-            />
+            <div className="absolute right-4 top-4">
+              <RoomStatusButton
+                ownerId={profile.id}
+                initialMoodEmoji={!isStatusExpired ? profile.mood_emoji : null}
+                initialStatusMessage={
+                  !isStatusExpired ? profile.status_message : null
+                }
+              />
+            </div>
           </div>
 
           <div
             id="about-user"
-            className="relative min-w-0 scroll-mt-28 px-5 pb-7 md:px-8 md:pb-10"
+            className="relative min-w-0 scroll-mt-28 px-5 pb-6 md:px-8 md:pb-10"
           >
-            <div className="-mt-10 h-20 w-20 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_55px_rgba(255,255,255,0.12)] md:-mt-16 md:h-32 md:w-32">
-              {profile.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-3xl text-white/25 md:text-5xl">
-                  👤
+            <div className="-mt-9 flex min-w-0 items-end gap-4 md:-mt-16 md:block">
+              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_55px_rgba(255,255,255,0.12)] md:h-32 md:w-32">
+                {profile.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-3xl text-white/25 md:text-5xl">
+                    👤
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-2 min-w-0 md:hidden">
+                <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 backdrop-blur-xl">
+                  <div className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-green-400" />
+                  <p className="safe-text truncate text-xs text-white/45">
+                    {residentTitle}
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
 
-            <div className="mt-5 min-w-0 space-y-4 md:mt-7 md:space-y-6">
-              <div className="inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 backdrop-blur-xl md:px-5 md:py-3">
+            <div className="mt-4 min-w-0 space-y-4 md:mt-7 md:space-y-6">
+              <div className="hidden max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 backdrop-blur-xl md:inline-flex md:px-5 md:py-3">
                 <div className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-green-400" />
                 <p className="safe-text text-xs uppercase tracking-[0.25em] text-white/40 md:tracking-[0.28em]">
                   {residentTitle}
@@ -163,7 +177,7 @@ export default function UserRoomClient({
                 </p>
               </div>
 
-              <p className="safe-pre line-clamp-4 max-w-2xl text-sm leading-7 text-white/55 md:line-clamp-none md:text-base md:leading-8">
+              <p className="safe-pre line-clamp-3 max-w-2xl text-sm leading-7 text-white/55 md:line-clamp-none md:text-base md:leading-8">
                 {profile.bio || "这个房间暂时还很安静。"}
               </p>
 
@@ -194,7 +208,7 @@ export default function UserRoomClient({
                     <span className="truncate">{levelProgress.text}</span>
                   </div>
 
-                  <div className="h-2.5 overflow-hidden rounded-full border border-white/10 bg-white/5 md:h-3">
+                  <div className="h-2 overflow-hidden rounded-full border border-white/10 bg-white/5 md:h-3">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
                       style={{
@@ -229,6 +243,8 @@ export default function UserRoomClient({
           </div>
         </section>
 
+        <RoomGuestbook roomOwnerId={profile.id} />
+        
         <section
           id="public-writings"
           className="space-y-6 scroll-mt-28 md:space-y-10"
@@ -239,7 +255,7 @@ export default function UserRoomClient({
             </p>
 
             <h2 className="mt-2 text-2xl font-light md:mt-4 md:text-3xl">
-              公开留下的东西
+              公开作品
             </h2>
 
             <div className="mt-4 flex flex-wrap gap-2 md:mt-6 md:gap-3">

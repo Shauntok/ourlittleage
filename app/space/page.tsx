@@ -1,5 +1,3 @@
-console.log("SPACE RENDER");
-
 import { supabase } from "@/lib/supabase";
 import SpaceClient, { SpacePost } from "@/components/SpaceClient";
 
@@ -96,6 +94,7 @@ function getHotPosts(posts: SpacePost[]) {
     .sort((a, b) => {
       const scoreA = (a.likeCount || 0) * 3 + (a.commentCount || 0) * 2;
       const scoreB = (b.likeCount || 0) * 3 + (b.commentCount || 0) * 2;
+
       return scoreB - scoreA;
     })
     .slice(0, 3);

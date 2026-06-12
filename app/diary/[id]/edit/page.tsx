@@ -1,14 +1,13 @@
 "use client";
 
-import {
-  ChangeEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams } from "next/navigation";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
+import MarkdownToolbar from "@/components/editor/MarkdownToolbar";
+import EditorTextarea from "@/components/editor/EditorTextarea";
+
+type DiaryVisibility = "private" | "public" | "hidden" | "unlisted";
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -24,6 +23,20 @@ function formatWeekday(date: string) {
   }).format(new Date(date));
 }
 
+function getVisibilityLabel(visibility: DiaryVisibility) {
+  switch (visibility) {
+    case "public":
+      return "🌍 已公开";
+    case "hidden":
+      return "🙈 隐藏";
+    case "unlisted":
+      return "🔗 链接可见";
+    case "private":
+    default:
+      return "🔒 私密";
+  }
+}
+
 export default function EditDiaryPage() {
   const params = useParams();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -36,12 +49,11 @@ export default function EditDiaryPage() {
 
   const [diary, setDiary] = useState<any>(null);
   const [content, setContent] = useState("");
-  const [visibility, setVisibility] =
-    useState<"private" | "public">("private");
+  const [visibility, setVisibility] = useState<DiaryVisibility>("private");
 
   const [originalContent, setOriginalContent] = useState("");
   const [originalVisibility, setOriginalVisibility] =
-    useState<"private" | "public">("private");
+    useState<DiaryVisibility>("private");
 
   useEffect(() => {
     async function fetchDiary() {
@@ -68,7 +80,7 @@ export default function EditDiaryPage() {
       }
 
       const loadedContent = data.content || "";
-      const loadedVisibility = data.visibility || "private";
+      const loadedVisibility = (data.visibility || "private") as DiaryVisibility;
 
       setDiary(data);
       setContent(loadedContent);
@@ -149,11 +161,8 @@ export default function EditDiaryPage() {
     setSaving(true);
 
     const diaryDate = diary?.published_at || diary?.created_at;
-
     const fallbackTitle = `日记 · ${formatDate(diaryDate)}`;
-
-    const fallbackSlug =
-      diary?.slug || `diary-${diary?.id || Date.now()}`;
+    const fallbackSlug = diary?.slug || `diary-${diary?.id || Date.now()}`;
 
     const { error } = await supabase
       .from("posts")
@@ -162,11 +171,7 @@ export default function EditDiaryPage() {
         slug: fallbackSlug,
         content,
         visibility,
-
-        edited_at: contentChanged
-          ? new Date().toISOString()
-          : diary?.edited_at,
-
+        edited_at: contentChanged ? new Date().toISOString() : diary?.edited_at,
         edit_count: contentChanged
           ? (diary?.edit_count || 0) + 1
           : diary?.edit_count || 0,
@@ -202,10 +207,7 @@ export default function EditDiaryPage() {
 
   function leaveWithoutSaving() {
     if (hasChanged) {
-      const confirmed = confirm(
-        "这一页还有没存好的痕迹，确定先离开吗？"
-      );
-
+      const confirmed = confirm("这一页还有没存好的痕迹，确定先离开吗？");
       if (!confirmed) return;
     }
 
@@ -224,13 +226,10 @@ export default function EditDiaryPage() {
 
   const diaryDate = diary?.published_at || diary?.created_at;
 
-  const toolbarButtonClass =
-    "rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/60 transition hover:text-white";
-
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-6 py-24 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[560px] md:w-[560px]" />
 
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
         <section className="space-y-6">
@@ -242,178 +241,69 @@ export default function EditDiaryPage() {
             ← 回到这一天的日记阅读
           </button>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-8 backdrop-blur-2xl">
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:p-8">
             <p className="text-xs tracking-[0.35em] text-white/30">
               重新翻开这一天
             </p>
 
-            <h1 className="mt-4 text-4xl font-light">
+            <h1 className="mt-3 text-4xl font-light md:mt-4">
               {diaryDate ? formatDate(diaryDate) : "那一天"}
             </h1>
 
-            <div className="mt-5 flex flex-wrap gap-3 text-xs text-white/40">
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/40 md:mt-5 md:gap-3">
               {diaryDate && (
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 md:px-4 md:py-2">
                   {formatWeekday(diaryDate)}
                 </span>
               )}
 
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-                {visibility === "public" ? "🌍 已公开" : "🔒 私密"}
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 md:px-4 md:py-2">
+                {getVisibilityLabel(visibility)}
               </span>
 
               {(diary?.edit_count || 0) > 0 && (
-                <span className="rounded-full border border-yellow-500/15 bg-yellow-500/[0.06] px-4 py-2 text-yellow-100/60">
+                <span className="rounded-full border border-yellow-500/15 bg-yellow-500/[0.06] px-3 py-1.5 text-yellow-100/60 md:px-4 md:py-2">
                   后来补写过 {diary.edit_count} 次
                 </span>
               )}
             </div>
 
-            <div className="mt-6 text-sm">
+            <div className="mt-5 text-sm md:mt-6">
               {contentChanged ? (
                 <p className="text-yellow-200/70">
                   这一页还有新的补写没保存。
                 </p>
               ) : visibilityChanged ? (
-                <p className="text-blue-200/60">
-                  可见性还没保存。
-                </p>
+                <p className="text-blue-200/60">可见性还没保存。</p>
               ) : (
-                <p className="text-green-200/60">
-                  这一页回忆已保存。
-                </p>
+                <p className="text-green-200/60">这一页回忆已保存。</p>
               )}
             </div>
           </div>
 
-          <div className="sticky top-6 z-20 flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-black/70 p-4 backdrop-blur-2xl">
-            <button
-              type="button"
-              onClick={() => insertTextAtCursor("\n# 标题\n")}
-              className={toolbarButtonClass}
-            >
-              H1
-            </button>
-
-            <button
-              type="button"
-              onClick={() => insertTextAtCursor("\n## 今天的小标题\n")}
-              className={toolbarButtonClass}
-            >
-              H2
-            </button>
-
-            <label className={toolbarButtonClass + " cursor-pointer"}>
-              {uploading ? "上传中..." : "图片"}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={uploadImage}
-                className="hidden"
-              />
-            </label>
-
-            <button
-              type="button"
-              onClick={() => insertTextAtCursor("**", "**")}
-              className={toolbarButtonClass}
-            >
-              粗体
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                insertTextAtCursor("\n> 后来想补充的是：\n")
-              }
-              className={toolbarButtonClass}
-            >
-              引用
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                insertTextAtCursor("[想留下的链接](https://example.com)")
-              }
-              className={toolbarButtonClass}
-            >
-              链接
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                insertTextAtCursor(
-                  "\n- 今天发生的事\n- 我想到的事\n- 想记住的事\n"
-                )
-              }
-              className={toolbarButtonClass}
-            >
-              清单
-            </button>
-
-            <button
-              type="button"
-              onClick={() => insertTextAtCursor("\n---\n")}
-              className={toolbarButtonClass}
-            >
-              分割线
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                insertTextAtCursor("\n> 💡 我想提醒未来的自己：\n")
-              }
-              className={toolbarButtonClass}
-            >
-              提示
-            </button>
-
-          </div>
-
-          <textarea
-            ref={textareaRef}
-            value={content}
-            placeholder="你后来还有什么想说的吗？"
-            onChange={(e) => setContent(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.ctrlKey && e.key.toLowerCase() === "b") {
-                e.preventDefault();
-                insertTextAtCursor("**", "**");
-              }
-
-              if (e.ctrlKey && e.key.toLowerCase() === "s") {
-                e.preventDefault();
-                saveDiary();
-              }
-            }}
-            rows={22}
-            className="
-              preview-scrollbar min-h-[560px] w-full resize-none rounded-[2rem]
-              border border-white/10 bg-white/[0.035] p-8
-              text-base leading-9 text-white outline-none backdrop-blur-2xl
-              placeholder:text-white/20
-              transition-all duration-500
-              focus:border-white/25 focus:bg-white/[0.055]
-            "
+          <MarkdownToolbar
+            uploading={uploading}
+            uploadImage={uploadImage}
+            insertTextAtCursor={insertTextAtCursor}
+            variant="diary"
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <EditorTextarea
+            textareaRef={textareaRef}
+            content={content}
+            setContent={setContent}
+            placeholder="你后来还有什么想说的吗？"
+            onSaveShortcut={saveDiary}
+            insertTextAtCursor={insertTextAtCursor}
+            variant="diary"
+          />
+
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-white/35">
               {content.trim().length} 字 · Ctrl + S 保存
             </p>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={leaveWithoutSaving}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
-              >
-                先这样
-              </button>
-
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:flex md:flex-wrap">
               <button
                 type="button"
                 onClick={saveDiary}
@@ -429,6 +319,14 @@ export default function EditDiaryPage() {
 
               <button
                 type="button"
+                onClick={leaveWithoutSaving}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:border-white/25 hover:text-white"
+              >
+                先这样
+              </button>
+
+              <button
+                type="button"
                 onClick={deleteDiary}
                 className="rounded-full border border-red-500/20 bg-red-500/[0.06] px-6 py-3 text-sm text-red-200/70 transition hover:bg-red-500/[0.12] hover:text-red-100"
               >
@@ -440,69 +338,68 @@ export default function EditDiaryPage() {
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
-            <p className="text-xs tracking-[0.3em] text-white/30">
-              可见性
-            </p>
+            <p className="text-xs tracking-[0.3em] text-white/30">可见性</p>
 
             <div className="mt-5 grid gap-3">
-              <button
-                type="button"
-                onClick={() => setVisibility("private")}
-                className={`rounded-2xl border px-5 py-4 text-left transition ${
-                  visibility === "private"
-                    ? "border-white/25 bg-white/[0.09] text-white"
-                    : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span>🔒</span>
-                  <span className="text-sm font-medium">只给自己看</span>
-                </div>
+              {[
+                {
+                  key: "private",
+                  icon: "🔒",
+                  title: "只给自己看",
+                  desc: "这一天只放在自己的房间里。",
+                },
+                {
+                  key: "public",
+                  icon: "🌍",
+                  title: "发布到日记广场",
+                  desc: "让其他居民也能读见这一刻。",
+                },
+                {
+                  key: "hidden",
+                  icon: "🙈",
+                  title: "隐藏日记",
+                  desc: "不会出现在公开列表。",
+                },
+                {
+                  key: "unlisted",
+                  icon: "🔗",
+                  title: "仅链接可见",
+                  desc: "知道链接的人才能进入。",
+                },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setVisibility(item.key as DiaryVisibility)}
+                  className={`rounded-2xl border px-5 py-4 text-left transition ${
+                    visibility === item.key
+                      ? "border-white/25 bg-white/[0.09] text-white"
+                      : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span>{item.icon}</span>
+                    <span className="text-sm font-medium">{item.title}</span>
+                  </div>
 
-                <p className="mt-1.5 text-[11px] leading-5 text-white/30">
-                  这一天只放在自己的房间里。
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setVisibility("public")}
-                className={`rounded-2xl border px-5 py-4 text-left transition ${
-                  visibility === "public"
-                    ? "border-white/25 bg-white/[0.09] text-white"
-                    : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span>🌍</span>
-                  <span className="text-sm font-medium">发布到日记广场</span>
-                </div>
-
-                <p className="mt-1.5 text-[11px] leading-5 text-white/30">
-                  让其他居民也能读见这一刻。
-                </p>
-              </button>
+                  <p className="mt-1.5 text-[11px] leading-5 text-white/30">
+                    {item.desc}
+                  </p>
+                </button>
+              ))}
             </div>
           </div>
 
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 text-sm leading-7 text-white/40 backdrop-blur-2xl">
-            <p className="text-xs tracking-[0.3em] text-white/30">
-              时间痕迹
-            </p>
+            <p className="text-xs tracking-[0.3em] text-white/30">时间痕迹</p>
 
             <div className="mt-5 space-y-3">
               {diaryDate && (
-                <p>
-                  写下于：
-                  {new Date(diaryDate).toLocaleString()}
-                </p>
+                <p>写下于：{new Date(diaryDate).toLocaleString()}</p>
               )}
 
               {diary?.edited_at ? (
-                <p>
-                  后来补写于：
-                  {new Date(diary.edited_at).toLocaleString()}
-                </p>
+                <p>后来补写于：{new Date(diary.edited_at).toLocaleString()}</p>
               ) : (
                 <p>还没有后来补写过。</p>
               )}
@@ -510,9 +407,7 @@ export default function EditDiaryPage() {
           </div>
 
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 text-sm leading-8 text-white/40 backdrop-blur-2xl">
-            <p className="text-xs tracking-[0.3em] text-white/30">
-              补写提示
-            </p>
+            <p className="text-xs tracking-[0.3em] text-white/30">补写提示</p>
 
             <div className="mt-5 space-y-2">
               <p>· 有些情绪会迟到</p>
@@ -522,35 +417,19 @@ export default function EditDiaryPage() {
             </div>
           </div>
 
-          <div className="preview-scrollbar max-h-[620px] overflow-y-auto rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
+          <div className="preview-scrollbar hidden max-h-[620px] overflow-y-auto rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl lg:block">
             <p className="mb-5 text-xs tracking-[0.3em] text-white/30">
               预览
             </p>
 
             {content ? (
-              <article className="prose prose-invert max-w-none prose-p:leading-[2.2]">
+              <article className="prose prose-invert max-w-none prose-p:leading-[2.2] [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
                 <TranslatedMarkdown content={content} />
               </article>
             ) : (
-              <div className="space-y-6">
-                <p className="text-sm leading-7 text-white/35">
-                  这里会预览你补写后的回忆。
-                </p>
-
-                <div className="flex justify-center py-5">
-                  <div className="relative h-20 w-16 rounded-sm border border-violet-400/50 bg-white/[0.025] shadow-[0_0_35px_rgba(139,92,246,0.18)]">
-                    <div className="absolute left-3 top-5 h-[2px] w-6 rounded-full bg-violet-300/60" />
-                    <div className="absolute left-3 top-8 h-[2px] w-7 rounded-full bg-white/25" />
-                    <div className="absolute left-3 top-11 h-[2px] w-5 rounded-full bg-white/20" />
-                    <div className="absolute -right-2 top-4 h-12 w-2 rounded-r-full border-y border-r border-violet-400/45" />
-                    <div className="absolute -bottom-3 left-1/2 h-[1px] w-20 -translate-x-1/2 bg-violet-400/30 blur-sm" />
-                  </div>
-                </div>
-
-                <p className="text-sm leading-7 text-white/30">
-                  有些话，当时写不出来，不代表它不重要。
-                </p>
-              </div>
+              <p className="text-sm leading-7 text-white/35">
+                这里会预览你补写后的回忆。
+              </p>
             )}
           </div>
         </aside>

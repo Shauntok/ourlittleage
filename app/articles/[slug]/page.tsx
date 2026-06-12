@@ -138,10 +138,10 @@ export default function ArticleDetailPage() {
 
         <header className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:rounded-[2.4rem] md:p-9">
           <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.38em]">
-            ARTICLE
+            发表的故事文章
           </p>
 
-          <h1 className="safe-text mt-4 text-4xl font-light leading-tight tracking-tight md:mt-6 md:text-6xl">
+          <h1 className="safe-text mt-4 break-words text-4xl font-light leading-tight tracking-tight [overflow-wrap:anywhere] md:mt-6 md:text-6xl">
             {article.title || "无标题文章"}
           </h1>
 
@@ -249,8 +249,22 @@ export default function ArticleDetailPage() {
           </section>
         )}
 
-        <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 md:mt-10">
-          <div className="flex flex-wrap gap-3">
+        <section className="safe-pre mt-6 rounded-[1.7rem] border border-white/10 bg-white/[0.025] p-5 text-sm leading-7 text-white/35 backdrop-blur-2xl md:mt-8 md:rounded-[2rem] md:p-6">
+          {article.edited_at ? (
+            <>
+              <p>后来又回来整理过这篇故事。</p>
+
+              <p className="mt-2 text-white/25">
+                修改于：{new Date(article.edited_at).toLocaleString()}
+              </p>
+            </>
+          ) : (
+            <p>这是那天留下的原始故事。</p>
+          )}
+        </section>
+
+        <footer className="mt-8 flex flex-col gap-4 md:mt-10 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             {!isAuthor && (
               <>
                 <LikeButton postId={article.id} authorId={article.author_id} />
@@ -277,7 +291,7 @@ export default function ArticleDetailPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+            className="w-full rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 md:w-auto"
           >
             回到上一页
           </button>

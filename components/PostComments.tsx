@@ -30,10 +30,7 @@ type CommentItem = {
 };
 
 function getProfile(profile: ProfileInfo | ProfileInfo[] | null) {
-  if (Array.isArray(profile)) {
-    return profile[0] || null;
-  }
-
+  if (Array.isArray(profile)) return profile[0] || null;
   return profile;
 }
 
@@ -57,9 +54,7 @@ export default function PostComments({ postId }: Props) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (user) {
-      setCurrentUserId(user.id);
-    }
+    if (user) setCurrentUserId(user.id);
   }
 
   async function fetchComments() {
@@ -69,9 +64,7 @@ export default function PostComments({ postId }: Props) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (user) {
-      setCurrentUserId(user.id);
-    }
+    if (user) setCurrentUserId(user.id);
 
     const { data, error } = await supabase
       .from("comments")
@@ -125,13 +118,14 @@ export default function PostComments({ postId }: Props) {
       }
     });
 
-    const commentsWithLikes = rows.map((comment) => ({
-      ...comment,
-      likeCount: likeCountMap.get(comment.id) || 0,
-      likedByMe: likedByMeMap.get(comment.id) || false,
-    }));
+    setComments(
+      rows.map((comment) => ({
+        ...comment,
+        likeCount: likeCountMap.get(comment.id) || 0,
+        likedByMe: likedByMeMap.get(comment.id) || false,
+      }))
+    );
 
-    setComments(commentsWithLikes);
     setFetching(false);
   }
 
@@ -369,7 +363,6 @@ export default function PostComments({ postId }: Props) {
 
   async function deleteComment(id: string) {
     const confirmed = confirm("确定删除这条留言吗？");
-
     if (!confirmed) return;
 
     const {
@@ -399,38 +392,40 @@ export default function PostComments({ postId }: Props) {
   }
 
   return (
-    <section className="mt-24 border-t border-white/10 pt-12">
+    <section className="mt-12 border-t border-white/10 pt-8 md:mt-24 md:pt-12">
       <div>
         <p className="text-xs tracking-[0.35em] text-white/25">COMMENTS</p>
 
-        <h2 className="mt-4 text-3xl font-light">居民留言</h2>
+        <h2 className="mt-3 text-2xl font-light md:mt-4 md:text-3xl">
+          居民留言
+        </h2>
 
-        <p className="mt-4 text-sm leading-7 text-white/35">
+        <p className="mt-3 text-sm leading-7 text-white/35 md:mt-4">
           在这里留下温柔一点的回应。也许作者今晚刚好需要这一句话。
         </p>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
+      <div className="mt-6 overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl md:mt-8 md:rounded-[2rem]">
         <textarea
-          rows={5}
+          rows={4}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="写下你的留言..."
-          className="w-full resize-none bg-transparent px-5 py-5 leading-8 text-white outline-none break-words whitespace-pre-wrap placeholder:text-white/25"
+          className="w-full resize-none bg-transparent px-5 py-4 text-sm leading-7 text-white outline-none break-words whitespace-pre-wrap placeholder:text-white/25 md:py-5 md:leading-8"
         />
 
         <div className="flex justify-end border-t border-white/5 bg-white/[0.015] px-5 py-4">
           <button
             onClick={submitComment}
             disabled={loading}
-            className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition-all duration-300 hover:scale-[1.02] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40 md:px-7"
           >
             {loading ? "送出中..." : "留下留言"}
           </button>
         </div>
       </div>
 
-      <div className="mt-14 flex flex-wrap items-center justify-between gap-4">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 md:mt-14">
         <p className="text-sm text-white/35">
           {fetching
             ? "正在翻看留言..."
@@ -466,11 +461,11 @@ export default function PostComments({ postId }: Props) {
         </div>
       </div>
 
-      <div className="mt-5 space-y-5">
+      <div className="mt-5 space-y-4 md:space-y-5">
         {fetching && <p className="text-sm text-white/35">正在翻看留言...</p>}
 
         {!fetching && comments.length === 0 && (
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-10 text-center">
+          <div className="rounded-[1.7rem] border border-white/10 bg-white/[0.03] p-8 text-center md:rounded-[2rem] md:p-10">
             <p className="text-sm text-white/35">这里暂时还没有留言。</p>
           </div>
         )}
@@ -484,13 +479,13 @@ export default function PostComments({ postId }: Props) {
           return (
             <div
               key={comment.id}
-              className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6"
+              className="min-w-0 overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.03] p-5 md:rounded-[2rem] md:p-6"
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 md:gap-4">
                 {profileHref ? (
                   <Link
                     href={profileHref}
-                    className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04] transition hover:scale-105 hover:border-white/25"
+                    className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04] transition hover:scale-105 hover:border-white/25 md:h-11 md:w-11"
                     title="进入居民房间"
                   >
                     {profile?.avatar_url ? (
@@ -506,7 +501,7 @@ export default function PostComments({ postId }: Props) {
                     )}
                   </Link>
                 ) : (
-                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04] md:h-11 md:w-11">
                     <div className="flex h-full w-full items-center justify-center text-sm">
                       🌙
                     </div>
@@ -514,30 +509,28 @@ export default function PostComments({ postId }: Props) {
                 )}
 
                 <div className="min-w-0 flex-1">
-                  <div>
-                    {profileHref ? (
-                      <Link
-                        href={profileHref}
-                        className="safe-text inline-flex max-w-full text-sm font-medium text-white/80 transition hover:text-white"
-                      >
-                        {profile?.username || "已离开的居民"}
-                      </Link>
-                    ) : (
-                      <p className="safe-text text-sm font-medium text-white/80">
-                        已离开的居民
-                      </p>
-                    )}
-
-                    <p className="mt-1 text-xs text-white/25">
-                      {new Date(comment.created_at).toLocaleString("zh-CN")}
+                  {profileHref ? (
+                    <Link
+                      href={profileHref}
+                      className="safe-text inline-flex max-w-full text-sm font-medium text-white/80 transition hover:text-white"
+                    >
+                      {profile?.username || "已离开的居民"}
+                    </Link>
+                  ) : (
+                    <p className="safe-text text-sm font-medium text-white/80">
+                      已离开的居民
                     </p>
-                  </div>
+                  )}
 
-                  <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-8 text-white/65 [overflow-wrap:anywhere]">
+                  <p className="mt-1 text-xs text-white/25">
+                    {new Date(comment.created_at).toLocaleString("zh-CN")}
+                  </p>
+
+                  <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-white/65 [overflow-wrap:anywhere] md:leading-8">
                     {comment.content}
                   </p>
 
-                  <div className="mt-5 flex flex-wrap items-center gap-4">
+                  <div className="mt-5 flex flex-wrap items-center gap-2 md:gap-4">
                     <button
                       type="button"
                       onClick={() => toggleCommentLike(comment)}
@@ -564,7 +557,7 @@ export default function PostComments({ postId }: Props) {
                     {currentUserId === comment.author_id && (
                       <button
                         onClick={() => deleteComment(comment.id)}
-                        className="text-xs text-red-200/50 transition hover:text-red-200"
+                        className="rounded-full border border-red-500/20 bg-red-500/[0.05] px-4 py-2 text-xs text-red-200/55 transition hover:bg-red-500/[0.1] hover:text-red-200"
                       >
                         删除留言
                       </button>

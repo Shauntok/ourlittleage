@@ -316,7 +316,7 @@ export default function NewArticlePage() {
   }
 
   return (
-    <main className="min-h-screen bg-black px-6 pb-20 pt-36 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-14 text-white md:px-6 md:pt-36">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-[minmax(680px,1.5fr)_minmax(420px,0.9fr)]">
         <section className="space-y-6">
           <EditorPageHeader
@@ -360,7 +360,7 @@ export default function NewArticlePage() {
           />
         </section>
 
-        <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start lg:pt-24">
+        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <VisibilitySelector
             visibility={visibility}
             setVisibility={setVisibility}
@@ -401,11 +401,13 @@ export default function NewArticlePage() {
             setNotes={setNotes}
           />
 
-          <MarkdownPreview
-            content={content}
-            emptyTitle="这里会显示文章预览。"
-            emptyText="写下一个会被未来某个人读见的故事。"
-          />
+          <div className="hidden lg:block">
+            <MarkdownPreview
+              content={content}
+              emptyTitle="这里会显示文章预览。"
+              emptyText="写下一个会被未来某个人读见的故事。"
+            />
+          </div>
         </aside>
       </div>
     </main>

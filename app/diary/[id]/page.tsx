@@ -177,7 +177,7 @@ export default function DiaryDetailPage() {
 
         <header className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_80px_rgba(255,255,255,0.045)] md:rounded-[2.3rem] md:p-9">
           <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.38em]">
-            那一天
+            那一刻记录下的记忆
           </p>
 
           <h1 className="safe-text mt-4 text-4xl font-light tracking-tight md:mt-5 md:text-6xl">
@@ -284,54 +284,46 @@ export default function DiaryDetailPage() {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:flex md:flex-wrap">
               {!diary.isOwner && (
-                <LikeButton
-                  postId={diary.id}
-                  authorId={diary.author_id}
-                  initialCount={diary.likeCount || 0}
-                />
+                <>
+                  <LikeButton
+                    postId={diary.id}
+                    authorId={diary.author_id}
+                    initialCount={diary.likeCount || 0}
+                  />
+
+                  <a
+                    href="#comments"
+                    className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-6 py-3 text-center text-sm text-blue-100/60 transition hover:border-blue-400/30 hover:text-blue-100"
+                  >
+                    评论 · {diary.commentCount || 0}
+                  </a>
+
+                  <ReportButton
+                    targetType="post"
+                    targetId={diary.id}
+                    authorId={diary.author_id}
+                    compact
+                  />
+                </>
               )}
-
-              <a
-                href="#comments"
-                className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-5 py-3 text-sm text-blue-100/60 transition hover:border-blue-400/30 hover:text-blue-100 md:px-6"
-              >
-                评论 · {diary.commentCount || 0}
-              </a>
-
-              <button
-                type="button"
-                disabled
-                className="cursor-not-allowed rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-white/25 md:px-6"
-              >
-                收藏 · Soon
-              </button>
 
               {diary.isOwner && (
                 <Link
                   href={`/diary/${diary.id}/edit`}
-                  className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-white/60 transition hover:text-white md:px-6"
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-center text-sm text-white/60 transition hover:border-white/25 hover:text-white"
                 >
                   编辑日记
                 </Link>
-              )}
-
-              {!diary.isOwner && (
-                <ReportButton
-                  targetType="post"
-                  targetId={diary.id}
-                  authorId={diary.author_id}
-                  compact
-                />
               )}
             </div>
 
             <button
               type="button"
               onClick={() => router.back()}
-              className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90 md:px-6"
+              className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
             >
               回到上一页
             </button>

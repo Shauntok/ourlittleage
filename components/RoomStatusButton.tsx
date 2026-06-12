@@ -140,22 +140,31 @@ export default function RoomStatusButton({
 
               <div className="max-h-[48vh] overflow-y-auto p-6 pb-8 md:max-h-none md:overflow-visible">
                 <div className="grid grid-cols-5 gap-2">
-                  {["🌙", "☁️", "🌧️", "🎧", "☕", "✨", "💭", "📖", "🌫️", "🫧"].map(
-                    (emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => setMoodEmoji(emoji)}
-                        className={
-                          moodEmoji === emoji
-                            ? "flex h-10 items-center justify-center rounded-2xl border border-white/30 bg-white/10 text-lg md:h-14"
-                            : "flex h-10 items-center justify-center rounded-2xl border border-white/10 bg-black/40 text-lg transition hover:border-white/25 md:h-14"
-                        }
-                      >
-                        {emoji}
-                      </button>
-                    )
-                  )}
+                  {[
+                    "🌙",
+                    "☁️",
+                    "🌧️",
+                    "🎧",
+                    "☕",
+                    "✨",
+                    "💭",
+                    "📖",
+                    "🌫️",
+                    "🫧",
+                  ].map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setMoodEmoji(emoji)}
+                      className={
+                        moodEmoji === emoji
+                          ? "flex h-10 items-center justify-center rounded-2xl border border-white/30 bg-white/10 text-lg md:h-14"
+                          : "flex h-10 items-center justify-center rounded-2xl border border-white/10 bg-black/40 text-lg transition hover:border-white/25 md:h-14"
+                      }
+                    >
+                      {emoji}
+                    </button>
+                  ))}
 
                   <input
                     value={moodEmoji}
@@ -180,7 +189,7 @@ export default function RoomStatusButton({
                 </p>
               </div>
 
-              <div className="sticky bottom-0 flex flex-col gap-3 border-t border-white/10 bg-zinc-950/95 p-5 md:p-6 sm:flex-row sm:justify-end">
+              <div className="sticky bottom-0 flex flex-col gap-3 border-t border-white/10 bg-zinc-950/95 p-5 sm:flex-row sm:justify-end md:p-6">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
@@ -246,11 +255,12 @@ export default function RoomStatusButton({
         type="button"
         onClick={() => isOwner && setOpen(true)}
         className={`
-          absolute right-4 top-4 z-10 max-w-[72%] overflow-hidden
-          rounded-[1.3rem] border border-violet-500/20 bg-black/60
-          px-4 py-3 text-left backdrop-blur-2xl
+          z-10 inline-flex max-w-[170px] items-center gap-2
+          overflow-hidden rounded-full
+          border border-violet-500/25 bg-black/60
+          px-3 py-2 text-left backdrop-blur-2xl
           shadow-[0_0_45px_rgba(139,92,246,0.12)]
-          md:right-6 md:top-6 md:max-w-xs md:px-5 md:py-4
+          md:max-w-xs md:gap-3 md:rounded-[1.3rem] md:px-5 md:py-4
           ${
             isOwner
               ? "cursor-pointer transition hover:border-violet-300/35 hover:bg-black/70"
@@ -258,19 +268,19 @@ export default function RoomStatusButton({
           }
         `}
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="shrink-0 text-xl md:text-2xl">
-            {moodEmoji || "🫧"}
-          </span>
+        <span className="shrink-0 text-lg md:text-2xl">
+          {moodEmoji || "🫧"}
+        </span>
 
-          <span className="safe-pre line-clamp-2 text-sm leading-6 text-white/75">
-            {statusMessage || (isOwner ? "设置今日状态" : "今日状态")}
-          </span>
-        </div>
+        <span className="safe-text min-w-0 truncate text-xs text-white/75 md:line-clamp-2 md:whitespace-normal md:text-sm md:leading-6">
+          {statusMessage || (isOwner ? "设置状态" : "今日状态")}
+        </span>
 
-        <p className="mt-1 text-xs text-white/30 md:mt-2">
-          {isOwner ? "点击修改今日状态" : "今日状态将在夜里安静下来"}
-        </p>
+        {isOwner && (
+          <span className="hidden text-xs text-white/30 md:inline">
+            点击修改
+          </span>
+        )}
       </button>
 
       {modal}

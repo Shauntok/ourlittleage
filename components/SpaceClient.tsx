@@ -25,7 +25,7 @@ type Props = {
   hotArticles: SpacePost[];
 };
 
-function getExcerpt(content: string, length = 120) {
+function getExcerpt(content: string, length = 100) {
   return content
     .replace(/!\[[^\]]*\]\(.*?\)/g, "")
     .replace(/[#>*`-]/g, "")
@@ -66,7 +66,7 @@ function PostCard({ post }: { post: SpacePost }) {
       href={getPostHref(post)}
       className="group block min-w-0 overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] md:rounded-[2rem] md:p-6"
     >
-      <div className="mb-4 flex items-center justify-between gap-3 md:mb-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
             {author?.avatar_url ? (
@@ -102,12 +102,12 @@ function PostCard({ post }: { post: SpacePost }) {
         {getPostTitle(post)}
       </h3>
 
-      <p className="safe-pre mt-3 line-clamp-3 text-sm leading-7 text-white/42 md:mt-4 md:line-clamp-4">
+      <p className="safe-pre mt-3 line-clamp-3 text-sm leading-7 text-white/42 md:line-clamp-4">
         {getExcerpt(post.content)}
-        {post.content.length > 120 ? "..." : ""}
+        {post.content.length > 100 ? "..." : ""}
       </p>
 
-      <div className="mt-5 flex flex-wrap gap-2 md:mt-6">
+      <div className="mt-5 flex flex-wrap gap-2">
         <span className="rounded-full border border-pink-500/20 bg-pink-500/[0.06] px-3 py-1 text-xs text-pink-100/55">
           喜欢 {post.likeCount || 0}
         </span>
@@ -133,8 +133,8 @@ function SectionBlock({
 }) {
   return (
     <section className="space-y-4 md:space-y-5">
-      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
-        <div>
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
           <h2 className="text-2xl font-light md:text-3xl">{title}</h2>
 
           <p className="mt-2 text-sm leading-7 text-white/35 md:mt-3">
@@ -144,9 +144,9 @@ function SectionBlock({
 
         <Link
           href={href}
-          className="text-sm text-white/35 transition hover:text-white/70"
+          className="shrink-0 text-sm text-white/35 transition hover:text-white/70"
         >
-          查看更多 →
+          更多 →
         </Link>
       </div>
 
@@ -173,60 +173,59 @@ export default function SpaceClient({
   hotArticles,
 }: Props) {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-5 py-20 text-white md:px-6 md:py-24">
+    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[620px] md:w-[620px]" />
 
-      <div className="mx-auto max-w-6xl space-y-12 md:space-y-16">
+      <div className="mx-auto max-w-6xl space-y-8 md:space-y-16">
         <header>
           <p className="text-xs tracking-[0.4em] text-white/25 md:tracking-[0.45em]">
             PUBLIC SPACE
           </p>
 
-          <h1 className="mt-4 text-4xl font-light tracking-tight md:mt-6 md:text-6xl">
+          <h1 className="mt-2 text-5xl font-light tracking-tight md:mt-6 md:text-6xl">
             深夜广场
           </h1>
 
-          <p className="mt-4 max-w-xl text-sm leading-7 text-white/35 md:mt-6 md:leading-8">
-            有些人留下今天，有些人留下故事。你可以慢慢经过，
-            也可以在某个角落停下来。
+          <p className="mt-3 max-w-xl text-sm leading-7 text-white/35 md:mt-6 md:leading-8">
+            有些人留下今天，有些人留下故事。你可以慢慢经过，也可以在某个角落停下来。
           </p>
 
-          <div className="mt-8 grid grid-cols-2 gap-3 md:mt-10 md:gap-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 md:mt-10 md:gap-4">
             <Link
               href="/space/diaries"
-              className="group rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-4 backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] md:rounded-[2rem] md:p-7"
+              className="group rounded-[1.4rem] border border-white/10 bg-white/[0.035] p-4 backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] md:rounded-[2rem] md:p-7"
             >
               <p className="text-2xl md:text-3xl">🌙</p>
 
-              <h2 className="mt-4 text-lg font-light md:mt-5 md:text-2xl">
+              <h2 className="mt-3 text-lg font-light md:mt-5 md:text-2xl">
                 日记广场
               </h2>
 
-              <p className="mt-3 line-clamp-2 text-xs leading-6 text-white/35 md:mt-4 md:text-sm md:leading-7">
+              <p className="mt-2 line-clamp-2 text-xs leading-6 text-white/35 md:mt-4 md:text-sm md:leading-7">
                 看看其他居民公开留下的今天。
               </p>
 
-              <p className="mt-5 text-xs text-white/25 transition group-hover:text-white/55 md:mt-6 md:text-sm">
+              <p className="mt-4 text-xs text-white/25 transition group-hover:text-white/55 md:mt-6 md:text-sm">
                 进入 →
               </p>
             </Link>
 
             <Link
               href="/space/articles"
-              className="group rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-4 backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] md:rounded-[2rem] md:p-7"
+              className="group rounded-[1.4rem] border border-white/10 bg-white/[0.035] p-4 backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055] md:rounded-[2rem] md:p-7"
             >
               <p className="text-2xl md:text-3xl">📖</p>
 
-              <h2 className="mt-4 text-lg font-light md:mt-5 md:text-2xl">
+              <h2 className="mt-3 text-lg font-light md:mt-5 md:text-2xl">
                 文章广场
               </h2>
 
-              <p className="mt-3 line-clamp-2 text-xs leading-6 text-white/35 md:mt-4 md:text-sm md:leading-7">
+              <p className="mt-2 line-clamp-2 text-xs leading-6 text-white/35 md:mt-4 md:text-sm md:leading-7">
                 阅读更完整的故事、长文、作品和想法。
               </p>
 
-              <p className="mt-5 text-xs text-white/25 transition group-hover:text-white/55 md:mt-6 md:text-sm">
+              <p className="mt-4 text-xs text-white/25 transition group-hover:text-white/55 md:mt-6 md:text-sm">
                 进入 →
               </p>
             </Link>
@@ -234,7 +233,7 @@ export default function SpaceClient({
         </header>
 
         <div className="md:hidden">
-          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+          <div className="flex flex-wrap gap-2">
             {[
               { key: "latest-diaries", label: "最新日记" },
               { key: "hot-diaries", label: "热门日记" },
@@ -244,7 +243,7 @@ export default function SpaceClient({
               <Link
                 key={item.key}
                 href={`/space?feed=${item.key}`}
-                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs transition ${
+                className={`rounded-full border px-3.5 py-2 text-xs transition ${
                   activeFeed === item.key
                     ? "border-white bg-white text-black"
                     : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20"

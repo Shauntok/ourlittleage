@@ -10,7 +10,6 @@ import VisibilitySelector from "@/components/editor/VisibilitySelector";
 import MarkdownToolbar from "@/components/editor/MarkdownToolbar";
 import DiarySideCards from "@/components/editor/DiarySideCards";
 import EditorPageHeader from "@/components/editor/EditorPageHeader";
-import DiaryEditorActions from "@/components/editor/DiaryEditorActions";
 import EditorTextarea from "@/components/editor/EditorTextarea";
 import { uploadEditorImage } from "@/components/editor/editorImageUpload";
 import { insertEditorText } from "@/components/editor/editorTextUtils";
@@ -19,6 +18,7 @@ import {
   getWritingBlockMessage,
 } from "@/lib/editor/writingGuard";
 import { getCurrentWritingUser } from "@/lib/editor/getCurrentWritingUser";
+import DiaryEditorActions from "@/components/editor/DiaryEditorActions";
 
 const MIN_DIARY_LENGTH = 11;
 const DAILY_DIARY_LIMIT = 3;
@@ -89,8 +89,11 @@ export default function NewDiaryPage() {
   const [visibility, setVisibility] = useState<
     "private" | "public" | "hidden" | "unlisted"
   >("private");
+
   const [publishing, setPublishing] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
@@ -124,6 +127,7 @@ export default function NewDiaryPage() {
         })
         .eq("author_id", user.id)
         .eq("type", "diary")
+        .eq("status", "published")
         .gte("published_at", todayStart.toISOString())
         .lt("published_at", todayEnd.toISOString());
 
@@ -154,7 +158,7 @@ export default function NewDiaryPage() {
   }
 
   async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
-    if (guardWriting("publish")) return;
+    if (guardWriting("draft")) return;
 
     const file = e.target.files?.[0];
     if (!file) return;
@@ -169,6 +173,42 @@ export default function NewDiaryPage() {
     } finally {
       setUploading(false);
     }
+  }
+
+  async function saveDraft() {
+    if (guardWriting("draft")) return;
+
+    if (!currentUser) return;
+
+    if (!content.trim()) {
+      alert("先写一点点，再暂时收起来吧。");
+      return;
+    }
+
+    setDraftSaving(true);
+
+    const now = new Date();
+
+    const { error } = await supabase.from("posts").insert([
+      {
+        type: "diary",
+        title: `日记 · ${formatDate(now)}`,
+        slug: `diary-${Date.now()}`,
+        content: content.trim(),
+        visibility,
+        status: "draft",
+        author_id: currentUser.id,
+      },
+    ]);
+
+    setDraftSaving(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    router.push("/diary");
   }
 
   async function publishDiary() {
@@ -193,6 +233,7 @@ export default function NewDiaryPage() {
       })
       .eq("author_id", currentUser.id)
       .eq("type", "diary")
+      .eq("status", "published")
       .gte("published_at", todayStart.toISOString())
       .lt("published_at", todayEnd.toISOString());
 
@@ -215,7 +256,7 @@ export default function NewDiaryPage() {
         type: "diary",
         title: `日记 · ${formatDate(now)}`,
         slug: `diary-${Date.now()}`,
-        content,
+        content: content.trim(),
         visibility,
         status: "published",
         author_id: currentUser.id,
@@ -242,9 +283,9 @@ export default function NewDiaryPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-20 pt-14 text-white md:px-6 md:pt-36">
+    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-14 text-white md:px-6 md:pt-36">
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-      <div className="fixed left-1/2 top-1/3 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[620px] md:w-[620px]" />
 
       <div className="mx-auto max-w-7xl">
         <button
@@ -276,9 +317,7 @@ export default function NewDiaryPage() {
               content={content}
               setContent={setContent}
               placeholder="我今天过得很好，别担心。"
-              onSaveShortcut={() => {
-                alert("日记目前没有草稿功能，请点击「留下今天」发布。");
-              }}
+              onSaveShortcut={saveDraft}
               insertTextAtCursor={insertTextAtCursor}
               variant="diary"
             />
@@ -287,7 +326,9 @@ export default function NewDiaryPage() {
               contentLength={contentLength}
               minLength={MIN_DIARY_LENGTH}
               publishing={publishing}
+              draftSaving={draftSaving}
               publishDiary={publishDiary}
+              saveDraft={saveDraft}
               goBack={() => router.push("/diary")}
             />
           </section>
