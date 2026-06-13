@@ -1,9 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { CSSProperties, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import PasswordInput from "@/components/ui/PasswordInput";
+
+const memoryCards = [
+  {
+    text: "你还在吗？",
+    className: "left-[7%] top-[24%] md:left-[9%] md:top-[24%]",
+    rotate: "-6deg",
+    duration: "8s",
+  },
+  {
+    text: "我只是突然想起以前。",
+    className: "right-[6%] top-[31%] md:right-[10%] md:top-[30%]",
+    rotate: "5deg",
+    duration: "10s",
+  },
+  {
+    text: "如果那时候，我们都慢一点就好了。",
+    className: "left-[8%] bottom-[24%] md:left-[17%] md:bottom-[20%]",
+    rotate: "3deg",
+    duration: "12s",
+  },
+  {
+    text: "有些话，好像只能留在凌晨。",
+    className: "right-[7%] top-[9%] md:left-[34%] md:top-[16%]",
+    rotate: "4deg",
+    duration: "13s",
+  },
+  {
+    text: "晚安。可是我还没睡。",
+    className: "right-[4%] bottom-[16%] md:left-[70%] md:bottom-[14%]",
+    rotate: "-5deg",
+    duration: "14s",
+  },
+];
+
+const stars = [
+  "left-[18%] top-[22%] h-1 w-1 bg-white/35",
+  "left-[72%] top-[28%] h-1 w-1 bg-white/30",
+  "left-[64%] top-[68%] h-1 w-1 bg-white/25",
+  "left-[30%] top-[74%] h-1 w-1 bg-white/20",
+  "left-[48%] top-[18%] h-[3px] w-[3px] bg-white/25",
+  "left-[82%] top-[61%] h-[3px] w-[3px] bg-white/20",
+  "left-[12%] top-[58%] h-[3px] w-[3px] bg-white/25",
+  "left-[38%] top-[42%] h-[2px] w-[2px] bg-white/30",
+  "left-[57%] top-[76%] h-[2px] w-[2px] bg-white/25",
+  "left-[88%] top-[22%] h-[2px] w-[2px] bg-white/20",
+  "left-[24%] top-[36%] h-[2px] w-[2px] bg-white/30",
+  "left-[70%] top-[82%] h-[2px] w-[2px] bg-white/25",
+  "left-[44%] top-[63%] h-[2px] w-[2px] bg-white/20",
+  "left-[7%] top-[78%] h-[2px] w-[2px] bg-white/25",
+];
 
 export default function Page() {
   const router = useRouter();
@@ -26,94 +76,96 @@ export default function Page() {
 
   const [loginLoading, setLoginLoading] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   async function handleEnter() {
-      const cleanEmail = email.trim();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-      if (!cleanEmail || !password.trim()) {
-        alert("请输入邮箱和密码。");
-        return;
-      }
-
-      if (!emailRegex.test(cleanEmail)) {
-        alert("请输入正确的邮箱格式。");
-        return;
-      }
-
-      setLoginLoading(true);
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
-
-      if (error) {
-        alert("登录失败，请检查邮箱或密码。");
-        setLoginLoading(false);
-        return;
-      }
-
-      setLoginLoading(false);
-      router.push("/home");
+    if (!cleanEmail || !password.trim()) {
+      alert("请输入邮箱和密码。");
+      return;
     }
 
+    if (!emailRegex.test(cleanEmail)) {
+      alert("请输入正确的邮箱格式。");
+      return;
+    }
+
+    setLoginLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+
+    setLoginLoading(false);
+
+    if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        alert("这个邮箱还没有完成验证。请先到邮箱点击验证链接，也可以检查垃圾邮件 / Spam。");
+        return;
+      }
+
+      alert("登录失败，请检查邮箱或密码。");
+      return;
+    }
+
+    router.push("/home");
+  }
+
   async function handleRegister() {
-      const cleanUsername = username.trim();
-      const cleanEmail = registerEmail.trim();
-      const birthDate =
-        birthYear && birthMonth && birthDay
-          ? `${birthYear}-${birthMonth.padStart(2, "0")}-${birthDay.padStart(2, "0")}`
-          : "";
+    const cleanUsername = username.trim();
+    const cleanEmail = registerEmail.trim().toLowerCase();
+    const birthDate =
+      birthYear && birthMonth && birthDay
+        ? `${birthYear}-${birthMonth.padStart(2, "0")}-${birthDay.padStart(2, "0")}`
+        : "";
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const usernameRegex = /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const usernameRegex = /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/;
 
-      if (
-        !cleanUsername ||
-        !cleanEmail ||
-        !birthDate ||
-        !registerPassword.trim() ||
-        !confirmPassword.trim()
-      ) {
-        alert("请填写居民名字、生日、邮箱和密码。");
-        return;
-      }
+    if (
+      !cleanUsername ||
+      !cleanEmail ||
+      !birthDate ||
+      !registerPassword.trim() ||
+      !confirmPassword.trim()
+    ) {
+      alert("请填写居民名字、生日、邮箱和密码。");
+      return;
+    }
 
-      if (cleanUsername.length < 3) {
-        alert("居民名字至少需要 3 个字符。");
-        return;
-      }
+    if (cleanUsername.length < 3) {
+      alert("居民名字至少需要 3 个字符。");
+      return;
+    }
 
-      if (cleanUsername.length > 20) {
-        alert("居民名字不能超过 20 个字符。");
-        return;
-      }
+    if (cleanUsername.length > 20) {
+      alert("居民名字不能超过 20 个字符。");
+      return;
+    }
 
-      if (!usernameRegex.test(cleanUsername)) {
-        alert("居民名字只能使用中文、英文、数字和底线。");
-        return;
-      }
+    if (!usernameRegex.test(cleanUsername)) {
+      alert("居民名字只能使用中文、英文、数字和底线。");
+      return;
+    }
 
-      if (!emailRegex.test(cleanEmail)) {
-        alert("请输入正确的邮箱格式。");
-        return;
-      }
+    if (!emailRegex.test(cleanEmail)) {
+      alert("请输入正确的邮箱格式。");
+      return;
+    }
 
-      if (registerPassword.length < 8) {
-        alert("密码至少需要 8 位。");
-        return;
-      }
+    if (registerPassword.length < 8) {
+      alert("密码至少需要 8 位。");
+      return;
+    }
 
-      if (registerPassword !== confirmPassword) {
-        alert("两次输入的密码不一样。");
-        return;
-      }
+    if (registerPassword !== confirmPassword) {
+      alert("两次输入的密码不一样。");
+      return;
+    }
 
-      setRegisterLoading(true);
+    setRegisterLoading(true);
 
     const { data: existingProfile, error: usernameCheckError } = await supabase
       .from("profiles")
@@ -122,47 +174,48 @@ export default function Page() {
       .maybeSingle();
 
     if (usernameCheckError) {
-      alert(usernameCheckError.message);
       setRegisterLoading(false);
+      alert(usernameCheckError.message);
       return;
     }
 
     if (existingProfile) {
-      alert("这个居民名字已经有人住下了，请换一个名字。");
       setRegisterLoading(false);
+      alert("这个居民名字已经有人住下了，请换一个名字。");
       return;
     }
 
     const { data, error } = await supabase.auth.signUp({
       email: cleanEmail,
       password: registerPassword,
+      options: {
+        emailRedirectTo: "https://ourlittleage.com",
+      },
     });
 
     if (error) {
-      alert(error.message);
       setRegisterLoading(false);
+      alert(error.message);
       return;
     }
 
     if (data.user) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert(
-          {
-            id: data.user.id,
-            username: cleanUsername,
-            role: "user",
-            theme: "midnight",
-            birth_date: birthDate,
-          },
-          {
-            onConflict: "id",
-          }
-        );
+      const { error: profileError } = await supabase.from("profiles").upsert(
+        {
+          id: data.user.id,
+          username: cleanUsername,
+          role: "user",
+          theme: "midnight",
+          birth_date: birthDate,
+        },
+        {
+          onConflict: "id",
+        }
+      );
 
       if (profileError) {
-        alert(profileError.message);
         setRegisterLoading(false);
+        alert(profileError.message);
         return;
       }
 
@@ -178,12 +231,25 @@ export default function Page() {
     }
 
     setRegisterLoading(false);
-    router.push("/home");
+
+    alert(
+      "验证邮件已经发送到你的邮箱。\n\n请先到邮箱点击验证链接，完成后再回来登录。\n\n如果没有看到邮件，也记得检查垃圾邮件 / Spam。"
+    );
+
+    setAuthMode("login");
+    setEmail(cleanEmail);
+    setPassword("");
+    setUsername("");
+    setRegisterEmail("");
+    setRegisterPassword("");
+    setConfirmPassword("");
+    setBirthDay("");
+    setBirthMonth("");
+    setBirthYear("");
   }
 
   function scrollToPortal() {
     const portalCard = document.getElementById("portal-card");
-
     if (!portalCard) return;
 
     const rect = portalCard.getBoundingClientRect();
@@ -229,9 +295,7 @@ export default function Page() {
     window.addEventListener("scroll", handleScroll);
     handleScroll();
 
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
@@ -263,53 +327,22 @@ export default function Page() {
         />
 
         <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden">
-          {[
-            {
-              text: "你还在吗？",
-              className: "left-[7%] top-[24%] md:left-[9%] md:top-[24%]",
-              rotate: "-6deg",
-              duration: "8s",
-            },
-            {
-              text: "我只是突然想起以前。",
-              className: "right-[6%] top-[31%] md:right-[10%] md:top-[30%]",
-              rotate: "5deg",
-              duration: "10s",
-            },
-            {
-              text: "如果那时候，我们都慢一点就好了。",
-              className: "left-[8%] bottom-[24%] md:left-[17%] md:bottom-[20%]",
-              rotate: "3deg",
-              duration: "12s",
-            },
-            {
-              text: "有些话，好像只能留在凌晨。",
-              className: "right-[7%] top-[9%] md:left-[34%] md:top-[16%]",
-              rotate: "4deg",
-              duration: "13s",
-            },
-            {
-              text: "晚安。可是我还没睡。",
-              className: "right-[4%] bottom-[16%] md:left-[70%] md:bottom-[14%]",
-              rotate: "-5deg",
-              duration: "14s",
-            },
-          ].map((item) => (
+          {memoryCards.map((item) => (
             <div
               key={item.text}
               className={`
                 absolute ${item.className}
-                max-w-[210px] md:max-w-none
-                rounded-3xl border border-white/15 bg-white/[0.055]
-                px-4 py-3 text-xs text-white/40 backdrop-blur-md
+                max-w-[210px] rounded-3xl border border-white/15
+                bg-white/[0.055] px-4 py-3 text-xs text-white/40
                 shadow-[0_0_40px_rgba(255,255,255,0.035)]
-                md:px-5 md:py-4 md:text-sm md:text-white/45
+                backdrop-blur-md md:max-w-none md:px-5 md:py-4
+                md:text-sm md:text-white/45
               `}
               style={
                 {
                   "--rotate": item.rotate,
                   animation: `memoryFloat ${item.duration} ease-in-out infinite`,
-                } as React.CSSProperties
+                } as CSSProperties
               }
             >
               {item.text}
@@ -318,32 +351,11 @@ export default function Page() {
         </div>
 
         <div className="pointer-events-none absolute inset-0 z-[3]">
-          {[
-            "left-[18%] top-[22%] h-1 w-1 bg-white/35",
-            "left-[72%] top-[28%] h-1 w-1 bg-white/30",
-            "left-[64%] top-[68%] h-1 w-1 bg-white/25",
-            "left-[30%] top-[74%] h-1 w-1 bg-white/20",
-            "left-[48%] top-[18%] h-[3px] w-[3px] bg-white/25",
-            "left-[82%] top-[61%] h-[3px] w-[3px] bg-white/20",
-            "left-[12%] top-[58%] h-[3px] w-[3px] bg-white/25",
-            "left-[38%] top-[42%] h-[2px] w-[2px] bg-white/30",
-            "left-[57%] top-[76%] h-[2px] w-[2px] bg-white/25",
-            "left-[88%] top-[22%] h-[2px] w-[2px] bg-white/20",
-            "left-[24%] top-[36%] h-[2px] w-[2px] bg-white/30",
-            "left-[70%] top-[82%] h-[2px] w-[2px] bg-white/25",
-            "left-[44%] top-[63%] h-[2px] w-[2px] bg-white/20",
-            "left-[7%] top-[78%] h-[2px] w-[2px] bg-white/25",
-          ].map((item, index) => (
+          {stars.map((item, index) => (
             <div
-              key={index}
-              className={`
-                absolute rounded-full
-                ${item}
-                animate-[starBreath_4s_ease-in-out_infinite]
-              `}
-              style={{
-                animationDelay: `${index * 0.35}s`,
-              }}
+              key={item}
+              className={`absolute rounded-full ${item} animate-[starBreath_4s_ease-in-out_infinite]`}
+              style={{ animationDelay: `${index * 0.35}s` }}
             />
           ))}
         </div>
@@ -359,7 +371,7 @@ export default function Page() {
         </div>
 
         <div
-          className="absolute bottom-[17%] left-1/2 z-[4] -translate-x-1/2 text-sm text-zinc-700 md:bottom-40 md:right-32 md:left-auto md:translate-x-0 md:text-lg"
+          className="absolute bottom-[17%] left-1/2 z-[4] -translate-x-1/2 text-sm text-zinc-700 md:bottom-40 md:left-auto md:right-32 md:translate-x-0 md:text-lg"
           style={{
             transform: `translateY(${scrollY * 0.06}px)`,
             opacity: Math.max(0.45 - scrollY / 900, 0),
@@ -370,26 +382,15 @@ export default function Page() {
 
         <div
           className="relative z-10 space-y-6 text-center"
-          style={{
-            transform: `translateY(${scrollY * -0.12}px)`,
-          }}
+          style={{ transform: `translateY(${scrollY * -0.12}px)` }}
         >
-          <p className="text-xs tracking-[0.5em] text-white/25">
-            WELCOME TO
-          </p>
+          <p className="text-xs tracking-[0.5em] text-white/25">WELCOME TO</p>
 
-          <h1
-            className="
-              text-7xl font-black tracking-tight md:text-8xl
-              animate-[titleBreath_7s_ease-in-out_infinite]
-            "
-          >
+          <h1 className="animate-[titleBreath_7s_ease-in-out_infinite] text-7xl font-black tracking-tight md:text-8xl">
             小时代
           </h1>
 
-          <p className="text-xl text-zinc-500">
-            一个允许人慢慢生活的地方。
-          </p>
+          <p className="text-xl text-zinc-500">一个允许人慢慢生活的地方。</p>
 
           <p className="pt-5 text-xs uppercase tracking-[0.3em] text-zinc-700 md:pt-8 md:text-sm">
             Scroll To Enter
@@ -420,9 +421,7 @@ export default function Page() {
               filter: `blur(${Math.max(10 - (scrollY - 520) * 0.02, 0)}px)`,
             }}
           >
-            <p className="text-xs tracking-[0.5em] text-white/25">
-              STEP INTO
-            </p>
+            <p className="text-xs tracking-[0.5em] text-white/25">STEP INTO</p>
 
             <h2 className="text-5xl font-black tracking-tight text-white md:text-7xl">
               进入世界
@@ -453,32 +452,22 @@ export default function Page() {
 
         <div
           id="portal-card"
-          className="
-            relative z-10 grid w-full max-w-5xl gap-6 transition-all duration-1000
-            md:grid-cols-2
-          "
+          className="relative z-10 grid w-full max-w-5xl gap-6 transition-all duration-1000 md:grid-cols-2"
           style={{
             opacity: Math.min(Math.max((scrollY - 1550) / 500, 0), 1),
-            transform: `
-              scale(${
-                0.98 +
-                Math.min(Math.max((scrollY - 1500) / 900, 0), 1) * 0.02
-              })
-            `,
+            transform: `scale(${
+              0.98 +
+              Math.min(Math.max((scrollY - 1500) / 900, 0), 1) * 0.02
+            })`,
             filter: `blur(${Math.max(6 - (scrollY - 1500) * 0.015, 0)}px)`,
           }}
         >
           <div
             className={`
               rounded-[2rem] border border-white/10 bg-white/[0.035]
-              p-10 text-white backdrop-blur-2xl
-              shadow-[0_0_80px_rgba(255,255,255,0.06)]
-              transition-all duration-1000 ease-out
-              ${
-                authMode === "register"
-                  ? "md:translate-x-0"
-                  : "md:translate-x-[50%]"
-              }
+              p-10 text-white shadow-[0_0_80px_rgba(255,255,255,0.06)]
+              backdrop-blur-2xl transition-all duration-1000 ease-out
+              ${authMode === "register" ? "md:translate-x-0" : "md:translate-x-[50%]"}
             `}
           >
             <p className="mb-3 text-xs tracking-[0.35em] text-white/35">
@@ -500,59 +489,28 @@ export default function Page() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="
-                  w-full rounded-2xl border border-white/10
-                  bg-white/[0.07] px-5 py-4 text-sm text-white
-                  placeholder:text-white/25 outline-none
+                  w-full rounded-2xl border border-white/10 bg-white/[0.07]
+                  px-5 py-4 text-sm text-white outline-none
                   shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
-                  transition-all duration-500
+                  transition-all duration-500 placeholder:text-white/25
                   focus:border-white/35 focus:bg-white/[0.12]
                   focus:shadow-[0_0_30px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]
                 "
               />
 
-              <div className="relative">
-                <input
-                  type={showLoginPassword ? "text" : "password"}
-                  placeholder="密码"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="
-                    w-full rounded-2xl border border-white/10
-                    bg-white/[0.07] px-5 py-4 pr-12 text-sm text-white
-                    placeholder:text-white/25 outline-none
-                    shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
-                    transition-all duration-500
-                    focus:border-white/35 focus:bg-white/[0.12]
-                    focus:shadow-[0_0_30px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]
-                  "
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setShowLoginPassword(!showLoginPassword)}
-                  className="
-                    absolute right-4 top-1/2 -translate-y-1/2
-                    rounded-full border border-black/10 bg-black/5 p-1
-                    text-zinc-800 transition
-                    hover:bg-black/10 hover:text-black
-                  "
-                >
-                  {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+              <PasswordInput value={password} onChange={setPassword} placeholder="密码" />
 
               <button
+                type="button"
                 onClick={handleEnter}
                 disabled={loginLoading}
                 className="
-                  w-full rounded-2xl bg-white py-4
-                  text-sm font-semibold text-black
-                  shadow-[0_0_40px_rgba(255,255,255,0.12)]
-                  transition-all duration-500
-                  hover:scale-[1.01] hover:bg-white/90
-                  hover:shadow-[0_0_60px_rgba(255,255,255,0.18)]
-                  active:scale-[0.99]
-                  disabled:cursor-not-allowed disabled:opacity-60
+                  w-full rounded-2xl bg-white py-4 text-sm font-semibold
+                  text-black shadow-[0_0_40px_rgba(255,255,255,0.12)]
+                  transition-all duration-500 hover:scale-[1.01]
+                  hover:bg-white/90 hover:shadow-[0_0_60px_rgba(255,255,255,0.18)]
+                  active:scale-[0.99] disabled:cursor-not-allowed
+                  disabled:opacity-60
                 "
               >
                 {loginLoading ? "进入中..." : "进入小时代"}
@@ -560,6 +518,7 @@ export default function Page() {
 
               <div className="space-y-2 pt-2 text-center text-xs">
                 <button
+                  type="button"
                   onClick={() => setAuthMode("register")}
                   className="w-full text-white/35 transition hover:text-white/60"
                 >
@@ -580,9 +539,8 @@ export default function Page() {
           <div
             className={`
               overflow-hidden rounded-[2rem] border border-white/10
-              bg-white/[0.035] text-white backdrop-blur-2xl
-              shadow-[0_0_80px_rgba(255,255,255,0.06)]
-              transition-all duration-1000 ease-out
+              bg-white/[0.035] text-white shadow-[0_0_80px_rgba(255,255,255,0.06)]
+              backdrop-blur-2xl transition-all duration-1000 ease-out
               ${
                 authMode === "register"
                   ? "max-h-[1200px] opacity-100 blur-0"
@@ -610,10 +568,9 @@ export default function Page() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="
-                    w-full rounded-2xl border border-white/10
-                    bg-white/[0.07] px-5 py-4 text-sm text-white
-                    placeholder:text-white/25 outline-none
-                    transition-all duration-500
+                    w-full rounded-2xl border border-white/10 bg-white/[0.07]
+                    px-5 py-4 text-sm text-white outline-none
+                    transition-all duration-500 placeholder:text-white/25
                     focus:border-white/35 focus:bg-white/[0.12]
                   "
                 />
@@ -622,54 +579,43 @@ export default function Page() {
                   <select
                     value={birthDay}
                     onChange={(e) => setBirthDay(e.target.value)}
-                    className="
-                      w-full appearance-none rounded-2xl border border-white/10
-                      bg-white/[0.07] px-5 py-4 text-sm text-white/70
-                      outline-none transition-all duration-500
-                      focus:border-white/35 focus:bg-white/[0.12]
-                    "
+                    className="w-full appearance-none rounded-2xl border border-white/10 bg-white/[0.07] px-5 py-4 text-sm text-white/70 outline-none transition-all duration-500 focus:border-white/35 focus:bg-white/[0.12]"
                   >
                     <option value="" className="bg-zinc-950 text-white">
                       日
                     </option>
 
-                    {Array.from({ length: 31 }, (_, i) => String(i + 1)).map((day) => (
-                      <option key={day} value={day} className="bg-zinc-950 text-white">
-                        {day}
-                      </option>
-                    ))}
+                    {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(
+                      (day) => (
+                        <option key={day} value={day} className="bg-zinc-950 text-white">
+                          {day}
+                        </option>
+                      )
+                    )}
                   </select>
 
                   <select
                     value={birthMonth}
                     onChange={(e) => setBirthMonth(e.target.value)}
-                    className="
-                      w-full appearance-none rounded-2xl border border-white/10
-                      bg-white/[0.07] px-5 py-4 text-sm text-white/70
-                      outline-none transition-all duration-500
-                      focus:border-white/35 focus:bg-white/[0.12]
-                    "
+                    className="w-full appearance-none rounded-2xl border border-white/10 bg-white/[0.07] px-5 py-4 text-sm text-white/70 outline-none transition-all duration-500 focus:border-white/35 focus:bg-white/[0.12]"
                   >
                     <option value="" className="bg-zinc-950 text-white">
                       月
                     </option>
 
-                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((month) => (
-                      <option key={month} value={month} className="bg-zinc-950 text-white">
-                        {month}
-                      </option>
-                    ))}
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(
+                      (month) => (
+                        <option key={month} value={month} className="bg-zinc-950 text-white">
+                          {month}
+                        </option>
+                      )
+                    )}
                   </select>
 
                   <select
                     value={birthYear}
                     onChange={(e) => setBirthYear(e.target.value)}
-                    className="
-                      w-full appearance-none rounded-2xl border border-white/10
-                      bg-white/[0.07] px-5 py-4 text-sm text-white/70
-                      outline-none transition-all duration-500
-                      focus:border-white/35 focus:bg-white/[0.12]
-                    "
+                    className="w-full appearance-none rounded-2xl border border-white/10 bg-white/[0.07] px-5 py-4 text-sm text-white/70 outline-none transition-all duration-500 focus:border-white/35 focus:bg-white/[0.12]"
                   >
                     <option value="" className="bg-zinc-950 text-white">
                       年
@@ -692,79 +638,32 @@ export default function Page() {
                   value={registerEmail}
                   onChange={(e) => setRegisterEmail(e.target.value)}
                   className="
-                    w-full rounded-2xl border border-white/10
-                    bg-white/[0.07] px-5 py-4 text-sm text-white
-                    placeholder:text-white/25 outline-none
-                    transition-all duration-500
+                    w-full rounded-2xl border border-white/10 bg-white/[0.07]
+                    px-5 py-4 text-sm text-white outline-none
+                    transition-all duration-500 placeholder:text-white/25
                     focus:border-white/35 focus:bg-white/[0.12]
                   "
                 />
 
-                <div className="relative">
-                  <input
-                    type={showRegisterPassword ? "text" : "password"}
-                    placeholder="密码"
-                    value={registerPassword}
-                    onChange={(e) => setRegisterPassword(e.target.value)}
-                    className="
-                      w-full rounded-2xl border border-white/10
-                      bg-white/[0.07] px-5 py-4 pr-12 text-sm text-white
-                      placeholder:text-white/25 outline-none
-                      transition-all duration-500
-                      focus:border-white/35 focus:bg-white/[0.12]
-                    "
-                  />
+                <PasswordInput
+                  value={registerPassword}
+                  onChange={setRegisterPassword}
+                  placeholder="密码"
+                />
 
-                  <button
-                    type="button"
-                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                    className="
-                      absolute right-4 top-1/2 -translate-y-1/2
-                      rounded-full border border-black/10 bg-black/5 p-1
-                      text-zinc-800 transition
-                      hover:bg-black/10 hover:text-black
-                    "
-                  >
-                    {showRegisterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="确认密码"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="
-                      w-full rounded-2xl border border-white/10
-                      bg-white/[0.07] px-5 py-4 pr-12 text-sm text-white
-                      placeholder:text-white/25 outline-none
-                      transition-all duration-500
-                      focus:border-white/35 focus:bg-white/[0.12]
-                    "
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="
-                      absolute right-4 top-1/2 -translate-y-1/2
-                      rounded-full border border-black/10 bg-black/5 p-1
-                      text-zinc-800 transition
-                      hover:bg-black/10 hover:text-black
-                    "
-                  >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
+                <PasswordInput
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  placeholder="确认密码"
+                />
 
                 <button
+                  type="button"
                   onClick={handleRegister}
                   disabled={registerLoading}
                   className="
-                    w-full rounded-2xl bg-white py-4
-                    text-sm font-semibold text-black
-                    transition hover:bg-white/90
+                    w-full rounded-2xl bg-white py-4 text-sm font-semibold
+                    text-black transition hover:bg-white/90
                     disabled:cursor-not-allowed disabled:opacity-60
                   "
                 >
@@ -772,6 +671,7 @@ export default function Page() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setAuthMode("login")}
                   className="w-full pt-2 text-xs text-white/35 transition hover:text-white/60"
                 >
@@ -786,21 +686,17 @@ export default function Page() {
       <div
         className={`
           fixed left-1/2 z-40 -translate-x-1/2 transition-all duration-1000 ease-out
-          ${
-            showLoginDock
-              ? "bottom-10 opacity-100 scale-100"
-              : "-bottom-24 opacity-0 scale-95"
-          }
+          ${showLoginDock ? "bottom-10 scale-100 opacity-100" : "-bottom-24 scale-95 opacity-0"}
         `}
       >
         <button
+          type="button"
           onClick={scrollToPortal}
           className="
             rounded-full border border-white/10 bg-white/[0.055]
             px-5 py-2.5 text-xs font-medium tracking-wide text-white/70
-            backdrop-blur-2xl
             shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_34px_rgba(255,255,255,0.08)]
-            transition-all duration-500
+            backdrop-blur-2xl transition-all duration-500
             hover:border-white/20 hover:bg-white/[0.09] hover:text-white/90
           "
         >
@@ -810,13 +706,13 @@ export default function Page() {
 
       <div className="fixed bottom-6 right-6 z-50">
         <button
+          type="button"
           onClick={() => setMusicOpen(!musicOpen)}
           className="
-            group flex items-center gap-3 rounded-full
-            border border-white/10 bg-white/[0.055]
-            px-4 py-3 text-white/70 backdrop-blur-2xl
+            group flex items-center gap-3 rounded-full border border-white/10
+            bg-white/[0.055] px-4 py-3 text-white/70
             shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_34px_rgba(255,255,255,0.08)]
-            transition-all duration-500
+            backdrop-blur-2xl transition-all duration-500
             hover:bg-white/[0.09] hover:text-white/90
           "
         >
@@ -829,19 +725,16 @@ export default function Page() {
             `}
           />
 
-          <span className="hidden text-xs md:block">
-            玻璃 · 深夜播放
-          </span>
+          <span className="hidden text-xs md:block">玻璃 · 深夜播放</span>
         </button>
 
         {musicOpen && (
           <div
             className="
-              absolute bottom-16 right-0 w-[280px] overflow-hidden
-              rounded-3xl border border-white/10 bg-black/80
-              p-3 backdrop-blur-2xl
-              shadow-[0_0_70px_rgba(255,255,255,0.08)]
-              animate-in fade-in slide-in-from-bottom-4 duration-500
+              animate-in fade-in slide-in-from-bottom-4 absolute bottom-16
+              right-0 w-[280px] overflow-hidden rounded-3xl border
+              border-white/10 bg-black/80 p-3 shadow-[0_0_70px_rgba(255,255,255,0.08)]
+              backdrop-blur-2xl duration-500
             "
           >
             <p className="mb-3 px-2 text-xs tracking-[0.25em] text-white/35">

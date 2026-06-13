@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -24,9 +25,7 @@ export default function ResetPasswordPage() {
 
     setSaving(true);
 
-    const { error } = await supabase.auth.updateUser({
-      password,
-    });
+    const { error } = await supabase.auth.updateUser({ password });
 
     setSaving(false);
 
@@ -49,29 +48,23 @@ export default function ResetPasswordPage() {
           RESET PASSWORD
         </p>
 
-        <h1 className="mt-4 text-4xl font-light">
-          重新进入你的房间
-        </h1>
+        <h1 className="mt-4 text-4xl font-light">重新进入你的房间</h1>
 
         <p className="mt-4 text-sm leading-7 text-white/40">
           设一个新的密码。之后你就可以用它回到小时代。
         </p>
 
         <div className="mt-8 space-y-4">
-          <input
-            type="password"
+          <PasswordInput
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
             placeholder="新密码"
-            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition placeholder:text-white/25 focus:border-white/30"
           />
 
-          <input
-            type="password"
+          <PasswordInput
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={setConfirmPassword}
             placeholder="再输入一次新密码"
-            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 outline-none transition placeholder:text-white/25 focus:border-white/30"
           />
 
           <button

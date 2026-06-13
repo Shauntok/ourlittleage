@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 export default function AccountSettingsPage() {
   const router = useRouter();
@@ -161,31 +162,29 @@ export default function AccountSettingsPage() {
         </p>
 
         <div className="mt-6 space-y-4">
-          <input
-            type="password"
+          <PasswordInput
             value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
+            onChange={setCurrentPassword}
             placeholder="当前密码"
-            className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition placeholder:text-white/20 focus:border-white/30"
+            className="bg-black/30 focus:bg-black/30"
           />
 
-          <input
-            type="password"
+          <PasswordInput
             value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            onChange={setNewPassword}
             placeholder="新密码，至少 8 个字符"
-            className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition placeholder:text-white/20 focus:border-white/30"
+            className="bg-black/30 focus:bg-black/30"
           />
 
-          <input
-            type="password"
+          <PasswordInput
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={setConfirmPassword}
             placeholder="再次输入新密码"
-            className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition placeholder:text-white/20 focus:border-white/30"
+            className="bg-black/30 focus:bg-black/30"
           />
 
           <button
+            type="button"
             onClick={updatePassword}
             disabled={saving}
             className="rounded-full bg-white px-8 py-4 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
@@ -205,6 +204,7 @@ export default function AccountSettingsPage() {
         </p>
 
         <button
+          type="button"
           onClick={signOut}
           className="mt-6 rounded-full border border-red-400/30 bg-red-500/10 px-8 py-4 text-sm text-red-100/80 transition hover:bg-red-500/20 hover:text-red-100"
         >
