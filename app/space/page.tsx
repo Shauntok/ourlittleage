@@ -67,25 +67,24 @@ async function fetchSpacePosts(type: "article" | "diary") {
           .eq("is_hidden", false)
       : { data: [] as any[] };
 
-  const likeCountMap = new Map<number, number>();
-  const commentCountMap = new Map<number, number>();
+  const likeCountMap = new Map<string, number>();
+  const commentCountMap = new Map<string, number>();
 
   (likesData || []).forEach((like: any) => {
-    likeCountMap.set(like.post_id, (likeCountMap.get(like.post_id) || 0) + 1);
+    const key = String(like.post_id);
+    likeCountMap.set(key, (likeCountMap.get(key) || 0) + 1);
   });
 
   (commentsData || []).forEach((comment: any) => {
-    commentCountMap.set(
-      comment.post_id,
-      (commentCountMap.get(comment.post_id) || 0) + 1
-    );
+    const key = String(comment.post_id);
+    commentCountMap.set(key, (commentCountMap.get(key) || 0) + 1);
   });
 
   return data.map((post: any) => ({
     ...post,
     authorProfile: profileMap.get(post.author_id) || null,
-    likeCount: likeCountMap.get(post.id) || 0,
-    commentCount: commentCountMap.get(post.id) || 0,
+    likeCount: likeCountMap.get(String(post.id)) || 0,
+    commentCount: commentCountMap.get(String(post.id)) || 0,
   })) as SpacePost[];
 }
 

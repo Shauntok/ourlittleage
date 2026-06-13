@@ -172,8 +172,7 @@ export default function Navbar() {
           </Link>
 
           {worldMenuOpen && (
-            <div className="fixed left-4 top-[76px] z-[60] w-64 overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:hidden">
-              <div className="border-b border-white/10 px-5 py-4">
+              <div className="fixed left-4 top-[76px] z-[100] w-64 overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:hidden">              <div className="border-b border-white/10 px-5 py-4">
                 <p className="text-xs tracking-[0.3em] text-white/25">
                   OUR LITTLE AGE
                 </p>
@@ -287,7 +286,7 @@ export default function Navbar() {
               </button>
 
               {menuOpen && (
-                  <div className="fixed right-4 top-[76px] z-[60] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl">                  <div className="border-b border-white/10 px-5 py-5">
+                  <div className="fixed right-4 top-[76px] z-[100] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl">                  <div className="border-b border-white/10 px-5 py-5">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
                         {profile.avatar_url ? (
@@ -348,7 +347,15 @@ export default function Navbar() {
                     <Link
                       href="/drafts"
                       onClick={closeMenus}
-                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
+                      className="
+                        hidden md:flex
+                        items-center gap-3
+                        px-5 py-4
+                        text-white/70
+                        transition
+                        hover:bg-white/[0.05]
+                        hover:text-white
+                      "
                     >
                       <span>📦</span>
                       <span>草稿箱</span>

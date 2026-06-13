@@ -92,10 +92,25 @@ export default function ArticleDetailPage() {
         authorProfile = profileData;
       }
 
+      const { count: likeCount } = await supabase
+        .from("post_likes")
+        .select("id", { count: "exact", head: true })
+        .eq("post_id", data.id)
+        .eq("is_active", true);
+
+      const { count: commentCount } = await supabase
+        .from("comments")
+        .select("id", { count: "exact", head: true })
+        .eq("post_id", data.id)
+        .eq("is_deleted", false)
+        .eq("is_hidden", false);
+
       setArticle({
         ...data,
         profiles: authorProfile,
         isAuthor,
+        likeCount: likeCount || 0,
+        commentCount: commentCount || 0,
       });
 
       setLoading(false);
@@ -267,7 +282,18 @@ export default function ArticleDetailPage() {
           <div className="flex flex-wrap gap-2 md:gap-3">
             {!isAuthor && (
               <>
-                <LikeButton postId={article.id} authorId={article.author_id} />
+                <LikeButton
+                  postId={article.id}
+                  authorId={article.author_id}
+                  initialCount={article.likeCount || 0}
+                />
+
+                <a
+                  href="#comments"
+                  className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-6 py-3 text-center text-sm text-blue-100/60 transition hover:border-blue-400/30 hover:text-blue-100"
+                >
+                  评论 · {article.commentCount || 0}
+                </a>
 
                 <ReportButton
                   targetType="post"

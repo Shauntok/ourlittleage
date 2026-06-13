@@ -125,20 +125,26 @@ export default function AccountSettingsPage() {
   }
 
   if (loading) {
-    return <div className="text-white/40">正在读取账号资料...</div>;
+    return (
+      <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-7 text-sm text-white/40">
+        正在读取账号资料...
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto max-w-4xl">
       <p className="text-xs tracking-[0.35em] text-white/25">ACCOUNT</p>
 
-      <h1 className="mt-4 text-5xl font-light">账号安全</h1>
+      <h1 className="mt-4 text-4xl font-light tracking-tight md:text-5xl">
+        账号安全
+      </h1>
 
-      <p className="mt-6 max-w-2xl text-sm leading-7 text-white/40">
+      <p className="mt-5 max-w-2xl text-sm leading-7 text-white/40 md:mt-6">
         管理你的登录邮箱、密码，以及账号登入状态。
       </p>
 
-      <section className="mt-12 rounded-[2rem] border border-white/10 bg-white/[0.03] p-7">
+      <section className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-2xl md:mt-12 md:p-7">
         <p className="text-xs tracking-[0.3em] text-white/25">EMAIL</p>
 
         <h2 className="mt-4 text-2xl font-light">当前邮箱</h2>
@@ -152,7 +158,7 @@ export default function AccountSettingsPage() {
         </p>
       </section>
 
-      <section className="mt-6 rounded-[2rem] border border-white/10 bg-white/[0.03] p-7">
+      <section className="mt-5 rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-2xl md:mt-6 md:p-7">
         <p className="text-xs tracking-[0.3em] text-white/25">PASSWORD</p>
 
         <h2 className="mt-4 text-2xl font-light">修改密码</h2>
@@ -187,14 +193,14 @@ export default function AccountSettingsPage() {
             type="button"
             onClick={updatePassword}
             disabled={saving}
-            className="rounded-full bg-white px-8 py-4 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-full bg-white px-8 py-4 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40 md:w-auto"
           >
             {saving ? "更新中..." : "更新密码"}
           </button>
         </div>
       </section>
 
-      <section className="mt-6 rounded-[2rem] border border-red-500/20 bg-red-500/[0.045] p-7">
+      <section className="mt-5 rounded-[2rem] border border-red-500/20 bg-red-500/[0.045] p-5 backdrop-blur-2xl md:mt-6 md:p-7">
         <p className="text-xs tracking-[0.3em] text-red-100/40">SESSION</p>
 
         <h2 className="mt-4 text-2xl font-light text-red-100">登出账号</h2>
@@ -206,7 +212,7 @@ export default function AccountSettingsPage() {
         <button
           type="button"
           onClick={signOut}
-          className="mt-6 rounded-full border border-red-400/30 bg-red-500/10 px-8 py-4 text-sm text-red-100/80 transition hover:bg-red-500/20 hover:text-red-100"
+          className="mt-6 w-full rounded-full border border-red-400/30 bg-red-500/10 px-8 py-4 text-sm text-red-100/80 transition hover:bg-red-500/20 hover:text-red-100 md:w-auto"
         >
           登出
         </button>

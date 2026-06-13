@@ -402,12 +402,12 @@ export default function ProfileSettingsPage() {
       : "from-black via-zinc-950 to-black";
 
   return (
-    <div className="w-full overflow-hidden text-white">
+    <div className="w-full overflow-hidden pb-24 text-white md:pb-0">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[620px] md:w-[620px]" />
 
-      <div className="grid w-full max-w-full gap-8 xl:grid-cols-[minmax(720px,1fr)_380px] 2xl:grid-cols-[minmax(900px,1fr)_420px]">
-        <section className="space-y-6 md:space-y-8">
+      <div className="grid w-full min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="min-w-0 space-y-6 md:space-y-8">
           <div>
             <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.4em]">
               ROOM SETTINGS
@@ -449,8 +449,8 @@ export default function ProfileSettingsPage() {
 
             <div className="relative z-10 p-5 md:p-7">
               <div className="flex flex-col gap-5 md:mt-6 md:flex-row md:items-start md:gap-6">
-                <div className="space-y-3 md:space-y-4">
-                  <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_45px_rgba(255,255,255,0.12)] md:h-32 md:w-32">
+                <div className="flex items-center gap-4 md:block md:space-y-4">
+                  <div className="h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_45px_rgba(255,255,255,0.12)] md:h-32 md:w-32">
                     {profile?.avatar_url ? (
                       <img
                         src={profile.avatar_url}
@@ -536,43 +536,64 @@ export default function ProfileSettingsPage() {
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-2xl md:rounded-[2.4rem] md:p-7">
-            <p className="text-xs tracking-[0.3em] text-white/25 md:tracking-[0.35em]">
-              ROOM THEME
-            </p>
+          <section className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-2xl md:rounded-[2.4rem] md:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs tracking-[0.3em] text-white/25 md:tracking-[0.35em]">
+                  ROOM THEME
+                </p>
 
-            <h2 className="mt-3 text-2xl font-light md:mt-4">
-              🎨 房间主题
-            </h2>
+                <h2 className="mt-3 text-2xl font-light md:mt-4">
+                  🎨 房间主题
+                </h2>
+              </div>
 
-            <p className="mt-3 text-sm leading-7 text-white/35">
+              <p className="hidden max-w-xs text-right text-sm leading-7 text-white/30 md:block">
+                选择别人进入你房间时看见的氛围。
+              </p>
+            </div>
+
+            <p className="mt-3 text-sm leading-7 text-white/35 md:hidden">
               选择别人进入你房间时看见的氛围。
             </p>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 md:mt-6">
+            <div className="mt-5 grid gap-2.5 sm:grid-cols-2 md:mt-6 md:gap-3">
               {[
-                { key: "midnight", name: "🌙 深夜黑" },
-                { key: "ocean", name: "🌊 深海蓝" },
-                { key: "forest", name: "🌲 森林绿" },
-                { key: "sunset", name: "🌇 黄昏橙" },
-                { key: "mist", name: "☁️ 雾白" },
-              ].map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => {
-                    setTheme(item.key);
-                    setHasUnsavedChanges(true);
-                  }}
-                  className={`rounded-2xl border p-3.5 text-left text-sm transition md:p-4 md:text-base ${
-                    theme === item.key
-                      ? "border-white bg-white text-black"
-                      : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/25"
-                  }`}
-                >
-                  {item.name}
-                </button>
-              ))}
+                { key: "midnight", icon: "🌙", name: "深夜黑" },
+                { key: "ocean", icon: "🌊", name: "深海蓝" },
+                { key: "forest", icon: "🌲", name: "森林绿" },
+                { key: "sunset", icon: "🌇", name: "黄昏橙" },
+                { key: "mist", icon: "☁️", name: "雾白" },
+              ].map((item) => {
+                const active = theme === item.key;
+
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setTheme(item.key);
+                      setHasUnsavedChanges(true);
+                    }}
+                    className={`
+                      flex items-center justify-between rounded-2xl border px-4 py-3
+                      text-left text-sm transition md:px-4 md:py-3.5
+                      ${
+                        active
+                          ? "border-white bg-white text-black shadow-[0_0_28px_rgba(255,255,255,0.12)]"
+                          : "border-white/10 bg-black/25 text-white/55 hover:border-white/25 hover:bg-white/[0.04] hover:text-white"
+                      }
+                    `}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>{item.icon}</span>
+                      <span>{item.name}</span>
+                    </span>
+
+                    {active && <span className="text-xs opacity-55">已选择</span>}
+                  </button>
+                );
+              })}
             </div>
           </section>
 
@@ -580,7 +601,7 @@ export default function ProfileSettingsPage() {
             <button
               onClick={saveProfile}
               disabled={saving}
-              className="rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
+              className="hidden rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40 md:inline-flex"
             >
               {saving ? "保存中..." : "保存房间资料"}
             </button>
@@ -591,9 +612,28 @@ export default function ProfileSettingsPage() {
               </p>
             )}
           </div>
+
+          {hasUnsavedChanges && (
+            <div className="fixed bottom-0 left-0 right-0 z-[80] border-t border-white/10 bg-black/90 px-5 py-4 backdrop-blur-2xl md:hidden">
+              <div className="mx-auto flex max-w-md items-center gap-3">
+                <p className="min-w-0 flex-1 text-xs leading-5 text-yellow-100/65">
+                  你有还没保存的房间资料。
+                </p>
+
+                <button
+                  type="button"
+                  onClick={saveProfile}
+                  disabled={saving}
+                  className="shrink-0 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition active:scale-95 disabled:opacity-40"
+                >
+                  {saving ? "保存中..." : "保存"}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
-        <aside className="hidden space-y-6 xl:sticky xl:top-24 xl:block xl:self-start">
+        <aside className="hidden min-w-0 space-y-6 xl:sticky xl:top-24 xl:block xl:self-start">
           <div
             className={`overflow-hidden rounded-[2.4rem] border border-white/10 bg-gradient-to-b ${previewTheme} backdrop-blur-2xl`}
           >
