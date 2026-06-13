@@ -558,12 +558,22 @@ export default function Page() {
                 {loginLoading ? "进入中..." : "进入小时代"}
               </button>
 
-              <button
-                onClick={() => setAuthMode("register")}
-                className="w-full pt-2 text-xs text-white/35 transition hover:text-white/60"
-              >
-                还没有房间？创建居民账号
-              </button>
+              <div className="space-y-2 pt-2 text-center text-xs">
+                <button
+                  onClick={() => setAuthMode("register")}
+                  className="w-full text-white/35 transition hover:text-white/60"
+                >
+                  还没有房间？创建居民账号
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => router.push("/forgot-password")}
+                  className="w-full text-white/25 transition hover:text-white/55"
+                >
+                  忘记密码？找回你的房间钥匙
+                </button>
+              </div>
             </div>
           </div>
 

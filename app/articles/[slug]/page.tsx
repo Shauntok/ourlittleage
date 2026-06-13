@@ -130,10 +130,10 @@ export default function ArticleDetailPage() {
       <article className="mx-auto max-w-4xl min-w-0 overflow-hidden">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => router.push("/space/articles")}
           className="mb-6 text-sm text-white/35 transition hover:text-white/70 md:mb-10"
         >
-          ← 回到上一页
+          ← 回到文章广场
         </button>
 
         <header className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:rounded-[2.4rem] md:p-9">
@@ -290,10 +290,10 @@ export default function ArticleDetailPage() {
 
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => router.push("/space/articles")}
             className="w-full rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 md:w-auto"
           >
-            回到上一页
+            回到文章广场
           </button>
         </footer>
 

@@ -40,7 +40,6 @@ function getVisibilityLabel(visibility: DiaryVisibility) {
 export default function EditDiaryPage() {
   const params = useParams();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
   const id = String(params.id);
 
   const [loading, setLoading] = useState(true);
@@ -51,9 +50,10 @@ export default function EditDiaryPage() {
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState<DiaryVisibility>("private");
 
-  const [originalContent, setOriginalContent] = useState("");
-  const [originalVisibility, setOriginalVisibility] =
-    useState<DiaryVisibility>("private");
+  const [originalSnapshot, setOriginalSnapshot] = useState("");
+
+  const cleanContent = content.trim();
+  const isDraft = diary?.status === "draft";
 
   useEffect(() => {
     async function fetchDiary() {
@@ -86,8 +86,13 @@ export default function EditDiaryPage() {
       setContent(loadedContent);
       setVisibility(loadedVisibility);
 
-      setOriginalContent(loadedContent);
-      setOriginalVisibility(loadedVisibility);
+      setOriginalSnapshot(
+        JSON.stringify({
+          content: loadedContent,
+          visibility: loadedVisibility,
+          status: data.status || "draft",
+        })
+      );
 
       setLoading(false);
     }
@@ -95,12 +100,23 @@ export default function EditDiaryPage() {
     fetchDiary();
   }, [id]);
 
-  const contentChanged = content !== originalContent;
-  const visibilityChanged = visibility !== originalVisibility;
-  const hasChanged = contentChanged || visibilityChanged;
+  function makeSnapshot(nextStatus = diary?.status || "draft") {
+    return JSON.stringify({
+      content,
+      visibility,
+      status: nextStatus,
+    });
+  }
+
+  const hasChanged = makeSnapshot() !== originalSnapshot;
+  const contentChanged = content !== (diary?.content || "");
 
   function goToDiaryDetail() {
     window.location.href = `/diary/${id}`;
+  }
+
+  function goToDrafts() {
+    window.location.href = "/drafts";
   }
 
   function insertTextAtCursor(beforeText: string, afterText = "") {
@@ -147,8 +163,80 @@ export default function EditDiaryPage() {
     insertTextAtCursor(`\n\n![](${publicUrl})\n\n`);
   }
 
+  async function saveDraft() {
+    if (!cleanContent) {
+      alert("先写一点点，再暂时收起来吧。");
+      return;
+    }
+
+    setSaving(true);
+
+    const diaryDate = diary?.published_at || diary?.created_at;
+    const fallbackTitle = `日记 · ${formatDate(diaryDate)}`;
+    const fallbackSlug = diary?.slug || `diary-${diary?.id || Date.now()}`;
+
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        title: diary?.title || fallbackTitle,
+        slug: fallbackSlug,
+        content: cleanContent,
+        visibility,
+        status: "draft",
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    setSaving(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    goToDrafts();
+  }
+
+  async function publishDraft() {
+    if (cleanContent.length < 11) {
+      alert("至少留下 11 个字吧。");
+      return;
+    }
+
+    const confirmed = confirm("确定留下今天吗？发布后会成为正式日记。");
+    if (!confirmed) return;
+
+    setSaving(true);
+
+    const now = new Date();
+    const fallbackTitle = diary?.title || `日记 · ${formatDate(now.toISOString())}`;
+    const fallbackSlug = diary?.slug || `diary-${diary?.id || Date.now()}`;
+
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        title: fallbackTitle,
+        slug: fallbackSlug,
+        content: cleanContent,
+        visibility,
+        status: "published",
+        published_at: now.toISOString(),
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    setSaving(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    goToDiaryDetail();
+  }
+
   async function saveDiary() {
-    if (!content.trim()) {
+    if (!cleanContent) {
       alert("日记内容不能为空。");
       return;
     }
@@ -169,7 +257,7 @@ export default function EditDiaryPage() {
       .update({
         title: diary?.title || fallbackTitle,
         slug: fallbackSlug,
-        content,
+        content: cleanContent,
         visibility,
         edited_at: contentChanged ? new Date().toISOString() : diary?.edited_at,
         edit_count: contentChanged
@@ -190,7 +278,9 @@ export default function EditDiaryPage() {
 
   async function deleteDiary() {
     const confirmed = confirm(
-      "确定要放下这一天吗？删除后，这篇日记会被永久移除。"
+      isDraft
+        ? "确定删除这篇日记草稿吗？"
+        : "确定要放下这一天吗？删除后，这篇日记会被永久移除。"
     );
 
     if (!confirmed) return;
@@ -202,13 +292,18 @@ export default function EditDiaryPage() {
       return;
     }
 
-    window.location.href = "/diary";
+    window.location.href = isDraft ? "/drafts" : "/diary";
   }
 
   function leaveWithoutSaving() {
     if (hasChanged) {
       const confirmed = confirm("这一页还有没存好的痕迹，确定先离开吗？");
       if (!confirmed) return;
+    }
+
+    if (isDraft) {
+      goToDrafts();
+      return;
     }
 
     goToDiaryDetail();
@@ -238,12 +333,12 @@ export default function EditDiaryPage() {
             onClick={leaveWithoutSaving}
             className="text-sm text-white/35 transition hover:text-white/70"
           >
-            ← 回到这一天的日记阅读
+            ← {isDraft ? "回到草稿箱" : "回到这一天的日记阅读"}
           </button>
 
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:p-8">
             <p className="text-xs tracking-[0.35em] text-white/30">
-              重新翻开这一天
+              {isDraft ? "继续写日记草稿" : "重新翻开这一天"}
             </p>
 
             <h1 className="mt-3 text-4xl font-light md:mt-4">
@@ -258,6 +353,10 @@ export default function EditDiaryPage() {
               )}
 
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 md:px-4 md:py-2">
+                {isDraft ? "草稿" : "已发布"}
+              </span>
+
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 md:px-4 md:py-2">
                 {getVisibilityLabel(visibility)}
               </span>
 
@@ -269,14 +368,14 @@ export default function EditDiaryPage() {
             </div>
 
             <div className="mt-5 text-sm md:mt-6">
-              {contentChanged ? (
+              {hasChanged ? (
                 <p className="text-yellow-200/70">
-                  这一页还有新的补写没保存。
+                  这一页还有没保存的改动。
                 </p>
-              ) : visibilityChanged ? (
-                <p className="text-blue-200/60">可见性还没保存。</p>
               ) : (
-                <p className="text-green-200/60">这一页回忆已保存。</p>
+                <p className="text-green-200/60">
+                  {isDraft ? "这篇草稿已暂时收好。" : "这一页回忆已保存。"}
+                </p>
               )}
             </div>
           </div>
@@ -293,30 +392,18 @@ export default function EditDiaryPage() {
             content={content}
             setContent={setContent}
             placeholder="你后来还有什么想说的吗？"
-            onSaveShortcut={saveDiary}
+            onSaveShortcut={isDraft ? saveDraft : saveDiary}
             insertTextAtCursor={insertTextAtCursor}
             variant="diary"
           />
 
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-white/35">
-              {content.trim().length} 字 · Ctrl + S 保存
+              {cleanContent.length} 字 ·{" "}
+              {isDraft ? "Ctrl + S 保存草稿" : "Ctrl + S 保存"}
             </p>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:flex md:flex-wrap">
-              <button
-                type="button"
-                onClick={saveDiary}
-                disabled={saving}
-                className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {saving
-                  ? "正在收好..."
-                  : hasChanged
-                  ? "保存新的痕迹"
-                  : "回到日记"}
-              </button>
-
               <button
                 type="button"
                 onClick={leaveWithoutSaving}
@@ -325,12 +412,47 @@ export default function EditDiaryPage() {
                 先这样
               </button>
 
+              {isDraft ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={saveDraft}
+                    disabled={saving}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:border-white/25 hover:text-white disabled:opacity-40"
+                  >
+                    {saving ? "保存中..." : "保存草稿"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={publishDraft}
+                    disabled={saving}
+                    className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
+                  >
+                    留下今天
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={saveDiary}
+                  disabled={saving}
+                  className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
+                >
+                  {saving
+                    ? "正在收好..."
+                    : hasChanged
+                    ? "保存新的痕迹"
+                    : "回到日记"}
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={deleteDiary}
                 className="rounded-full border border-red-500/20 bg-red-500/[0.06] px-6 py-3 text-sm text-red-200/70 transition hover:bg-red-500/[0.12] hover:text-red-100"
               >
-                删除回忆
+                {isDraft ? "删除草稿" : "删除回忆"}
               </button>
             </div>
           </div>
@@ -395,13 +517,16 @@ export default function EditDiaryPage() {
 
             <div className="mt-5 space-y-3">
               {diaryDate && (
-                <p>写下于：{new Date(diaryDate).toLocaleString()}</p>
+                <p>
+                  {isDraft ? "暂存于：" : "写下于："}
+                  {new Date(diaryDate).toLocaleString()}
+                </p>
               )}
 
               {diary?.edited_at ? (
-                <p>后来补写于：{new Date(diary.edited_at).toLocaleString()}</p>
+                <p>最后整理于：{new Date(diary.edited_at).toLocaleString()}</p>
               ) : (
-                <p>还没有后来补写过。</p>
+                <p>{isDraft ? "还没有重新保存过。" : "还没有后来补写过。"}</p>
               )}
             </div>
           </div>

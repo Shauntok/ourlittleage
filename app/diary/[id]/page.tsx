@@ -169,10 +169,10 @@ export default function DiaryDetailPage() {
       <article className="mx-auto max-w-3xl min-w-0 overflow-hidden">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => router.push("/space/diaries")}
           className="mb-6 text-sm text-white/35 transition hover:text-white/70 md:mb-10"
         >
-          ← 回到上一页
+          ← 回到日记广场
         </button>
 
         <header className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_80px_rgba(255,255,255,0.045)] md:rounded-[2.3rem] md:p-9">
@@ -322,10 +322,10 @@ export default function DiaryDetailPage() {
 
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => router.push("/space/diaries")}
               className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
             >
-              回到上一页
+              回到日记广场
             </button>
           </div>
         </footer>
