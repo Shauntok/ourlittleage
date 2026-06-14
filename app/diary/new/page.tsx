@@ -177,7 +177,6 @@ export default function NewDiaryPage() {
 
   async function saveDraft() {
     if (guardWriting("draft")) return;
-
     if (!currentUser) return;
 
     if (!content.trim()) {
@@ -287,99 +286,97 @@ export default function NewDiaryPage() {
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[620px] md:w-[620px]" />
 
-      <div className="mx-auto max-w-7xl">
-        <button
-          onClick={() => router.push("/diary")}
-          className="mb-5 text-sm text-white/35 transition hover:text-white/70"
-        >
-          ← 回到日记列表
-        </button>
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-[minmax(680px,1.5fr)_minmax(360px,0.75fr)]">
+        <section className="space-y-6">
+          <button
+            onClick={() => router.push("/diary")}
+            className="text-sm text-white/35 transition hover:text-white/70"
+          >
+            ← 回到日记列表
+          </button>
 
-        <EditorPageHeader
-          eyebrow="WRITE TODAY"
-          title={formatDate(today)}
-          meta={`${formatWeekday(today)} · ${getMoodLabel(today)}`}
-          subtitle="有些话，不需要急着说完。"
-          warning={timeWarning}
-        />
+          <EditorPageHeader
+            eyebrow="WRITE TODAY"
+            title={formatDate(today)}
+            meta={`${formatWeekday(today)} · ${getMoodLabel(today)}`}
+            subtitle="有些话，不需要急着说完。"
+            warning={timeWarning}
+          />
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.55fr)_360px]">
-          <section className="space-y-6">
-            <MarkdownToolbar
-              uploading={uploading}
-              uploadImage={uploadImage}
-              insertTextAtCursor={insertTextAtCursor}
-              variant="diary"
-            />
+          <MarkdownToolbar
+            uploading={uploading}
+            uploadImage={uploadImage}
+            insertTextAtCursor={insertTextAtCursor}
+            variant="diary"
+          />
 
-            <EditorTextarea
-              textareaRef={textareaRef}
+          <EditorTextarea
+            textareaRef={textareaRef}
+            content={content}
+            setContent={setContent}
+            placeholder="我今天过得很好，别担心。"
+            onSaveShortcut={saveDraft}
+            insertTextAtCursor={insertTextAtCursor}
+            variant="diary"
+          />
+
+          <DiaryEditorActions
+            contentLength={contentLength}
+            minLength={MIN_DIARY_LENGTH}
+            publishing={publishing}
+            draftSaving={draftSaving}
+            publishDiary={publishDiary}
+            saveDraft={saveDraft}
+            goBack={() => router.push("/diary")}
+          />
+        </section>
+
+        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <VisibilitySelector
+            visibility={visibility}
+            setVisibility={(value) =>
+              setVisibility(
+                value as "private" | "public" | "hidden" | "unlisted"
+              )
+            }
+            options={[
+              {
+                key: "private",
+                icon: "🔒",
+                title: "只给自己看",
+                desc: "这一天只放在自己的房间里。",
+              },
+              {
+                key: "public",
+                icon: "🌍",
+                title: "发布到日记广场",
+                desc: "让其他居民也能读见这一刻。",
+              },
+              {
+                key: "hidden",
+                icon: "🙈",
+                title: "隐藏日记",
+                desc: "不会出现在公开列表。",
+              },
+              {
+                key: "unlisted",
+                icon: "🔗",
+                title: "仅链接可见",
+                desc: "知道链接的人才能进入。",
+              },
+            ]}
+          />
+
+          <DiarySideCards remainingCount={remainingCount} />
+
+          <div className="hidden lg:block">
+            <MarkdownPreview
               content={content}
-              setContent={setContent}
-              placeholder="我今天过得很好，别担心。"
-              onSaveShortcut={saveDraft}
-              insertTextAtCursor={insertTextAtCursor}
-              variant="diary"
+              emptyTitle="这里会预览今天留下的东西。"
+              emptyText="写下这一刻，让未来的你感谢现在的自己。"
             />
-
-            <DiaryEditorActions
-              contentLength={contentLength}
-              minLength={MIN_DIARY_LENGTH}
-              publishing={publishing}
-              draftSaving={draftSaving}
-              publishDiary={publishDiary}
-              saveDraft={saveDraft}
-              goBack={() => router.push("/diary")}
-            />
-          </section>
-
-          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-            <VisibilitySelector
-              visibility={visibility}
-              setVisibility={(value) =>
-                setVisibility(
-                  value as "private" | "public" | "hidden" | "unlisted"
-                )
-              }
-              options={[
-                {
-                  key: "private",
-                  icon: "🔒",
-                  title: "只给自己看",
-                  desc: "这一天只放在自己的房间里。",
-                },
-                {
-                  key: "public",
-                  icon: "🌍",
-                  title: "发布到日记广场",
-                  desc: "让其他居民也能读见这一刻。",
-                },
-                {
-                  key: "hidden",
-                  icon: "🙈",
-                  title: "隐藏日记",
-                  desc: "不会出现在公开列表。",
-                },
-                {
-                  key: "unlisted",
-                  icon: "🔗",
-                  title: "仅链接可见",
-                  desc: "知道链接的人才能进入。",
-                },
-              ]}
-            />
-
-            <DiarySideCards remainingCount={remainingCount} />
-
-            <div className="hidden lg:block">
-              <MarkdownPreview
-                content={content}
-                emptyTitle="这里会预览今天留下的东西。"
-                emptyText="写下这一刻，让未来的你感谢现在的自己。"
-              />
-            </div>
-          </aside>
-        </div>
+          </div>
+        </aside>
       </div>
     </main>
   );

@@ -142,7 +142,7 @@ export default function ArticleDetailPage() {
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[560px] md:w-[560px]" />
 
-      <article className="mx-auto max-w-4xl min-w-0 overflow-hidden">
+      <article className="mx-auto w-full max-w-3xl min-w-0 overflow-hidden">
         <button
           type="button"
           onClick={() => router.push("/space/articles")}
@@ -264,53 +264,52 @@ export default function ArticleDetailPage() {
           </section>
         )}
 
-        <section className="safe-pre mt-6 rounded-[1.7rem] border border-white/10 bg-white/[0.025] p-5 text-sm leading-7 text-white/35 backdrop-blur-2xl md:mt-8 md:rounded-[2rem] md:p-6">
-          {article.edited_at ? (
-            <>
-              <p>后来又回来整理过这篇故事。</p>
-
-              <p className="mt-2 text-white/25">
-                修改于：{new Date(article.edited_at).toLocaleString()}
-              </p>
-            </>
-          ) : (
-            <p>这是那天留下的原始故事。</p>
-          )}
-        </section>
-
-        <footer className="mt-8 space-y-3 md:mt-10">
-          <div className="flex w-full flex-col gap-3">
-            <LikeButton
-              postId={article.id}
-              authorId={article.author_id}
-              initialCount={article.likeCount || 0}
-            />
-
-            {!isAuthor && (
+        <footer className="mt-6 space-y-5 md:mt-10 md:space-y-6">
+          <div className="safe-pre rounded-[1.7rem] border border-white/10 bg-white/[0.025] p-5 text-sm leading-7 text-white/35 backdrop-blur-2xl md:rounded-[2rem] md:p-6">
+            {article.edited_at ? (
               <>
+                <p>后来又回来整理过这篇故事。</p>
 
+                <p className="mt-2 text-white/25">
+                  修改于：{new Date(article.edited_at).toLocaleString()}
+                </p>
+              </>
+            ) : (
+              <p>这是那天留下的原始故事。</p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:flex md:flex-wrap">
+              <LikeButton
+                postId={article.id}
+                authorId={article.author_id}
+                initialCount={article.likeCount || 0}
+              />
+
+              {!isAuthor && (
                 <ReportButton
                   targetType="post"
                   targetId={article.id}
                   authorId={article.author_id}
                   compact
                 />
-              </>
-            )}
+              )}
 
-            {isAuthor && (
-              <Link
-                href={`/articles/edit/${article.id}`}
-                className="w-full rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-center text-sm text-white/60 transition hover:border-white/25 hover:text-white"
-              >
-                编辑文章
-              </Link>
-            )}
+              {isAuthor && (
+                <Link
+                  href={`/articles/edit/${article.id}`}
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-center text-sm text-white/60 transition hover:border-white/25 hover:text-white"
+                >
+                  编辑文章
+                </Link>
+              )}
+            </div>
 
             <button
               type="button"
               onClick={() => router.push("/space/articles")}
-              className="w-full rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+              className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
             >
               回到文章广场
             </button>
