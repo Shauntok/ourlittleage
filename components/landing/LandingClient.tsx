@@ -190,52 +190,25 @@ export default function LandingClient() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: cleanEmail,
       password: registerPassword,
       options: {
-        emailRedirectTo: "https://ourlittleage.com",
+        emailRedirectTo: "https://www.ourlittleage.com",
+        data: {
+          username: cleanUsername,
+          birth_date: birthDate,
+          theme: "midnight",
+        },
       },
     });
 
+    setRegisterLoading(false);
+
     if (error) {
-      setRegisterLoading(false);
       alert(error.message);
       return;
     }
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from("profiles").upsert(
-        {
-          id: data.user.id,
-          username: cleanUsername,
-          role: "user",
-          theme: "midnight",
-          birth_date: birthDate,
-        },
-        {
-          onConflict: "id",
-        }
-      );
-
-      if (profileError) {
-        setRegisterLoading(false);
-        alert(profileError.message);
-        return;
-      }
-
-      await supabase.from("notifications").insert([
-        {
-          user_id: data.user.id,
-          title: "欢迎来到小时代 🌙",
-          content:
-            "这里是一个可以慢慢生活、写故事、留下回忆的小世界。\n\n希望你能在这里找到属于自己的角落。",
-          type: "system",
-        },
-      ]);
-    }
-
-    setRegisterLoading(false);
 
     alert(
       "验证邮件已经发送到你的邮箱。\n\n请先到邮箱点击验证链接，完成后再回来登录。\n\n如果没有看到邮件，也记得检查垃圾邮件 / Spam。"
