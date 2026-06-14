@@ -159,7 +159,7 @@ export default function AdminAnnouncementsPage() {
       action,
       target_type: "announcement",
       target_id: targetId ?? null,
-      detail: detail ?? null,
+      details: detail ?? null,
     });
   }
 

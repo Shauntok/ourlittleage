@@ -123,7 +123,7 @@ async function publishScheduledAnnouncements(now: string) {
       action: "auto_publish_scheduled_announcement",
       target_type: "announcement",
       target_id: String(announcement.id),
-      detail: `自动发布预约公告：${announcement.title}`,
+      details: `自动发布预约公告：${announcement.title}`,
     });
 
     publishedCount += 1;

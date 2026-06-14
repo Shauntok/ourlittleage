@@ -77,7 +77,7 @@ export async function POST() {
         action: "auto_publish_due_announcement",
         target_type: "announcement",
         target_id: String(announcement.id),
-        detail: `进入后台时自动发布到期预约公告：${announcement.title}`,
+        details: `进入后台时自动发布到期预约公告：${announcement.title}`,
       });
 
       published += 1;
