@@ -40,8 +40,29 @@ export default function AdminAnnouncementsPage() {
   const [minute, setMinute] = useState("00");
 
   useEffect(() => {
-    fetchAnnouncements();
+    bootAnnouncementsPage();
   }, []);
+
+  async function bootAnnouncementsPage() {
+    await publishDueAnnouncements();
+    await fetchAnnouncements();
+  }
+
+  async function publishDueAnnouncements() {
+    try {
+      const res = await fetch("/api/admin/publish-due-announcements", {
+        method: "POST",
+      });
+
+      const result = await res.json();
+
+      if (!res.ok || !result.ok) {
+        console.error("publish due announcements failed:", result);
+      }
+    } catch (error) {
+      console.error("publish due announcements request error:", error);
+    }
+  }
 
   const scheduledDate = useMemo(() => {
     if (publishMode !== "scheduled") return null;
