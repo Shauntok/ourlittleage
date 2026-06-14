@@ -21,9 +21,21 @@ export async function GET(request: Request) {
     const now = new Date().toISOString();
 
     const announcementsPublished = await publishScheduledAnnouncements(now);
-    const broadcastsSent = await publishScheduledBroadcasts(now);
-    const trashedNotificationsDeleted =
-      await cleanupOldTrashedNotifications();
+
+    let broadcastsSent = 0;
+    let trashedNotificationsDeleted = 0;
+
+    try {
+      broadcastsSent = await publishScheduledBroadcasts(now);
+    } catch (error) {
+      console.error("scheduled broadcasts skipped:", error);
+    }
+
+    try {
+      trashedNotificationsDeleted = await cleanupOldTrashedNotifications();
+    } catch (error) {
+      console.error("cleanup trashed notifications skipped:", error);
+    }
 
     return NextResponse.json({
       ok: true,
@@ -61,7 +73,8 @@ async function publishScheduledAnnouncements(now: string) {
 
   const { data: profiles, error: profilesError } = await supabaseAdmin
     .from("profiles")
-    .select("id");
+    .select("id")
+    .eq("status", "active");
 
   if (profilesError) throw profilesError;
 
@@ -70,7 +83,7 @@ async function publishScheduledAnnouncements(now: string) {
   for (const announcement of announcements) {
     const publishTime = new Date().toISOString();
 
-    const { error: updateError } = await supabaseAdmin
+    const { data: updatedRows, error: updateError } = await supabaseAdmin
       .from("announcements")
       .update({
         is_active: true,
@@ -78,9 +91,14 @@ async function publishScheduledAnnouncements(now: string) {
         sent_at: publishTime,
       })
       .eq("id", announcement.id)
-      .is("sent_at", null);
+      .is("sent_at", null)
+      .select("id");
 
     if (updateError) throw updateError;
+
+    if (!updatedRows || updatedRows.length === 0) {
+      continue;
+    }
 
     const notifications = (profiles || []).map((profile: { id: string }) => ({
       user_id: profile.id,
@@ -104,8 +122,8 @@ async function publishScheduledAnnouncements(now: string) {
       admin_id: null,
       action: "auto_publish_scheduled_announcement",
       target_type: "announcement",
-      target_id: announcement.id,
-      details: `自动发布预约公告：${announcement.title}`,
+      target_id: String(announcement.id),
+      detail: `自动发布预约公告：${announcement.title}`,
     });
 
     publishedCount += 1;
@@ -137,10 +155,8 @@ async function publishScheduledBroadcasts(now: string) {
       targetUsers = [{ id: broadcast.created_by }];
     }
 
-    if (broadcast.target_mode === "single") {
-      if (broadcast.target_user_id) {
-        targetUsers = [{ id: broadcast.target_user_id }];
-      }
+    if (broadcast.target_mode === "single" && broadcast.target_user_id) {
+      targetUsers = [{ id: broadcast.target_user_id }];
     }
 
     if (broadcast.target_mode === "all") {
@@ -202,7 +218,7 @@ async function publishScheduledBroadcasts(now: string) {
       action: "auto_send_scheduled_broadcast",
       target_type: "scheduled_broadcast",
       target_id: String(broadcast.id),
-      details: `自动发送预约信件：${broadcast.title} (${targetUsers.length} users)`,
+      detail: `自动发送预约信件：${broadcast.title} (${targetUsers.length} users)`,
     });
 
     sentCount += 1;
