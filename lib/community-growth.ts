@@ -5,21 +5,32 @@ function calculateLevel(exp: number) {
   if (exp >= 6) return 4;
   if (exp >= 3) return 3;
   if (exp >= 1) return 2;
-
   return 1;
 }
 
 export async function addUserGrowth({
   userId,
+  actorId = null,
   light = 0,
   trust = 0,
   reason,
 }: {
   userId: string;
+  actorId?: string | null;
   light?: number;
   trust?: number;
   reason: string;
 }) {
+  if (!userId) {
+    console.error("addUserGrowth missing userId");
+    return false;
+  }
+
+  if (!reason) {
+    console.error("addUserGrowth missing reason");
+    return false;
+  }
+
   const { data: profile, error: fetchError } = await supabase
     .from("profiles")
     .select("exp, trust_score, level")
@@ -27,22 +38,17 @@ export async function addUserGrowth({
     .single();
 
   if (fetchError || !profile) {
-    console.error("读取成长资料失败:", fetchError);
+    console.error("addUserGrowth fetch profile error:", fetchError);
     return false;
   }
 
-  const nextExp = Math.max(
-    0,
-    Number((Number(profile.exp || 0) + light).toFixed(3))
-  );
-
-  const nextTrust = Math.max(
-    0,
-    Number((Number(profile.trust_score || 0) + trust).toFixed(3))
-  );
-
-  const nextLevel = calculateLevel(nextExp);
+  const currentExp = Number(profile.exp || 0);
+  const currentTrust = Number(profile.trust_score || 0);
   const oldLevel = Number(profile.level || 1);
+
+  const nextExp = Math.max(0, Number((currentExp + light).toFixed(3)));
+  const nextTrust = Math.max(0, Number((currentTrust + trust).toFixed(3)));
+  const nextLevel = calculateLevel(nextExp);
 
   const { error: updateError } = await supabase
     .from("profiles")
@@ -54,29 +60,40 @@ export async function addUserGrowth({
     .eq("id", userId);
 
   if (updateError) {
-    console.error("更新成长资料失败:", updateError);
+    console.error("addUserGrowth update profile error:", updateError);
     return false;
   }
 
-  await supabase.from("growth_logs").insert([
+  const { error: logError } = await supabase.from("growth_logs").insert([
     {
       user_id: userId,
+      actor_id: actorId,
       light_change: light,
       trust_change: trust,
       reason,
     },
   ]);
 
+  if (logError) {
+    console.error("addUserGrowth insert log error:", logError);
+  }
+
   if (nextLevel > oldLevel) {
-    await supabase.from("notifications").insert([
-      {
-        user_id: userId,
-        title: "🏆 居民等级提升",
-        content: `你在小时代升到了 Lv.${nextLevel}。谢谢你慢慢留下的光。`,
-        type: "system",
-        is_important: true,
-      },
-    ]);
+    const { error: notificationError } = await supabase
+      .from("notifications")
+      .insert([
+        {
+          user_id: userId,
+          title: "🏆 居民等级提升",
+          content: `你在小时代升到了 Lv.${nextLevel}。谢谢你慢慢留下的光。`,
+          type: "system",
+          is_important: true,
+        },
+      ]);
+
+    if (notificationError) {
+      console.error("addUserGrowth notification error:", notificationError);
+    }
   }
 
   return true;

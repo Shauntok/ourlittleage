@@ -37,7 +37,7 @@ export default function LikeButton({
 
     const { data: myLike } = await supabase
       .from("post_likes")
-      .select("id, is_active, rewarded")
+      .select("id, is_active")
       .eq("post_id", postId)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -45,18 +45,18 @@ export default function LikeButton({
     setLiked(!!myLike?.is_active);
   }
 
-  async function notifyAuthor() {
-    if (!currentUserId || currentUserId === authorId) return;
+  async function notifyAuthor(actorId: string) {
+    if (!actorId || actorId === authorId) return;
 
     const { data: profile } = await supabase
       .from("profiles")
       .select("username")
-      .eq("id", currentUserId)
+      .eq("id", actorId)
       .maybeSingle();
 
     const likerName = profile?.username || "有位居民";
 
-    await supabase.from("notifications").insert([
+    const { error } = await supabase.from("notifications").insert([
       {
         user_id: authorId,
         title: "有人喜欢了你的内容 💗",
@@ -67,9 +67,43 @@ export default function LikeButton({
         is_important: false,
       },
     ]);
+
+    if (error) {
+      console.error("notifyAuthor error:", error);
+    }
+  }
+
+  async function rewardAuthor(actorId: string, likeId: string) {
+    if (!actorId || actorId === authorId) return;
+
+    const success = await addUserGrowth({
+      userId: authorId,
+      actorId,
+      light: 0.005,
+      reason: "post_liked",
+    });
+
+    if (!success) return;
+
+    const { error: rewardError } = await supabase
+      .from("post_likes")
+      .update({
+        rewarded: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", likeId);
+
+    if (rewardError) {
+      console.error("mark like rewarded error:", rewardError);
+      return;
+    }
+
+    await notifyAuthor(actorId);
   }
 
   async function toggleLike() {
+    if (loading) return;
+
     if (!currentUserId) {
       alert("请先登录后再喜欢。");
       return;
@@ -98,7 +132,10 @@ export default function LikeButton({
     if (existingLike?.is_active) {
       const { error } = await supabase
         .from("post_likes")
-        .update({ is_active: false })
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", existingLike.id);
 
       setLoading(false);
@@ -116,7 +153,10 @@ export default function LikeButton({
     if (existingLike && !existingLike.is_active) {
       const { error } = await supabase
         .from("post_likes")
-        .update({ is_active: true })
+        .update({
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", existingLike.id);
 
       if (error) {
@@ -129,20 +169,7 @@ export default function LikeButton({
       setLikeCount((current) => current + 1);
 
       if (!existingLike.rewarded) {
-        const success = await addUserGrowth({
-          userId: authorId,
-          light: 0.005,
-          reason: "post_liked",
-        });
-
-        if (success) {
-          await supabase
-            .from("post_likes")
-            .update({ rewarded: true })
-            .eq("id", existingLike.id);
-        }
-
-        await notifyAuthor();
+        await rewardAuthor(currentUserId, existingLike.id);
       }
 
       setLoading(false);
@@ -171,22 +198,7 @@ export default function LikeButton({
     setLiked(true);
     setLikeCount((current) => current + 1);
 
-    if (insertedLike && !insertedLike.rewarded) {
-      const success = await addUserGrowth({
-        userId: authorId,
-        light: 0.005,
-        reason: "post_liked",
-      });
-
-      if (success) {
-        await supabase
-          .from("post_likes")
-          .update({ rewarded: true })
-          .eq("id", insertedLike.id);
-      }
-
-      await notifyAuthor();
-    }
+    await rewardAuthor(currentUserId, insertedLike.id);
 
     setLoading(false);
   }
