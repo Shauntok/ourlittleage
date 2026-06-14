@@ -56,24 +56,15 @@ export default function LikeButton({
 
     const likerName = profile?.username || "有位居民";
 
-    const { data, error } = await supabase
-      .from("notifications")
-      .insert([
-        {
-          user_id: authorId,
-          title: "有人喜欢了你的内容 💗",
-          content: `${likerName} 刚刚给你的内容留下了一点喜欢。`,
-          type: "system",
-          is_read: false,
-          is_starred: false,
-          is_important: false,
-        },
-      ])
-      .select("id")
-      .single();
+    const { data, error } = await supabase.rpc("create_notification", {
+      p_user_id: authorId,
+      p_title: "有人喜欢了你的内容 💗",
+      p_content: `${likerName} 刚刚给你的内容留下了一点喜欢。`,
+      p_type: "system",
+    });
 
     if (error) {
-      console.error("notifyAuthor error:", error);
+      console.error("notifyAuthor rpc error:", error);
       alert(`通知写入失败：${error.message}`);
       return;
     }
