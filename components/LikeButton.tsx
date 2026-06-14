@@ -169,8 +169,6 @@ export default function LikeButton({
 
       if (!existingLike.rewarded) {
         await rewardAuthor(currentUserId, existingLike.id);
-      } else {
-        await notifyAuthor(currentUserId);
       }
 
       setLoading(false);
