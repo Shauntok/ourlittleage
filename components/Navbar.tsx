@@ -286,7 +286,8 @@ export default function Navbar() {
               </button>
 
               {menuOpen && (
-                  <div className="fixed right-4 top-[76px] z-[100] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl">                  <div className="border-b border-white/10 px-5 py-5">
+                <div className="fixed right-4 top-[76px] z-[100] max-h-[calc(100vh-112px)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:right-8 md:top-[96px]">
+                  <div className="border-b border-white/10 px-5 py-5">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
                         {profile.avatar_url ? (
@@ -347,15 +348,7 @@ export default function Navbar() {
                     <Link
                       href="/drafts"
                       onClick={closeMenus}
-                      className="
-                        hidden md:flex
-                        items-center gap-3
-                        px-5 py-4
-                        text-white/70
-                        transition
-                        hover:bg-white/[0.05]
-                        hover:text-white
-                      "
+                      className="hidden items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white md:flex"
                     >
                       <span>📦</span>
                       <span>草稿箱</span>
@@ -368,6 +361,15 @@ export default function Navbar() {
                     >
                       <span>⚙️</span>
                       <span>房间设置</span>
+                    </Link>
+
+                    <Link
+                      href="/feedback"
+                      onClick={closeMenus}
+                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
+                    >
+                      <span>💌</span>
+                      <span>意见反馈</span>
                     </Link>
                   </div>
 
@@ -402,7 +404,7 @@ export default function Navbar() {
             </div>
           ) : (
             <Link
-              href="/login"
+              href="/"
               className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition hover:border-white/25 hover:text-white"
             >
               登录

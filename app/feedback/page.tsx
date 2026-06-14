@@ -1,401 +1,157 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
 
-type FeedbackStatus =
-  | "all"
-  | "pending"
-  | "in_progress"
-  | "resolved"
-  | "closed";
+export default function FeedbackPage() {
+  const [type, setType] = useState("suggestion");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [sending, setSending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-function getTypeLabel(type: string) {
-  switch (type) {
-    case "bug":
-      return "🐛 Bug反馈";
-    case "suggestion":
-      return "💡 功能建议";
-    case "report":
-      return "🚨 投诉举报";
-    case "experience":
-      return "🌙 使用体验";
-    default:
-      return "📦 其他";
-  }
-}
+  async function submitFeedback() {
+    if (sending) return;
 
-function getStatusStyle(status: string) {
-  switch (status) {
-    case "pending":
-      return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300";
-    case "in_progress":
-      return "border-blue-500/30 bg-blue-500/10 text-blue-300";
-    case "resolved":
-      return "border-green-500/30 bg-green-500/10 text-green-300";
-    case "closed":
-      return "border-zinc-700 bg-zinc-900 text-zinc-400";
-    default:
-      return "border-zinc-700 bg-zinc-900 text-zinc-400";
-  }
-}
-
-function getStatusLabel(status: string) {
-  switch (status) {
-    case "pending":
-      return "待处理";
-    case "in_progress":
-      return "处理中";
-    case "resolved":
-      return "已完成";
-    case "closed":
-      return "已关闭";
-    default:
-      return status;
-  }
-}
-
-export default function AdminFeedbackPage() {
-  const [feedbacks, setFeedbacks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] =
-    useState<FeedbackStatus>("all");
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    fetchFeedbacks();
-  }, []);
-
-  async function fetchFeedbacks() {
-    setLoading(true);
-
-    const { data, error } = await supabase
-      .from("feedbacks")
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          username,
-          avatar_url
-        ),
-        handler:handled_by (
-          id,
-          username
-        )
-      `)
-      .order("created_at", {
-        ascending: false,
-      });
-
-    if (error) {
-      alert(error.message);
-      setLoading(false);
+    if (!title.trim()) {
+      alert("请输入反馈标题。");
       return;
     }
 
-    setFeedbacks(data || []);
-    setLoading(false);
-  }
+    if (!content.trim()) {
+      alert("请输入反馈内容。");
+      return;
+    }
 
-  async function writeLog(
-    action: string,
-    feedbackId: string,
-    details: string
-  ) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user) {
+      alert("请先登录。");
+      return;
+    }
 
-    await supabase.from("admin_logs").insert([
+    setSending(true);
+    setSubmitted(false);
+
+    const { error } = await supabase.from("feedbacks").insert([
       {
-        admin_id: user.id,
-        action,
-        target_type: "feedback",
-        target_id: feedbackId,
-        details,
+        user_id: user.id,
+        type,
+        title: title.trim(),
+        content: content.trim(),
+        status: "pending",
       },
     ]);
-  }
 
-  async function updateStatus(
-    feedbackId: string,
-    status: string
-  ) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { error } = await supabase
-      .from("feedbacks")
-      .update({
-        status,
-        handled_by: user.id,
-        handled_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", feedbackId);
+    setSending(false);
 
     if (error) {
       alert(error.message);
       return;
     }
 
-    await writeLog(
-      "update_feedback_status",
-      feedbackId,
-      `反馈状态修改为 ${status}`
-    );
-
-    await fetchFeedbacks();
+    setTitle("");
+    setContent("");
+    setType("suggestion");
+    setSubmitted(true);
   }
 
-  const filteredFeedbacks = feedbacks.filter((item) => {
-    const keyword = search.toLowerCase().trim();
-
-    const matchStatus =
-      statusFilter === "all" ||
-      item.status === statusFilter;
-
-    const matchSearch =
-      !keyword ||
-      item.title?.toLowerCase().includes(keyword) ||
-      item.content?.toLowerCase().includes(keyword) ||
-      item.type?.toLowerCase().includes(keyword) ||
-      item.profiles?.username?.toLowerCase().includes(keyword) ||
-      item.id?.toLowerCase().includes(keyword);
-
-    return matchStatus && matchSearch;
-  });
-
-  const tabs = [
-    {
-      key: "all",
-      label: "全部",
-      count: feedbacks.length,
-    },
-    {
-      key: "pending",
-      label: "待处理",
-      count: feedbacks.filter(
-        (item) => item.status === "pending"
-      ).length,
-    },
-    {
-      key: "in_progress",
-      label: "处理中",
-      count: feedbacks.filter(
-        (item) => item.status === "in_progress"
-      ).length,
-    },
-    {
-      key: "resolved",
-      label: "已完成",
-      count: feedbacks.filter(
-        (item) => item.status === "resolved"
-      ).length,
-    },
-    {
-      key: "closed",
-      label: "已关闭",
-      count: feedbacks.filter(
-        (item) => item.status === "closed"
-      ).length,
-    },
-  ] as const;
-
   return (
-    <div className="space-y-8 overflow-hidden">
-      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-        <div>
-          <h1 className="text-4xl font-bold">
-            反馈中心 💌
+    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-24 text-white md:px-6 md:pt-28">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
+      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 hidden h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:block" />
+
+      <div className="mx-auto max-w-3xl space-y-8">
+        <section>
+          <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.4em]">
+            FEEDBACK
+          </p>
+
+          <h1 className="mt-3 text-4xl font-light tracking-tight md:mt-5 md:text-6xl">
+            意见反馈
           </h1>
 
-          <p className="mt-2 text-zinc-500">
-            查看、追踪和处理居民提交的反馈。
+          <p className="mt-4 max-w-xl text-sm leading-7 text-white/40 md:mt-6 md:leading-8">
+            如果你遇到 Bug、觉得哪里不好用，或者有想要的功能，都可以写在这里。
           </p>
-        </div>
+        </section>
 
-        <button
-          onClick={fetchFeedbacks}
-          className="rounded-full border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm text-zinc-300 transition hover:border-white hover:text-white"
-        >
-          刷新
-        </button>
-      </div>
+        {submitted && (
+          <section className="rounded-[2rem] border border-emerald-500/20 bg-emerald-500/[0.08] p-5 text-sm leading-7 text-emerald-100/75 backdrop-blur-2xl md:rounded-[2.4rem] md:p-6">
+            <p className="font-medium text-emerald-100">
+              💌 反馈已送出
+            </p>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="搜索标题、内容、居民、类型或 ID..."
-        className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-4 outline-none transition focus:border-white"
-      />
+            <p className="mt-2 text-emerald-100/65">
+              谢谢你帮我们把小时代变得更好。
+            </p>
+          </section>
+        )}
 
-      <div className="flex flex-wrap gap-3">
-        {tabs.map((item) => (
-          <button
-            key={item.key}
-            onClick={() =>
-              setStatusFilter(item.key as FeedbackStatus)
-            }
-            className={
-              statusFilter === item.key
-                ? "rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition"
-                : "rounded-full border border-zinc-800 bg-zinc-950 px-5 py-3 text-sm text-zinc-400 transition hover:border-zinc-500 hover:text-white"
-            }
-          >
-            {item.label}
+        <section className="space-y-5 rounded-[2rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-2xl md:rounded-[2.4rem] md:p-7">
+          <div>
+            <label className="mb-2 block text-sm text-white/45">
+              反馈类型
+            </label>
 
-            <span className="ml-2 text-xs opacity-60">
-              {item.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      <div className="rounded-full border border-zinc-800 bg-zinc-950 px-5 py-3 text-sm text-zinc-400">
-        显示 {filteredFeedbacks.length} / {feedbacks.length} 条反馈
-      </div>
-
-      {loading && (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-8 text-zinc-500">
-          正在读取反馈...
-        </div>
-      )}
-
-      {!loading && filteredFeedbacks.length === 0 && (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-8 text-zinc-500">
-          暂时没有符合条件的反馈。
-        </div>
-      )}
-
-      <div className="space-y-4">
-        {filteredFeedbacks.map((item) => {
-          const profile = Array.isArray(item.profiles)
-            ? item.profiles[0]
-            : item.profiles;
-
-          const handler = Array.isArray(item.handler)
-            ? item.handler[0]
-            : item.handler;
-
-          return (
-            <article
-              key={item.id}
-              className="min-w-0 overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6"
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-4 text-sm text-white outline-none transition focus:border-white/30"
             >
-              <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
-                <div className="min-w-0 flex-1 space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
-                      {getTypeLabel(item.type)}
-                    </span>
+              <option value="bug">🐛 Bug 反馈</option>
+              <option value="suggestion">💡 功能建议</option>
+              <option value="experience">🌙 使用体验</option>
+              <option value="report">🚨 投诉举报</option>
+              <option value="other">📦 其他</option>
+            </select>
+          </div>
 
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs ${getStatusStyle(
-                        item.status
-                      )}`}
-                    >
-                      {getStatusLabel(item.status)}
-                    </span>
+          <div>
+            <label className="mb-2 block text-sm text-white/45">
+              反馈标题
+            </label>
 
-                    <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-500">
-                      ID {item.id}
-                    </span>
-                  </div>
+            <input
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setSubmitted(false);
+              }}
+              placeholder="例如：手机版信箱按钮有点挤"
+              className="w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-white/30"
+            />
+          </div>
 
-                  <h2 className="safe-text text-2xl font-bold text-white">
-                    {item.title}
-                  </h2>
+          <div>
+            <label className="mb-2 block text-sm text-white/45">
+              详细内容
+            </label>
 
-                  <p className="safe-pre rounded-2xl border border-zinc-800 bg-black/30 p-4 text-sm leading-8 text-zinc-300">
-                    {item.content}
-                  </p>
+            <textarea
+              rows={8}
+              value={content}
+              onChange={(e) => {
+                setContent(e.target.value);
+                setSubmitted(false);
+              }}
+              placeholder="把你看到的问题、建议或想法写下来……"
+              className="safe-pre w-full resize-none rounded-2xl border border-white/10 bg-black/50 px-4 py-4 text-sm leading-8 text-white outline-none transition placeholder:text-white/25 focus:border-white/30"
+            />
+          </div>
 
-                  <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
-                    <span>
-                      提交者：
-                      {profile?.username || "未知居民"}
-                    </span>
-
-                    {item.user_id && (
-                      <Link
-                        href={`/admin/users/${item.user_id}`}
-                        className="text-zinc-400 transition hover:text-white"
-                      >
-                        查看居民 →
-                      </Link>
-                    )}
-
-                    <span>
-                      提交时间：
-                      {new Date(item.created_at).toLocaleString("zh-CN")}
-                    </span>
-
-                    {handler?.username && (
-                      <span>
-                        处理人：{handler.username}
-                      </span>
-                    )}
-
-                    {item.handled_at && (
-                      <span>
-                        处理时间：
-                        {new Date(item.handled_at).toLocaleString("zh-CN")}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 flex-wrap gap-2 lg:flex-col">
-                  <button
-                    onClick={() =>
-                      updateStatus(item.id, "in_progress")
-                    }
-                    className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20"
-                  >
-                    处理中
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      updateStatus(item.id, "resolved")
-                    }
-                    className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
-                  >
-                    已完成
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      updateStatus(item.id, "closed")
-                    }
-                    className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
-                  >
-                    关闭
-                  </button>
-
-                  {item.status !== "pending" && (
-                    <button
-                      onClick={() =>
-                        updateStatus(item.id, "pending")
-                      }
-                      className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300 transition hover:bg-yellow-500/20"
-                    >
-                      退回待处理
-                    </button>
-                  )}
-                </div>
-              </div>
-            </article>
-          );
-        })}
+          <button
+            type="button"
+            onClick={submitFeedback}
+            disabled={sending}
+            className="w-full rounded-full bg-white px-6 py-4 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {sending ? "提交中..." : "提交反馈"}
+          </button>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

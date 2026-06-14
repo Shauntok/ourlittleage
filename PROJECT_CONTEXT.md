@@ -1,14 +1,21 @@
-# 小时代 PROJECT_CONTEXT v2.0
+# 小时代 PROJECT_CONTEXT v3.0
 
 更新时间：
-2026-06-11
+
+2026-06-14
 
 项目状态：
-Alpha 0.6
+
+Alpha 0.8
 
 正式域名：
 
 https://www.ourlittleage.com
+
+预计上线时间：
+
+2026-06-15
+05:20 AM（Malaysia Time）
 
 ---
 
@@ -47,7 +54,7 @@ https://www.ourlittleage.com
 
 # 当前开发阶段
 
-Alpha 0.6
+Alpha 0.8
 
 状态：
 
@@ -55,12 +62,9 @@ Alpha 0.6
 
 🟢 社区闭环完成
 
-🟡 上线前打磨阶段
+🟢 运营后台完成
 
-Alpha 截止时间：
-
-2026-06-15
-12:00 PM
+🟡 上线前最终打磨
 
 ---
 
@@ -68,7 +72,7 @@ Alpha 截止时间：
 
 整体进度：
 
-85% ~ 90%
+92% ~ 95%
 
 当前阶段：
 
@@ -78,7 +82,7 @@ Alpha 截止时间：
 
 * 打磨
 * 测试
-* 修Bug
+* 修 Bug
 * 手机适配
 * 权限验证
 * 上线准备
@@ -108,6 +112,60 @@ Alpha 截止时间：
 * 徽章
 
 建立联系。
+
+---
+
+# Landing V2
+
+路径：
+
+/
+
+定位：
+
+居民进入小时代前的深夜入口
+
+特点：
+
+* Apple 风格滚动体验
+* 深夜氛围设计
+* 星空背景
+* 光晕系统
+* 深夜聊天碎片
+* Scroll Transition
+* 居民入口
+
+架构：
+
+app/page.tsx
+
+components/landing/LandingClient.tsx
+
+状态：
+
+完成
+
+---
+
+# Account System V1
+
+已完成：
+
+* 注册
+* 登录
+* 登出
+* 邮箱验证
+* SMTP 邮件发送
+* 欢迎邮件
+* 欢迎通知
+* 忘记密码
+* 重设密码
+* Profile 自动创建
+* Admin 同步
+
+状态：
+
+稳定
 
 ---
 
@@ -153,8 +211,6 @@ Alpha 截止时间：
 
 整个世界的公共入口
 
----
-
 包含：
 
 ## 最新日记
@@ -170,7 +226,9 @@ Alpha 截止时间：
 根据：
 
 likes × 3
-+
+
+*
+
 comments × 2
 
 计算
@@ -190,7 +248,9 @@ comments × 2
 根据：
 
 likes × 3
-+
+
+*
+
 comments × 2
 
 计算
@@ -249,7 +309,7 @@ Feed 切换模式
 * 类型标签右侧
 * 喜欢数量
 * 评论数量
-* Tags展示
+* Tags 展示
 
 ---
 
@@ -276,8 +336,6 @@ Feed 切换模式
 * 公开文章
 * 公开日记
 
----
-
 支持主题：
 
 * default
@@ -286,15 +344,11 @@ Feed 切换模式
 * sunset
 * mist
 
----
-
 公开内容筛选：
 
 * 全部
 * 日记
 * 文章
-
----
 
 成长展示：
 
@@ -319,9 +373,7 @@ lib/community-growth.ts
 * 自动通知
 * growth_logs
 
----
-
-成长字段
+成长字段：
 
 profiles.exp
 
@@ -329,15 +381,11 @@ profiles.exp
 
 留下的光
 
----
-
 profiles.trust_score
 
 前台名称：
 
 社区信任
-
----
 
 profiles.level
 
@@ -347,9 +395,7 @@ profiles.level
 
 Lv1 ~ Lv5
 
----
-
-当前成长奖励
+当前成长奖励：
 
 发布文章：
 
@@ -416,6 +462,10 @@ PostComments.tsx
 
 同一居民只能保留一个喜欢记录
 
+状态：
+
+完成
+
 ---
 
 # 举报系统
@@ -452,7 +502,7 @@ PostComments.tsx
 
 ---
 
-# 通知系统
+# 通知系统 V2
 
 路径：
 
@@ -468,9 +518,85 @@ PostComments.tsx
 * 恢复
 * 软删除
 
+自动来源：
+
+* 评论
+* 评论点赞
+* 徽章
+* 公告
+* 广播
+* 成长奖励
+* 管理员操作
+
 Navbar 红点同步：
 
 notifications-updated
+
+状态：
+
+完成
+
+---
+
+# 世界公告系统 V2.5
+
+路径：
+
+/admin/announcements
+
+支持：
+
+* 立即发布
+* 预约发布
+* 自动通知全居民
+* 自动记录 Admin Log
+* 公告关闭
+* 公告删除
+
+发布模式：
+
+now
+
+scheduled
+
+字段：
+
+* publish_mode
+* scheduled_for
+* published_at
+* sent_at
+
+状态：
+
+完成
+
+---
+
+# 自动发布系统
+
+路径：
+
+/api/cron/publish-announcements
+
+支持：
+
+* 自动扫描预约公告
+* 自动发布
+* 自动通知居民
+* 自动记录发布时间
+
+部署：
+
+Vercel Cron
+
+安全：
+
+* CRON_SECRET
+* SUPABASE_SERVICE_ROLE_KEY
+
+状态：
+
+已上线
 
 ---
 
@@ -479,29 +605,31 @@ notifications-updated
 角色：
 
 owner
-admin
-moderator
-user
 
----
+admin
+
+moderator
+
+user
 
 已完成模块：
 
-* Dashboard
+* Dashboard V2
 * 用户管理
 * 居民详情
-* 举报管理
-* 公告管理
-* 徽章管理
+* 举报中心
+* 世界公告
 * 全站信件
-* 操作日志
+* 徽章管理
 * 反馈管理
+* 通知中心
+* 操作日志
 
 ---
 
 # UI 系统
 
-当前统一组件：
+统一组件：
 
 * FloatingParticles
 * MouseGlow
@@ -514,8 +642,6 @@ user
 
 # 页面动画系统
 
-新增：
-
 PageRouterTransition
 
 作用：
@@ -527,7 +653,7 @@ PageRouterTransition
 
 状态：
 
-已接入核心页面
+核心页面已接入
 
 ---
 
@@ -545,17 +671,17 @@ PageRouterTransition
 * growth_logs
 * badges
 * user_badges
+* feedbacks
+* announcements
 * admin_logs
 
 ---
 
 # Storage Buckets
 
-avatars
-
-banners
-
-images
+* avatars
+* banners
+* images
 
 ---
 
@@ -564,11 +690,15 @@ images
 必须完成：
 
 * username 唯一性验证
-* Route残留检查
-* Navbar检查
+* Route 残留检查
+* Navbar 检查
 * 权限测试
 * 手机端测试
 * 测试数据清理
+* SEO 基础检查
+* Sitemap 检查
+* Robots 检查
+* Cron 生产环境验证
 
 ---
 
@@ -608,12 +738,12 @@ images
 
 ---
 
-# Alpha 0.7 候选功能
+# Alpha 0.9 候选功能
 
 上线后再做：
 
+* 搜索系统
 * 收藏系统
-* 关注系统
 * 用户称号系统
 * 房间访客
 * 世界事件系统

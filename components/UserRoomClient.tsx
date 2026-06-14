@@ -1,9 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import TranslatedText from "@/components/TranslatedText";
 import RoomStatusButton from "@/components/RoomStatusButton";
-import RoomGuestbook from "@/components/RoomGuestbook";
 
 function getImages(content: string) {
   return Array.from(content.matchAll(/!\[[^\]]*\]\((.*?)\)/g))
@@ -21,9 +21,9 @@ function getExcerpt(content: string) {
 function getPostTitle(post: any) {
   if (post.title) return post.title;
 
-  const date = new Date(post.published_at || post.created_at).toLocaleDateString(
-    "zh-CN"
-  );
+  const date = new Date(
+    post.published_at || post.created_at
+  ).toLocaleDateString("zh-CN");
 
   return `${date} 的日记`;
 }
@@ -46,19 +46,28 @@ export default function UserRoomClient({
   const likeCountMap = new Map<number, number>(likeCountMapData);
   const commentCountMap = new Map<number, number>(commentCountMapData);
 
+  const [visibleArticleCount, setVisibleArticleCount] = useState(10);
+  const [visibleDiaryCount, setVisibleDiaryCount] = useState(10);
+
   const profilePath = `/u/${encodeURIComponent(profile.username)}`;
 
   const showDiaries = activeTab === "all" || activeTab === "diary";
   const showArticles = activeTab === "all" || activeTab === "article";
 
+  const visibleArticles = publicArticles.slice(0, visibleArticleCount);
+  const visibleDiaries = publicDiaries.slice(0, visibleDiaryCount);
+
+  const hasMoreArticles = visibleArticleCount < publicArticles.length;
+  const hasMoreDiaries = visibleDiaryCount < publicDiaries.length;
+
   function MetaPills({ post }: { post: any }) {
     return (
       <div className="mt-3 flex flex-wrap gap-2 md:mt-5">
-        <span className="rounded-full border border-pink-500/20 bg-pink-500/[0.06] px-3 py-1 text-xs text-pink-100/55">
+        <span className="rounded-full border border-pink-500/20 bg-pink-500/[0.06] px-3 py-1 text-xs text-pink-100/40">
           喜欢 {likeCountMap.get(post.id) || 0}
         </span>
 
-        <span className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-3 py-1 text-xs text-blue-100/55">
+        <span className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-3 py-1 text-xs text-blue-100/40">
           评论 {commentCountMap.get(post.id) || 0}
         </span>
       </div>
@@ -77,12 +86,12 @@ export default function UserRoomClient({
           badge.color === "gold"
             ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-100"
             : badge.color === "emerald"
-            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
-            : badge.color === "rose"
-            ? "border-rose-500/30 bg-rose-500/10 text-rose-100"
-            : badge.color === "sky"
-            ? "border-sky-500/30 bg-sky-500/10 text-sky-100"
-            : "border-violet-500/30 bg-violet-500/10 text-violet-100"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+              : badge.color === "rose"
+                ? "border-rose-500/30 bg-rose-500/10 text-rose-100"
+                : badge.color === "sky"
+                  ? "border-sky-500/30 bg-sky-500/10 text-sky-100"
+                  : "border-violet-500/30 bg-violet-500/10 text-violet-100"
         }`}
       >
         🎖️ {badge.name}
@@ -166,7 +175,7 @@ export default function UserRoomClient({
               </div>
 
               <div className="min-w-0">
-                <h1 className="safe-text line-clamp-2 break-all text-4xl font-light tracking-tight md:text-6xl">
+                <h1 className="safe-text line-clamp-2 break-all text-4xl font-light tracking-tight [overflow-wrap:anywhere] md:text-6xl">
                   {profile.username}
                 </h1>
 
@@ -243,8 +252,6 @@ export default function UserRoomClient({
           </div>
         </section>
 
-        <RoomGuestbook roomOwnerId={profile.id} />
-        
         <section
           id="public-writings"
           className="space-y-6 scroll-mt-28 md:space-y-10"
@@ -305,11 +312,13 @@ export default function UserRoomClient({
               id="public-articles"
               className="space-y-4 scroll-mt-28 md:space-y-5"
             >
-              <h3 className="text-lg font-light text-white/75 md:text-xl">
-                文章
-              </h3>
+              {activeTab === "all" && (
+                <h3 className="text-lg font-light text-white/75 md:text-xl">
+                  文章
+                </h3>
+              )}
 
-              {publicArticles.map((post: any) => {
+              {visibleArticles.map((post: any) => {
                 const imageUrls = getImages(post.content || "");
                 const excerpt = getExcerpt(post.content || "");
                 const title = getPostTitle(post);
@@ -327,11 +336,9 @@ export default function UserRoomClient({
                       ).toLocaleString("zh-CN")}
                     </p>
 
-                    <h3 className="safe-text mt-3 line-clamp-2 break-all text-xl font-light text-white/85 md:mt-5 md:text-2xl">
+                    <h3 className="safe-text mt-3 line-clamp-2 break-all text-xl font-light text-white/85 [overflow-wrap:anywhere] md:mt-5 md:text-2xl">
                       <TranslatedText text={title} />
                     </h3>
-
-                    <MetaPills post={post} />
 
                     {imageUrls.length > 0 && (
                       <div className="mt-4 grid grid-cols-3 gap-2 md:mt-5 md:gap-3">
@@ -352,12 +359,26 @@ export default function UserRoomClient({
                       </p>
                     )}
 
-                    <p className="mt-5 text-sm text-white/25 md:mt-7">
+                    <MetaPills post={post} />
+
+                    <p className="mt-4 text-sm text-white/25">
                       阅读这篇文章 →
                     </p>
                   </Link>
                 );
               })}
+
+              {hasMoreArticles && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleArticleCount((count) => count + 10)}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-7 py-3 text-sm text-white/55 transition hover:border-white/25 hover:text-white"
+                  >
+                    加载更多文章
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -366,11 +387,13 @@ export default function UserRoomClient({
               id="public-diaries"
               className="space-y-4 scroll-mt-28 md:space-y-5"
             >
-              <h3 className="text-lg font-light text-white/75 md:text-xl">
-                日记
-              </h3>
+              {activeTab === "all" && (
+                <h3 className="text-lg font-light text-white/75 md:text-xl">
+                  日记
+                </h3>
+              )}
 
-              {publicDiaries.map((post: any) => {
+              {visibleDiaries.map((post: any) => {
                 const excerpt = getExcerpt(post.content || "");
                 const title = getPostTitle(post);
 
@@ -387,11 +410,9 @@ export default function UserRoomClient({
                       ).toLocaleString("zh-CN")}
                     </p>
 
-                    <h3 className="safe-text mt-3 line-clamp-2 break-all text-xl font-light text-white/85 md:mt-5 md:text-2xl">
+                    <h3 className="safe-text mt-3 line-clamp-2 break-all text-xl font-light text-white/85 [overflow-wrap:anywhere] md:mt-5 md:text-2xl">
                       <TranslatedText text={title} />
                     </h3>
-
-                    <MetaPills post={post} />
 
                     {excerpt && (
                       <p className="safe-pre mt-4 line-clamp-3 text-sm leading-7 text-white/42 md:mt-5 md:line-clamp-4 md:leading-8">
@@ -399,12 +420,26 @@ export default function UserRoomClient({
                       </p>
                     )}
 
-                    <p className="mt-5 text-sm text-white/25 md:mt-7">
+                    <MetaPills post={post} />
+
+                    <p className="mt-4 text-sm text-white/25">
                       翻开这一天 →
                     </p>
                   </Link>
                 );
               })}
+
+              {hasMoreDiaries && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleDiaryCount((count) => count + 10)}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-7 py-3 text-sm text-white/55 transition hover:border-white/25 hover:text-white"
+                  >
+                    加载更多日记
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>

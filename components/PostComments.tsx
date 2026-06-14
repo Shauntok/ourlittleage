@@ -43,28 +43,102 @@ export default function PostComments({ postId }: Props) {
   const [likeLoadingId, setLikeLoadingId] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
   const [currentUserId, setCurrentUserId] = useState("");
+  const [postAuthorId, setPostAuthorId] = useState("");
 
   useEffect(() => {
     fetchComments();
-    getCurrentUser();
   }, [postId, sortMode]);
 
-  async function getCurrentUser() {
+  async function fetchCurrentUser() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (user) setCurrentUserId(user.id);
+
+    return user;
+  }
+
+  async function fetchPostAuthor() {
+    const { data } = await supabase
+      .from("posts")
+      .select("author_id")
+      .eq("id", postId)
+      .maybeSingle();
+
+    if (data?.author_id) {
+      setPostAuthorId(data.author_id);
+      return data.author_id as string;
+    }
+
+    return "";
+  }
+
+  async function getCurrentUsername(userId: string) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
+
+    return data?.username || "有位居民";
+  }
+
+  async function notifyPostAuthor({
+    senderId,
+    targetAuthorId,
+    commentContent,
+  }: {
+    senderId: string;
+    targetAuthorId: string;
+    commentContent: string;
+  }) {
+    if (!senderId || !targetAuthorId || senderId === targetAuthorId) return;
+
+    const senderName = await getCurrentUsername(senderId);
+
+    await supabase.from("notifications").insert([
+      {
+        user_id: targetAuthorId,
+        title: "有人给你的内容留言了 💬",
+        content: `${senderName} 留下了一句话：${commentContent.slice(0, 80)}`,
+        type: "system",
+        is_read: false,
+        is_starred: false,
+        is_important: false,
+      },
+    ]);
+  }
+
+  async function notifyCommentAuthor({
+    senderId,
+    targetAuthorId,
+  }: {
+    senderId: string;
+    targetAuthorId: string;
+  }) {
+    if (!senderId || !targetAuthorId || senderId === targetAuthorId) return;
+
+    const senderName = await getCurrentUsername(senderId);
+
+    await supabase.from("notifications").insert([
+      {
+        user_id: targetAuthorId,
+        title: "有人喜欢了你的留言 💗",
+        content: `${senderName} 刚刚喜欢了你留下的留言。`,
+        type: "system",
+        is_read: false,
+        is_starred: false,
+        is_important: false,
+      },
+    ]);
   }
 
   async function fetchComments() {
     setFetching(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) setCurrentUserId(user.id);
+    const user = await fetchCurrentUser();
+    await fetchPostAuthor();
 
     const { data, error } = await supabase
       .from("comments")
@@ -140,9 +214,7 @@ export default function PostComments({ postId }: Props) {
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await fetchCurrentUser();
 
     if (!user) {
       alert("请先登录。");
@@ -176,11 +248,13 @@ export default function PostComments({ postId }: Props) {
       return;
     }
 
+    const finalContent = content.trim();
+
     const { error } = await supabase.from("comments").insert([
       {
         post_id: postId,
         author_id: user.id,
-        content: content.trim(),
+        content: finalContent,
       },
     ]);
 
@@ -198,6 +272,14 @@ export default function PostComments({ postId }: Props) {
     });
 
     await checkFirstCommentBadge(user.id);
+
+    const targetAuthorId = postAuthorId || (await fetchPostAuthor());
+
+    await notifyPostAuthor({
+      senderId: user.id,
+      targetAuthorId,
+      commentContent: finalContent,
+    });
 
     setContent("");
     fetchComments();
@@ -303,6 +385,11 @@ export default function PostComments({ postId }: Props) {
             })
             .eq("id", existingLike.id);
         }
+
+        await notifyCommentAuthor({
+          senderId: currentUserId,
+          targetAuthorId: comment.author_id,
+        });
       }
 
       setLikeLoadingId(null);
@@ -356,6 +443,11 @@ export default function PostComments({ postId }: Props) {
           })
           .eq("id", insertedLike.id);
       }
+
+      await notifyCommentAuthor({
+        senderId: currentUserId,
+        targetAuthorId: comment.author_id,
+      });
     }
 
     setLikeLoadingId(null);
@@ -365,9 +457,7 @@ export default function PostComments({ postId }: Props) {
     const confirmed = confirm("确定删除这条留言吗？");
     if (!confirmed) return;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await fetchCurrentUser();
 
     if (!user) {
       alert("请先登录。");
@@ -430,8 +520,8 @@ export default function PostComments({ postId }: Props) {
           {fetching
             ? "正在翻看留言..."
             : comments.length > 0
-            ? `${comments.length} 条留言`
-            : "还没有留言"}
+              ? `${comments.length} 条留言`
+              : "还没有留言"}
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -462,8 +552,6 @@ export default function PostComments({ postId }: Props) {
       </div>
 
       <div className="mt-5 space-y-4 md:space-y-5">
-        {fetching && <p className="text-sm text-white/35">正在翻看留言...</p>}
-
         {!fetching && comments.length === 0 && (
           <div className="rounded-[1.7rem] border border-white/10 bg-white/[0.03] p-8 text-center md:rounded-[2rem] md:p-10">
             <p className="text-sm text-white/35">这里暂时还没有留言。</p>
@@ -535,7 +623,7 @@ export default function PostComments({ postId }: Props) {
                       type="button"
                       onClick={() => toggleCommentLike(comment)}
                       disabled={likeLoadingId === comment.id}
-                      className={`rounded-full border px-4 py-2 text-xs transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                      className={`rounded-full border px-5 py-2.5 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
                         comment.likedByMe
                           ? "border-pink-500/30 bg-pink-500/10 text-pink-200"
                           : "border-white/10 bg-white/[0.04] text-white/45 hover:border-pink-500/25 hover:text-pink-100"
@@ -557,7 +645,7 @@ export default function PostComments({ postId }: Props) {
                     {currentUserId === comment.author_id && (
                       <button
                         onClick={() => deleteComment(comment.id)}
-                        className="rounded-full border border-red-500/20 bg-red-500/[0.05] px-4 py-2 text-xs text-red-200/55 transition hover:bg-red-500/[0.1] hover:text-red-200"
+                        className="rounded-full border border-red-500/20 bg-red-500/[0.05] px-5 py-2.5 text-sm text-red-200/55 transition hover:bg-red-500/[0.1] hover:text-red-200"
                       >
                         删除留言
                       </button>

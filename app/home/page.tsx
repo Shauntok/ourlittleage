@@ -104,7 +104,8 @@ export default function HomePage() {
         .from("announcements")
         .select("*")
         .eq("is_active", true)
-        .order("created_at", { ascending: false })
+        .not("published_at", "is", null)
+        .order("published_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -228,7 +229,9 @@ export default function HomePage() {
   return (
     <PageTransition>
       <main className="relative min-h-screen overflow-x-hidden bg-black text-white">
-        <MouseGlow />
+        <div className="hidden md:block">
+          <MouseGlow />
+        </div>
         <FloatingParticles />
 
         <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
@@ -284,6 +287,13 @@ export default function HomePage() {
                 <p className="safe-pre mt-2 line-clamp-2 text-sm leading-7 text-white/55 md:mt-4 md:line-clamp-none md:leading-8">
                   {announcement.content}
                 </p>
+
+                <Link
+                  href="/announcements"
+                  className="mt-4 inline-flex text-sm text-fuchsia-100/60 transition hover:text-fuchsia-100"
+                >
+                  查看全部公告 →
+                </Link>
               </div>
             )}
 

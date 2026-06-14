@@ -286,28 +286,19 @@ export default function DiaryDetailPage() {
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:flex md:flex-wrap">
+              <LikeButton
+                postId={diary.id}
+                authorId={diary.author_id}
+                initialCount={diary.likeCount || 0}
+              />
+
               {!diary.isOwner && (
-                <>
-                  <LikeButton
-                    postId={diary.id}
-                    authorId={diary.author_id}
-                    initialCount={diary.likeCount || 0}
-                  />
-
-                  <a
-                    href="#comments"
-                    className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-6 py-3 text-center text-sm text-blue-100/60 transition hover:border-blue-400/30 hover:text-blue-100"
-                  >
-                    评论 · {diary.commentCount || 0}
-                  </a>
-
-                  <ReportButton
-                    targetType="post"
-                    targetId={diary.id}
-                    authorId={diary.author_id}
-                    compact
-                  />
-                </>
+                <ReportButton
+                  targetType="post"
+                  targetId={diary.id}
+                  authorId={diary.author_id}
+                  compact
+                />
               )}
 
               {diary.isOwner && (

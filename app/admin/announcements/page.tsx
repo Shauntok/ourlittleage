@@ -24,6 +24,7 @@ export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -51,13 +52,8 @@ export default function AdminAnnouncementsPage() {
 
     let base = new Date();
 
-    if (datePreset === "tomorrow") {
-      base.setDate(base.getDate() + 1);
-    }
-
-    if (datePreset === "afterTomorrow") {
-      base.setDate(base.getDate() + 2);
-    }
+    if (datePreset === "tomorrow") base.setDate(base.getDate() + 1);
+    if (datePreset === "afterTomorrow") base.setDate(base.getDate() + 2);
 
     if (datePreset === "custom") {
       if (!customDate) return null;
@@ -120,6 +116,16 @@ export default function AdminAnnouncementsPage() {
     }`;
   }
 
+  function getStatusLabel(item: Announcement) {
+    if (item.publish_mode === "scheduled" && !item.sent_at) return "已预约";
+    if (item.is_active) return "显示中";
+    return "已关闭";
+  }
+
+  function isScheduledWaiting(item: Announcement) {
+    return item.publish_mode === "scheduled" && !item.sent_at;
+  }
+
   async function writeLog(action: string, targetId?: string, detail?: string) {
     const {
       data: { user },
@@ -156,7 +162,6 @@ export default function AdminAnnouncementsPage() {
   }
 
   async function sendNotificationsToAllProfiles(
-    announcementId: string,
     announcementTitle: string,
     announcementContent: string
   ) {
@@ -238,11 +243,7 @@ export default function AdminAnnouncementsPage() {
       if (error) throw error;
 
       if (publishMode === "now") {
-        await sendNotificationsToAllProfiles(
-          data.id,
-          title.trim(),
-          content.trim()
-        );
+        await sendNotificationsToAllProfiles(title.trim(), content.trim());
 
         await writeLog(
           "create_announcement_now",
@@ -268,7 +269,7 @@ export default function AdminAnnouncementsPage() {
       setHour("8");
       setMinute("00");
 
-      await fetchAnnouncements();
+      setAnnouncements((prev) => [data as Announcement, ...prev]);
     } catch (error) {
       console.error(error);
       alert("发布公告失败，请检查 Supabase 字段 / RLS / notifications 表结构。");
@@ -278,7 +279,10 @@ export default function AdminAnnouncementsPage() {
   }
 
   async function toggleAnnouncement(item: Announcement) {
+    if (isScheduledWaiting(item)) return;
+
     const nextActive = !item.is_active;
+    setUpdatingId(item.id);
 
     const { error } = await supabase
       .from("announcements")
@@ -288,21 +292,32 @@ export default function AdminAnnouncementsPage() {
     if (error) {
       console.error(error);
       alert("更新公告状态失败。");
+      setUpdatingId(null);
       return;
     }
 
     await writeLog(
-      nextActive ? "open_announcement" : "close_announcement",
+      nextActive ? "show_announcement" : "hide_announcement",
       item.id,
-      `${nextActive ? "开启" : "关闭"}公告：${item.title}`
+      `${nextActive ? "重新显示" : "关闭"}公告：${item.title}`
     );
 
-    await fetchAnnouncements();
+    setAnnouncements((prev) =>
+      prev.map((announcement) =>
+        announcement.id === item.id
+          ? { ...announcement, is_active: nextActive }
+          : announcement
+      )
+    );
+
+    setUpdatingId(null);
   }
 
   async function deleteAnnouncement(item: Announcement) {
     const ok = confirm(`确定要删除公告「${item.title}」吗？`);
     if (!ok) return;
+
+    setUpdatingId(item.id);
 
     const { error } = await supabase
       .from("announcements")
@@ -312,17 +327,17 @@ export default function AdminAnnouncementsPage() {
     if (error) {
       console.error(error);
       alert("删除公告失败。");
+      setUpdatingId(null);
       return;
     }
 
     await writeLog("delete_announcement", item.id, `删除公告：${item.title}`);
-    await fetchAnnouncements();
-  }
 
-  function getStatusLabel(item: Announcement) {
-    if (item.publish_mode === "scheduled" && !item.sent_at) return "已预约";
-    if (item.is_active) return "显示中";
-    return "已关闭";
+    setAnnouncements((prev) =>
+      prev.filter((announcement) => announcement.id !== item.id)
+    );
+
+    setUpdatingId(null);
   }
 
   return (
@@ -332,7 +347,7 @@ export default function AdminAnnouncementsPage() {
           <p className="text-sm text-zinc-500">Admin / 世界公告</p>
           <h1 className="mt-1 text-2xl font-semibold">世界公告</h1>
           <p className="mt-2 text-sm text-zinc-400">
-            立即发布会马上通知所有居民；预约发布会先保存，等待 Cron 自动发布。
+            世界公告是公开布告栏。首页只显示最新公告，完整公告页会显示历史公告。
           </p>
         </section>
 
@@ -385,7 +400,7 @@ export default function AdminAnnouncementsPage() {
                 >
                   <div className="font-medium">预约发布</div>
                   <div className="mt-1 text-xs text-zinc-500">
-                    先保存，不马上通知。
+                    先保存为待发布，不马上通知。
                   </div>
                 </button>
               </div>
@@ -604,6 +619,8 @@ export default function AdminAnnouncementsPage() {
             <div className="mt-4 space-y-3">
               {announcements.map((item) => {
                 const status = getStatusLabel(item);
+                const waiting = isScheduledWaiting(item);
+                const isUpdating = updatingId === item.id;
 
                 return (
                   <article
@@ -643,16 +660,31 @@ export default function AdminAnnouncementsPage() {
                       </div>
 
                       <div className="flex shrink-0 gap-2">
-                        <button
-                          onClick={() => toggleAnnouncement(item)}
-                          className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 transition hover:border-violet-500 hover:text-violet-200"
-                        >
-                          {item.is_active ? "关闭" : "开启"}
-                        </button>
+                        {waiting ? (
+                          <button
+                            disabled
+                            className="cursor-not-allowed rounded-lg border border-amber-500/30 px-3 py-2 text-xs text-amber-300/80"
+                          >
+                            等待发布
+                          </button>
+                        ) : (
+                          <button
+                            disabled={isUpdating}
+                            onClick={() => toggleAnnouncement(item)}
+                            className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 transition hover:border-violet-500 hover:text-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isUpdating
+                              ? "处理中..."
+                              : item.is_active
+                                ? "关闭"
+                                : "重新显示"}
+                          </button>
+                        )}
 
                         <button
+                          disabled={isUpdating}
                           onClick={() => deleteAnnouncement(item)}
-                          className="rounded-lg border border-red-900/70 px-3 py-2 text-xs text-red-300 transition hover:border-red-500 hover:text-red-200"
+                          className="rounded-lg border border-red-900/70 px-3 py-2 text-xs text-red-300 transition hover:border-red-500 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           删除
                         </button>

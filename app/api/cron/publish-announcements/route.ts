@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   try {
     const authHeader = request.headers.get("authorization");
 
-    if (process.env.CRON_SECRET) {
+    if (process.env.NODE_ENV === "production" && process.env.CRON_SECRET) {
       if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
@@ -20,83 +20,20 @@ export async function GET(request: Request) {
 
     const now = new Date().toISOString();
 
-    const { data: announcements, error: fetchError } = await supabaseAdmin
-      .from("announcements")
-      .select("*")
-      .eq("publish_mode", "scheduled")
-      .lte("scheduled_for", now)
-      .is("sent_at", null);
-
-    if (fetchError) throw fetchError;
-
-    if (!announcements || announcements.length === 0) {
-      return NextResponse.json({
-        ok: true,
-        published: 0,
-        message: "No scheduled announcements",
-        now,
-      });
-    }
-
-    const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from("profiles")
-      .select("id");
-
-    if (profilesError) throw profilesError;
-
-    let publishedCount = 0;
-
-    for (const announcement of announcements) {
-      const publishTime = new Date().toISOString();
-
-      const { error: updateError } = await supabaseAdmin
-        .from("announcements")
-        .update({
-          is_active: true,
-          published_at: publishTime,
-          sent_at: publishTime,
-        })
-        .eq("id", announcement.id)
-        .is("sent_at", null);
-
-      if (updateError) throw updateError;
-
-      const notifications = (profiles || []).map((profile: { id: string }) => ({
-        user_id: profile.id,
-        type: "announcement",
-        title: announcement.title,
-        content: announcement.content,
-        is_read: false,
-        is_starred: false,
-        is_important: true,
-      }));
-
-      if (notifications.length > 0) {
-        const { error: notifyError } = await supabaseAdmin
-          .from("notifications")
-          .insert(notifications);
-
-        if (notifyError) throw notifyError;
-      }
-
-      await supabaseAdmin.from("admin_logs").insert({
-        admin_id: null,
-        action: "auto_publish_scheduled_announcement",
-        target_type: "announcement",
-        target_id: announcement.id,
-        detail: `自动发布预约公告：${announcement.title}`,
-      });
-
-      publishedCount += 1;
-    }
+    const announcementsPublished = await publishScheduledAnnouncements(now);
+    const broadcastsSent = await publishScheduledBroadcasts(now);
+    const trashedNotificationsDeleted =
+      await cleanupOldTrashedNotifications();
 
     return NextResponse.json({
       ok: true,
-      published: publishedCount,
+      announcementsPublished,
+      broadcastsSent,
+      trashedNotificationsDeleted,
       now,
     });
   } catch (error: any) {
-    console.error("publish-announcements cron error:", error);
+    console.error("cron publish error:", error);
 
     return NextResponse.json(
       {
@@ -106,4 +43,186 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+async function publishScheduledAnnouncements(now: string) {
+  const { data: announcements, error: fetchError } = await supabaseAdmin
+    .from("announcements")
+    .select("*")
+    .eq("publish_mode", "scheduled")
+    .lte("scheduled_for", now)
+    .is("sent_at", null);
+
+  if (fetchError) throw fetchError;
+
+  if (!announcements || announcements.length === 0) {
+    return 0;
+  }
+
+  const { data: profiles, error: profilesError } = await supabaseAdmin
+    .from("profiles")
+    .select("id");
+
+  if (profilesError) throw profilesError;
+
+  let publishedCount = 0;
+
+  for (const announcement of announcements) {
+    const publishTime = new Date().toISOString();
+
+    const { error: updateError } = await supabaseAdmin
+      .from("announcements")
+      .update({
+        is_active: true,
+        published_at: publishTime,
+        sent_at: publishTime,
+      })
+      .eq("id", announcement.id)
+      .is("sent_at", null);
+
+    if (updateError) throw updateError;
+
+    const notifications = (profiles || []).map((profile: { id: string }) => ({
+      user_id: profile.id,
+      type: "announcement",
+      title: announcement.title,
+      content: announcement.content,
+      is_read: false,
+      is_starred: false,
+      is_important: true,
+    }));
+
+    if (notifications.length > 0) {
+      const { error: notifyError } = await supabaseAdmin
+        .from("notifications")
+        .insert(notifications);
+
+      if (notifyError) throw notifyError;
+    }
+
+    await supabaseAdmin.from("admin_logs").insert({
+      admin_id: null,
+      action: "auto_publish_scheduled_announcement",
+      target_type: "announcement",
+      target_id: announcement.id,
+      details: `自动发布预约公告：${announcement.title}`,
+    });
+
+    publishedCount += 1;
+  }
+
+  return publishedCount;
+}
+
+async function publishScheduledBroadcasts(now: string) {
+  const { data: broadcasts, error: fetchError } = await supabaseAdmin
+    .from("scheduled_broadcasts")
+    .select("*")
+    .eq("status", "scheduled")
+    .lte("scheduled_for", now)
+    .is("sent_at", null);
+
+  if (fetchError) throw fetchError;
+
+  if (!broadcasts || broadcasts.length === 0) {
+    return 0;
+  }
+
+  let sentCount = 0;
+
+  for (const broadcast of broadcasts) {
+    let targetUsers: { id: string }[] = [];
+
+    if (broadcast.target_mode === "self") {
+      targetUsers = [{ id: broadcast.created_by }];
+    }
+
+    if (broadcast.target_mode === "single") {
+      if (broadcast.target_user_id) {
+        targetUsers = [{ id: broadcast.target_user_id }];
+      }
+    }
+
+    if (broadcast.target_mode === "all") {
+      const { data: users, error: usersError } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("status", "active");
+
+      if (usersError) throw usersError;
+
+      targetUsers = users || [];
+    }
+
+    if (targetUsers.length === 0) {
+      await supabaseAdmin
+        .from("scheduled_broadcasts")
+        .update({
+          status: "failed",
+          sent_at: new Date().toISOString(),
+          sent_count: 0,
+        })
+        .eq("id", broadcast.id);
+
+      continue;
+    }
+
+    const notifications = targetUsers.map((user) => ({
+      user_id: user.id,
+      title: broadcast.title,
+      content: broadcast.content,
+      type: broadcast.message_type,
+      is_read: false,
+      is_important: broadcast.is_important,
+      is_starred: false,
+    }));
+
+    const { error: notifyError } = await supabaseAdmin
+      .from("notifications")
+      .insert(notifications);
+
+    if (notifyError) throw notifyError;
+
+    const sentAt = new Date().toISOString();
+
+    const { error: updateError } = await supabaseAdmin
+      .from("scheduled_broadcasts")
+      .update({
+        status: "sent",
+        sent_at: sentAt,
+        sent_count: targetUsers.length,
+      })
+      .eq("id", broadcast.id)
+      .eq("status", "scheduled");
+
+    if (updateError) throw updateError;
+
+    await supabaseAdmin.from("admin_logs").insert({
+      admin_id: broadcast.created_by,
+      action: "auto_send_scheduled_broadcast",
+      target_type: "scheduled_broadcast",
+      target_id: String(broadcast.id),
+      details: `自动发送预约信件：${broadcast.title} (${targetUsers.length} users)`,
+    });
+
+    sentCount += 1;
+  }
+
+  return sentCount;
+}
+
+async function cleanupOldTrashedNotifications() {
+  const cutoff = new Date(
+    Date.now() - 15 * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { count, error } = await supabaseAdmin
+    .from("notifications")
+    .delete({ count: "exact" })
+    .not("deleted_at", "is", null)
+    .lte("deleted_at", cutoff);
+
+  if (error) throw error;
+
+  return count || 0;
 }

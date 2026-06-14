@@ -45,6 +45,30 @@ export default function LikeButton({
     setLiked(!!myLike?.is_active);
   }
 
+  async function notifyAuthor() {
+    if (!currentUserId || currentUserId === authorId) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", currentUserId)
+      .maybeSingle();
+
+    const likerName = profile?.username || "有位居民";
+
+    await supabase.from("notifications").insert([
+      {
+        user_id: authorId,
+        title: "有人喜欢了你的内容 💗",
+        content: `${likerName} 刚刚给你的内容留下了一点喜欢。`,
+        type: "system",
+        is_read: false,
+        is_starred: false,
+        is_important: false,
+      },
+    ]);
+  }
+
   async function toggleLike() {
     if (!currentUserId) {
       alert("请先登录后再喜欢。");
@@ -74,9 +98,7 @@ export default function LikeButton({
     if (existingLike?.is_active) {
       const { error } = await supabase
         .from("post_likes")
-        .update({
-          is_active: false,
-        })
+        .update({ is_active: false })
         .eq("id", existingLike.id);
 
       setLoading(false);
@@ -94,14 +116,11 @@ export default function LikeButton({
     if (existingLike && !existingLike.is_active) {
       const { error } = await supabase
         .from("post_likes")
-        .update({
-          is_active: true,
-        })
+        .update({ is_active: true })
         .eq("id", existingLike.id);
 
-      setLoading(false);
-
       if (error) {
+        setLoading(false);
         alert(error.message);
         return;
       }
@@ -119,13 +138,14 @@ export default function LikeButton({
         if (success) {
           await supabase
             .from("post_likes")
-            .update({
-              rewarded: true,
-            })
+            .update({ rewarded: true })
             .eq("id", existingLike.id);
         }
+
+        await notifyAuthor();
       }
 
+      setLoading(false);
       return;
     }
 
@@ -142,9 +162,8 @@ export default function LikeButton({
       .select("id, rewarded")
       .single();
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       alert(error.message);
       return;
     }
@@ -162,12 +181,14 @@ export default function LikeButton({
       if (success) {
         await supabase
           .from("post_likes")
-          .update({
-            rewarded: true,
-          })
+          .update({ rewarded: true })
           .eq("id", insertedLike.id);
       }
+
+      await notifyAuthor();
     }
+
+    setLoading(false);
   }
 
   return (
@@ -176,7 +197,7 @@ export default function LikeButton({
       onClick={toggleLike}
       disabled={loading}
       className={`rounded-full border transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        compact ? "px-3 py-1 text-xs" : "px-5 py-3 text-sm"
+        compact ? "px-5 py-2.5 text-sm" : "px-5 py-3 text-sm"
       } ${
         liked
           ? "border-pink-500/30 bg-pink-500/10 text-pink-200"

@@ -278,22 +278,16 @@ export default function ArticleDetailPage() {
           )}
         </section>
 
-        <footer className="mt-8 flex flex-col gap-4 md:mt-10 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap gap-2 md:gap-3">
+        <footer className="mt-8 space-y-3 md:mt-10">
+          <div className="flex w-full flex-col gap-3">
+            <LikeButton
+              postId={article.id}
+              authorId={article.author_id}
+              initialCount={article.likeCount || 0}
+            />
+
             {!isAuthor && (
               <>
-                <LikeButton
-                  postId={article.id}
-                  authorId={article.author_id}
-                  initialCount={article.likeCount || 0}
-                />
-
-                <a
-                  href="#comments"
-                  className="rounded-full border border-blue-500/20 bg-blue-500/[0.06] px-6 py-3 text-center text-sm text-blue-100/60 transition hover:border-blue-400/30 hover:text-blue-100"
-                >
-                  评论 · {article.commentCount || 0}
-                </a>
 
                 <ReportButton
                   targetType="post"
@@ -307,20 +301,20 @@ export default function ArticleDetailPage() {
             {isAuthor && (
               <Link
                 href={`/articles/edit/${article.id}`}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:text-white"
+                className="w-full rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-center text-sm text-white/60 transition hover:border-white/25 hover:text-white"
               >
                 编辑文章
               </Link>
             )}
-          </div>
 
-          <button
-            type="button"
-            onClick={() => router.push("/space/articles")}
-            className="w-full rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 md:w-auto"
-          >
-            回到文章广场
-          </button>
+            <button
+              type="button"
+              onClick={() => router.push("/space/articles")}
+              className="w-full rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+            >
+              回到文章广场
+            </button>
+          </div>
         </footer>
 
         <div className="mt-10 md:mt-14">

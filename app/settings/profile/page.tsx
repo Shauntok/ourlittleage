@@ -139,7 +139,7 @@ export default function ProfileSettingsPage() {
   async function saveProfile() {
     if (!user) return;
 
-    const cleanUsername = username.trim();
+    const cleanUsername = username.trim().toLowerCase();
     const cleanBio = bio.trim();
     const usernameRegex = /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/;
 
@@ -507,7 +507,7 @@ export default function ProfileSettingsPage() {
                   />
 
                   <p className="text-xs text-white/25">
-                    3-20 个字符，可使用中文、英文、数字和底线。
+                    3-20 个字符，可使用中文、英文、数字和底线；英文会自动转为小写。
                   </p>
                 </div>
 
