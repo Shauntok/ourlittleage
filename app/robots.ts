@@ -5,7 +5,12 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/announcements"],
+        allow: [
+          "/",
+          "/space",
+          "/articles",
+          "/announcements",
+        ],
         disallow: [
           "/home",
           "/admin",
@@ -15,6 +20,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: "https://www.ourlittleage.com/sitemap.xml",
+    sitemap: "https://ourlittleage.com/sitemap.xml",
   };
 }
