@@ -20,7 +20,7 @@ async function fetchSpacePosts(type: "article" | "diary") {
     .eq("status", "published")
     .eq("visibility", "public")
     .order("published_at", { ascending: false })
-    .limit(20);
+    .limit(6);
 
   if (error || !data) return [];
 
@@ -28,16 +28,40 @@ async function fetchSpacePosts(type: "article" | "diary") {
     new Set(data.map((post) => post.author_id).filter(Boolean))
   );
 
-  const { data: profiles } =
+  const postIds = data.map((post) => post.id);
+
+  const [profilesResult, likesResult, commentsResult] = await Promise.all([
     authorIds.length > 0
-      ? await supabase
+      ? supabase
           .from("profiles")
           .select("id, username, avatar_url")
           .in("id", authorIds)
-      : { data: [] as any[] };
+      : Promise.resolve({ data: [] as any[], error: null }),
+
+    postIds.length > 0
+      ? supabase
+          .from("post_likes")
+          .select("post_id")
+          .in("post_id", postIds)
+          .eq("is_active", true)
+      : Promise.resolve({ data: [] as any[], error: null }),
+
+    postIds.length > 0
+      ? supabase
+          .from("comments")
+          .select("post_id")
+          .in("post_id", postIds)
+          .eq("is_deleted", false)
+          .eq("is_hidden", false)
+      : Promise.resolve({ data: [] as any[], error: null }),
+  ]);
+
+  const profiles = profilesResult.data || [];
+  const likesData = likesResult.data || [];
+  const commentsData = commentsResult.data || [];
 
   const profileMap = new Map<string, ProfileInfo>(
-    (profiles || []).map((profile: any) => [
+    profiles.map((profile: any) => [
       profile.id,
       {
         username: profile.username,
@@ -46,36 +70,15 @@ async function fetchSpacePosts(type: "article" | "diary") {
     ])
   );
 
-  const postIds = data.map((post) => post.id);
-
-  const { data: likesData } =
-    postIds.length > 0
-      ? await supabase
-          .from("post_likes")
-          .select("post_id")
-          .in("post_id", postIds)
-          .eq("is_active", true)
-      : { data: [] as any[] };
-
-  const { data: commentsData } =
-    postIds.length > 0
-      ? await supabase
-          .from("comments")
-          .select("post_id")
-          .in("post_id", postIds)
-          .eq("is_deleted", false)
-          .eq("is_hidden", false)
-      : { data: [] as any[] };
-
   const likeCountMap = new Map<string, number>();
   const commentCountMap = new Map<string, number>();
 
-  (likesData || []).forEach((like: any) => {
+  likesData.forEach((like: any) => {
     const key = String(like.post_id);
     likeCountMap.set(key, (likeCountMap.get(key) || 0) + 1);
   });
 
-  (commentsData || []).forEach((comment: any) => {
+  commentsData.forEach((comment: any) => {
     const key = String(comment.post_id);
     commentCountMap.set(key, (commentCountMap.get(key) || 0) + 1);
   });

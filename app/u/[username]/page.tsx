@@ -117,11 +117,14 @@ export default async function UserPage({ params, searchParams }: Props) {
 
   const { data: posts } = await supabase
     .from("posts")
-    .select("*")
+    .select(
+      "id,title,slug,content,type,published_at,created_at,author_id,status,visibility"
+    )
     .eq("author_id", profile.id)
     .eq("status", "published")
     .eq("visibility", "public")
-    .order("published_at", { ascending: false });
+    .order("published_at", { ascending: false })
+    .limit(30);
 
   const publicPosts = posts || [];
   const publicDiaries = publicPosts.filter((post) => post.type === "diary");
