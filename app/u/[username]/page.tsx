@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import UserRoomClient from "@/components/UserRoomClient";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 function getResidentTitle(level: number) {
   if (level >= 50) return "小时代长老";
