@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Announcement = {
@@ -8,8 +11,6 @@ type Announcement = {
   created_at: string;
   published_at: string | null;
 };
-
-export const dynamic = "force-dynamic";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -24,16 +25,32 @@ function formatDate(value: string | null) {
   });
 }
 
-export default async function AnnouncementsPage() {
-  const { data: announcements, error } = await supabase
-    .from("announcements")
-    .select("id,title,content,created_at,published_at")
-    .eq("is_active", true)
-    .not("published_at", "is", null)
-    .order("published_at", { ascending: false });
+export default function AnnouncementsPage() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (error) {
-    console.error(error);
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
+  async function fetchAnnouncements() {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("announcements")
+      .select("id,title,content,created_at,published_at")
+      .eq("is_active", true)
+      .order("published_at", { ascending: false });
+
+    if (error) {
+      console.error("fetch announcements error:", error);
+      alert(`读取公告失败：${error.message}`);
+      setLoading(false);
+      return;
+    }
+
+    setAnnouncements((data || []) as Announcement[]);
+    setLoading(false);
   }
 
   return (
@@ -54,19 +71,23 @@ export default async function AnnouncementsPage() {
           </p>
         </section>
 
-        {!announcements || announcements.length === 0 ? (
+        {loading ? (
+          <section className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6">
+            <p className="text-sm text-zinc-400">正在读取公告...</p>
+          </section>
+        ) : announcements.length === 0 ? (
           <section className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6">
             <p className="text-sm text-zinc-400">暂时还没有公告。</p>
           </section>
         ) : (
           <section className="space-y-4">
-            {(announcements as Announcement[]).map((item) => (
+            {announcements.map((item) => (
               <article
                 key={item.id}
                 className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5 shadow-lg"
               >
                 <p className="text-xs text-zinc-500">
-                  {formatDate(item.published_at)}
+                  {formatDate(item.published_at || item.created_at)}
                 </p>
 
                 <h2 className="mt-2 break-words text-xl font-semibold text-zinc-100">
