@@ -28,19 +28,6 @@ export const metadata: Metadata = {
   description:
     "小时代是一个慢节奏的深夜文字社区。在这里写日记、分享故事、留下生活痕迹，与仍未入睡的人相遇。",
 
-  keywords: [
-    "小时代",
-    "深夜社区",
-    "文字社区",
-    "日记社区",
-    "匿名日记",
-    "写日记",
-    "故事社区",
-    "情感社区",
-    "生活记录",
-    "中文社区",
-  ],
-
   openGraph: {
     title: "小时代｜深夜故事社区",
     description:
@@ -49,6 +36,15 @@ export const metadata: Metadata = {
     siteName: "小时代",
     locale: "zh_CN",
     type: "website",
+
+    images: [
+      {
+        url: "/og-cover.png",
+        width: 1200,
+        height: 630,
+        alt: "小时代｜深夜故事社区",
+      },
+    ],
   },
 
   twitter: {
@@ -56,6 +52,8 @@ export const metadata: Metadata = {
     title: "小时代｜深夜故事社区",
     description:
       "世界已经睡了，但这里还有一些人，静静留下今天。",
+
+    images: ["/og-cover.png"],
   },
 
   alternates: {
