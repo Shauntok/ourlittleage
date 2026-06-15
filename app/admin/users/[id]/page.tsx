@@ -16,6 +16,7 @@ import UserBioCard from "@/components/admin/users/UserBioCard";
 import UserJoinedCard from "@/components/admin/users/UserJoinedCard";
 import { fetchUserDetailData }
 from "@/components/admin/users/userDetailData";
+import UserProfileInfoCard from "@/components/admin/users/UserProfileInfoCard";
 
 export default function AdminUserDetailPage() {
   const params = useParams();
@@ -413,6 +414,8 @@ export default function AdminUserDetailPage() {
         badgeTotal={badges.length}
         formatDecimal={formatDecimal}
       />
+
+      <UserProfileInfoCard profile={profile} />
 
       <UserGrowthActions
         currentRole={currentRole}

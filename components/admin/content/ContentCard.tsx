@@ -81,6 +81,13 @@ export default function ContentCard({
           查看
         </Link>
 
+        <Link
+          href={`/admin/content/${post.id}`}
+          className="rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-sm text-violet-300 transition hover:bg-violet-500/20"
+        >
+          后台全文
+        </Link>
+
         <button
           onClick={() => updateVisibility(post.id, "public")}
           className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
