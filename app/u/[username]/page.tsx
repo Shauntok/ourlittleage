@@ -96,69 +96,76 @@ export default async function UserPage({ params, searchParams }: Props) {
     !profile.status_expires_at ||
     new Date(profile.status_expires_at).getTime() < Date.now();
 
-  const { data: userBadges } = await supabase
-    .from("user_badges")
-    .select(
-      `
-      id,
-      created_at,
-      badges (
+  const [badgesResult, postsResult] = await Promise.all([
+    supabase
+      .from("user_badges")
+      .select(
+        `
         id,
-        name,
-        color,
-        description
+        created_at,
+        badges (
+          id,
+          name,
+          color,
+          description
+        )
+      `
       )
-    `
-    )
-    .eq("user_id", profile.id)
-    .order("created_at", { ascending: false });
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false }),
 
-  const visibleBadges = profile.show_badges === false ? [] : userBadges || [];
+    supabase
+      .from("posts")
+      .select(
+        "id,title,slug,content,type,published_at,created_at,author_id,status,visibility"
+      )
+      .eq("author_id", profile.id)
+      .eq("status", "published")
+      .eq("visibility", "public")
+      .order("published_at", { ascending: false })
+      .limit(30),
+  ]);
 
-  const { data: posts } = await supabase
-    .from("posts")
-    .select(
-      "id,title,slug,content,type,published_at,created_at,author_id,status,visibility"
-    )
-    .eq("author_id", profile.id)
-    .eq("status", "published")
-    .eq("visibility", "public")
-    .order("published_at", { ascending: false })
-    .limit(30);
+  const userBadges = badgesResult.data || [];
+  const publicPosts = postsResult.data || [];
 
-  const publicPosts = posts || [];
+  const visibleBadges = profile.show_badges === false ? [] : userBadges;
+
   const publicDiaries = publicPosts.filter((post) => post.type === "diary");
   const publicArticles = publicPosts.filter((post) => post.type === "article");
 
   const postIds = publicPosts.map((post) => post.id);
 
-  const { data: likesData } =
+  const [likesResult, commentsResult] = await Promise.all([
     postIds.length > 0
-      ? await supabase
+      ? supabase
           .from("post_likes")
           .select("post_id")
           .in("post_id", postIds)
           .eq("is_active", true)
-      : { data: [] as any[] };
+      : Promise.resolve({ data: [] as any[] }),
 
-  const { data: commentsData } =
     postIds.length > 0
-      ? await supabase
+      ? supabase
           .from("comments")
           .select("post_id")
           .in("post_id", postIds)
           .eq("is_deleted", false)
           .eq("is_hidden", false)
-      : { data: [] as any[] };
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
+  const likesData = likesResult.data || [];
+  const commentsData = commentsResult.data || [];
 
   const likeCountMap = new Map<number, number>();
   const commentCountMap = new Map<number, number>();
 
-  (likesData || []).forEach((like: any) => {
+  likesData.forEach((like: any) => {
     likeCountMap.set(like.post_id, (likeCountMap.get(like.post_id) || 0) + 1);
   });
 
-  (commentsData || []).forEach((comment: any) => {
+  commentsData.forEach((comment: any) => {
     commentCountMap.set(
       comment.post_id,
       (commentCountMap.get(comment.post_id) || 0) + 1
