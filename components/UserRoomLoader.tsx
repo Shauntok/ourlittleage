@@ -148,13 +148,14 @@ export default function UserRoomLoader({
       supabase
         .from("posts")
         .select(
-          "id,title,slug,content,type,published_at,created_at,author_id,status,visibility"
+        "id,title,slug,content,type,published_at,created_at,author_id,status,visibility"
         )
+        .limit(12)
         .eq("author_id", profile.id)
         .eq("status", "published")
         .eq("visibility", "public")
         .order("published_at", { ascending: false })
-        .limit(30),
+        .limit(12),
     ]);
 
     const userBadges = badgesResult.data || [];
