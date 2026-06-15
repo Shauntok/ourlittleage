@@ -18,37 +18,48 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.ourlittleage.com"),
+  metadataBase: new URL("https://ourlittleage.com"),
+
   title: {
-    default: "小时代 Our Little Age｜慢节奏文字社区",
-    template: "%s｜小时代 Our Little Age",
+    default: "小时代｜深夜故事社区",
+    template: "%s｜小时代",
   },
+
   description:
-    "小时代 Our Little Age 是一个给深夜居民留下文字、日记、文章和生活痕迹的慢节奏社区。进入你的深夜小屋，慢慢写下今天。",
+    "小时代是一个慢节奏的深夜文字社区。在这里写日记、分享故事、留下生活痕迹，与仍未入睡的人相遇。",
+
   keywords: [
     "小时代",
-    "Our Little Age",
+    "深夜社区",
     "文字社区",
     "日记社区",
-    "慢节奏社区",
-    "深夜居民",
+    "匿名日记",
     "写日记",
+    "故事社区",
+    "情感社区",
+    "生活记录",
     "中文社区",
   ],
+
   openGraph: {
-    title: "小时代 Our Little Age｜慢节奏文字社区",
+    title: "小时代｜深夜故事社区",
     description:
-      "一个给深夜居民留下文字、日记、文章和生活痕迹的慢节奏社区。",
-    url: "https://www.ourlittleage.com",
-    siteName: "小时代 Our Little Age",
-    locale: "zh_MY",
+      "世界已经睡了，但这里还有一些人，静静留下今天。",
+    url: "https://ourlittleage.com",
+    siteName: "小时代",
+    locale: "zh_CN",
     type: "website",
   },
+
   twitter: {
     card: "summary_large_image",
-    title: "小时代 Our Little Age｜慢节奏文字社区",
+    title: "小时代｜深夜故事社区",
     description:
-      "一个给深夜居民留下文字、日记、文章和生活痕迹的慢节奏社区。",
+      "世界已经睡了，但这里还有一些人，静静留下今天。",
+  },
+
+  alternates: {
+    canonical: "https://ourlittleage.com",
   },
 };
 
@@ -63,7 +74,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="zh-Hans"
+      lang="zh-CN"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-black text-white">
