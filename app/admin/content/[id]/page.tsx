@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
 import { supabase } from "@/lib/supabase";
 
 function getTitle(post: any) {
@@ -23,6 +24,7 @@ function getViewHref(post: any) {
 
 export default function AdminContentDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [post, setPost] = useState<any>(null);
@@ -115,6 +117,45 @@ export default function AdminContentDetailPage() {
       ...current,
       visibility,
     }));
+  }
+
+  async function softDeletePost() {
+    if (!post) return;
+
+    const confirmed = confirm(
+      "确定把这篇内容移入回收站吗？内容不会立刻永久删除，之后可恢复。"
+    );
+
+    if (!confirmed) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("请先登录。");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user.id,
+        delete_reason: "admin_soft_delete",
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", post.id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await writeLog("soft_delete_content", "内容已移入回收站");
+
+    alert("内容已移入回收站。");
+    router.push("/admin/content");
   }
 
   if (loading) {
@@ -230,24 +271,33 @@ export default function AdminContentDetailPage() {
           >
             链接可见
           </button>
+
+          <button
+            onClick={softDeletePost}
+            className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20"
+          >
+            移入回收站
+          </button>
         </div>
       </section>
 
       <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6">
         <h2 className="text-xl font-bold">内容全文</h2>
 
-        <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-8 text-zinc-300">
-          {post.content || "这篇内容没有正文。"}
-        </p>
+        <div className="prose prose-invert mt-5 max-w-none break-words">
+          <ReactMarkdown>{post.content || "这篇内容没有正文。"}</ReactMarkdown>
+        </div>
       </section>
 
       <section className="rounded-3xl border border-zinc-800 bg-zinc-950/50 p-6 text-sm text-zinc-500">
         <p>创建时间：{new Date(post.created_at).toLocaleString("zh-CN")}</p>
+
         {post.published_at && (
           <p className="mt-2">
             发布时间：{new Date(post.published_at).toLocaleString("zh-CN")}
           </p>
         )}
+
         {post.edited_at && (
           <p className="mt-2">
             编辑时间：{new Date(post.edited_at).toLocaleString("zh-CN")}

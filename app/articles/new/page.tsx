@@ -18,18 +18,46 @@ import ArticleEditorActions from "@/components/editor/ArticleEditorActions";
 import ArticleTitleFields from "@/components/editor/ArticleTitleFields";
 import EditorTextarea from "@/components/editor/EditorTextarea";
 import ArticleSideCards from "@/components/editor/ArticleSideCards";
+import MobileVisibilityDialog from "@/components/editor/MobileVisibilityDialog";
 import { uploadEditorImage } from "@/components/editor/editorImageUpload";
 import { insertEditorText } from "@/components/editor/editorTextUtils";
-import {
-  validateArticleTitle,
-  validateArticleContent,
-} from "@/lib/editor/articleValidation";
 import {
   isBlockedFromWriting,
   getWritingBlockMessage,
 } from "@/lib/editor/writingGuard";
 
 const DAILY_ARTICLE_LIMIT = 2;
+const MIN_ARTICLE_TITLE_LENGTH = 2;
+const MIN_ARTICLE_CONTENT_LENGTH = 500;
+
+type ArticleVisibility = "public" | "hidden" | "unlisted" | "private";
+
+const visibilityOptions = [
+  {
+    key: "public",
+    icon: "🌍",
+    title: "公开发布",
+    desc: "所有居民都可以看到。",
+  },
+  {
+    key: "hidden",
+    icon: "🙈",
+    title: "隐藏文章",
+    desc: "不会主动出现在公开列表。",
+  },
+  {
+    key: "unlisted",
+    icon: "🔗",
+    title: "仅链接可见",
+    desc: "有链接的人才能进入。",
+  },
+  {
+    key: "private",
+    icon: "🔒",
+    title: "只给自己看",
+    desc: "只有你自己能看到。",
+  },
+];
 
 function getTodayRange() {
   const todayStart = new Date();
@@ -38,10 +66,7 @@ function getTodayRange() {
   const todayEnd = new Date(todayStart);
   todayEnd.setDate(todayEnd.getDate() + 1);
 
-  return {
-    todayStart,
-    todayEnd,
-  };
+  return { todayStart, todayEnd };
 }
 
 async function getTodayArticleCount(userId: string) {
@@ -73,10 +98,13 @@ export default function NewArticlePage() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
-  const [visibility, setVisibility] = useState("public");
+  const [visibility, setVisibility] = useState<ArticleVisibility>("public");
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [editorMessage, setEditorMessage] = useState("");
+  const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
+
   const [remainingArticleCount, setRemainingArticleCount] =
     useState<number | null>(null);
 
@@ -119,7 +147,7 @@ export default function NewArticlePage() {
           Math.max(DAILY_ARTICLE_LIMIT - todayArticleCount, 0)
         );
       } catch (error: any) {
-        alert(error.message);
+        setEditorMessage(error.message);
       }
     }
 
@@ -155,6 +183,40 @@ export default function NewArticlePage() {
     });
   }
 
+  function validateArticleForPublish() {
+    setEditorMessage("");
+
+    if (cleanTitle.length < MIN_ARTICLE_TITLE_LENGTH) {
+      setEditorMessage("给这篇故事起个名字吧，哪怕只是短短几个字。");
+      return false;
+    }
+
+    if (cleanContent.length < MIN_ARTICLE_CONTENT_LENGTH) {
+      setEditorMessage(
+        `这篇故事还可以再慢慢展开一点，至少留下 ${MIN_ARTICLE_CONTENT_LENGTH} 个字吧。`
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  function validateArticleForDraft() {
+    setEditorMessage("");
+
+    if (cleanTitle.length < MIN_ARTICLE_TITLE_LENGTH) {
+      setEditorMessage("先给草稿起个名字吧，之后回来才找得到它。");
+      return false;
+    }
+
+    if (!cleanContent) {
+      setEditorMessage("写一点点就好，我帮你先收进草稿箱。");
+      return false;
+    }
+
+    return true;
+  }
+
   async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
     if (guardWriting("publish")) return;
 
@@ -167,7 +229,7 @@ export default function NewArticlePage() {
       const publicUrl = await uploadEditorImage(file);
       insertTextAtCursor(`\n\n![](${publicUrl})\n\n`);
     } catch (error: any) {
-      alert(error.message);
+      setEditorMessage(error.message);
     } finally {
       setUploading(false);
     }
@@ -177,19 +239,15 @@ export default function NewArticlePage() {
     if (guardWriting("publish")) return;
     if (!currentUser) return;
 
-    if (!validateArticleTitle(title)) return;
-    if (!validateArticleContent(content)) return;
+    if (!validateArticleForPublish()) return;
 
     const finalSlug =
       generateArticleSlug(slug.trim()) || generateArticleSlug(cleanTitle);
 
     if (!finalSlug) {
-      alert("slug 无法生成，请换一个标题或手动填写。");
+      setEditorMessage("这个标题暂时生成不了链接，换个标题或手动填一下 slug 吧。");
       return;
     }
-
-    const confirmed = confirm("确定发布这篇文章吗？");
-    if (!confirmed) return;
 
     setLoading(true);
 
@@ -197,7 +255,7 @@ export default function NewArticlePage() {
       const todayArticleCount = await getTodayArticleCount(currentUser.id);
 
       if (todayArticleCount >= DAILY_ARTICLE_LIMIT) {
-        alert("今天已经发布了 2 篇文章。让故事沉淀一下，明天再继续吧。");
+        setEditorMessage("今天已经写下很多故事了，先让它们沉淀一下吧，明天也会等你。");
         setRemainingArticleCount(0);
         setLoading(false);
         return;
@@ -206,7 +264,7 @@ export default function NewArticlePage() {
       const exists = await checkArticleSlugExists(finalSlug);
 
       if (exists) {
-        alert("这个 slug 已经存在，请修改。");
+        setEditorMessage("这个链接已经有人用过了，换一个 slug 吧。");
         setLoading(false);
         return;
       }
@@ -227,7 +285,7 @@ export default function NewArticlePage() {
       ]);
 
       if (error) {
-        alert(error.message);
+        setEditorMessage(error.message);
         setLoading(false);
         return;
       }
@@ -240,14 +298,9 @@ export default function NewArticlePage() {
 
       await checkFirstArticleBadge(currentUser.id);
 
-      setRemainingArticleCount(
-        Math.max(DAILY_ARTICLE_LIMIT - (todayArticleCount + 1), 0)
-      );
-
-      alert("文章发布成功 🔥");
       router.push(`/articles/${finalSlug}`);
     } catch (error: any) {
-      alert(error.message);
+      setEditorMessage(error.message);
       setLoading(false);
     }
   }
@@ -256,12 +309,7 @@ export default function NewArticlePage() {
     if (guardWriting("draft")) return;
     if (!currentUser) return;
 
-    if (!validateArticleTitle(title)) return;
-
-    if (!cleanContent) {
-      alert("请至少填写文章内容。");
-      return;
-    }
+    if (!validateArticleForDraft()) return;
 
     setLoading(true);
 
@@ -273,7 +321,7 @@ export default function NewArticlePage() {
     const exists = await checkArticleSlugExists(finalSlug);
 
     if (exists) {
-      alert("这个 slug 已经存在，请修改。");
+      setEditorMessage("这个链接已经有人用过了，换一个 slug 吧。");
       setLoading(false);
       return;
     }
@@ -295,24 +343,28 @@ export default function NewArticlePage() {
     setLoading(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
       return;
     }
 
     resetForm();
-    alert("草稿已保存 📝");
+    router.push("/drafts");
   }
 
   function discardArticle() {
-    const hasContent = title || slug || content || tags || notes;
-
-    if (hasContent) {
-      const confirmed = confirm("确定放弃这篇文章吗？内容不会保存。");
-      if (!confirmed) return;
-    }
-
     resetForm();
     router.push("/articles");
+  }
+
+  function handlePublishClick() {
+    if (!validateArticleForPublish()) return;
+
+    if (window.innerWidth < 1024) {
+      setShowVisibilityDialog(true);
+      return;
+    }
+
+    publishArticle();
   }
 
   return (
@@ -351,46 +403,31 @@ export default function NewArticlePage() {
             variant="article"
           />
 
+          {editorMessage && (
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              {editorMessage}
+            </div>
+          )}
+
           <ArticleEditorActions
             contentCount={contentCount}
             loading={loading}
-            publishArticle={publishArticle}
+            publishArticle={handlePublishClick}
             saveDraft={saveDraft}
             discardArticle={discardArticle}
           />
         </section>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <VisibilitySelector
-            visibility={visibility}
-            setVisibility={setVisibility}
-            options={[
-              {
-                key: "public",
-                icon: "🌍",
-                title: "公开发布",
-                desc: "所有居民都可以看到。",
-              },
-              {
-                key: "hidden",
-                icon: "🙈",
-                title: "隐藏文章",
-                desc: "不会主动出现在公开列表。",
-              },
-              {
-                key: "unlisted",
-                icon: "🔗",
-                title: "仅链接可见",
-                desc: "有链接的人才能进入。",
-              },
-              {
-                key: "private",
-                icon: "🔒",
-                title: "只给自己看",
-                desc: "只有你自己能看到。",
-              },
-            ]}
-          />
+          <div className="hidden lg:block">
+            <VisibilitySelector
+              visibility={visibility}
+              setVisibility={(value) =>
+                setVisibility(value as ArticleVisibility)
+              }
+              options={visibilityOptions}
+            />
+          </div>
 
           <ArticleSideCards remainingCount={remainingArticleCount} />
 
@@ -410,6 +447,22 @@ export default function NewArticlePage() {
           </div>
         </aside>
       </div>
+
+      <MobileVisibilityDialog
+        open={showVisibilityDialog}
+        visibility={visibility}
+        setVisibility={(value) => setVisibility(value as ArticleVisibility)}
+        options={visibilityOptions}
+        title="这篇文章要放在哪里？"
+        subtitle="选择可见性后，就可以把这个故事发布出去。"
+        confirmText="确定，发布文章"
+        cancelText="再看看"
+        onClose={() => setShowVisibilityDialog(false)}
+        onConfirm={() => {
+          setShowVisibilityDialog(false);
+          publishArticle();
+        }}
+      />
     </main>
   );
 }

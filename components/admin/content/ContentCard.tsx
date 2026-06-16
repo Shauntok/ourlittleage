@@ -4,6 +4,7 @@ type Props = {
   post: any;
   author: any;
   updateVisibility: (id: number, visibility: string) => void;
+  softDeletePost: (id: number) => void;
   getTitle: (post: any) => string;
   getViewHref: (post: any) => string;
 };
@@ -12,6 +13,7 @@ export default function ContentCard({
   post,
   author,
   updateVisibility,
+  softDeletePost,
   getTitle,
   getViewHref,
 }: Props) {
@@ -114,6 +116,21 @@ export default function ContentCard({
           className="rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20"
         >
           链接可见
+        </button>
+
+        <button
+          onClick={() => softDeletePost(post.id)}
+          className="
+            rounded-full
+            border border-red-500/30
+            bg-red-500/10
+            px-4 py-2
+            text-sm text-red-300
+            transition
+            hover:bg-red-500/20
+          "
+        >
+          移入回收站
         </button>
 
       </div>

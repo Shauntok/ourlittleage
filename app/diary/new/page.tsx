@@ -1,16 +1,18 @@
 "use client";
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { addUserGrowth } from "@/lib/community-growth";
 import { checkFirstDiaryBadge } from "@/lib/badge-awards";
-import { useRouter } from "next/navigation";
 import MarkdownPreview from "@/components/editor/MarkdownPreview";
 import VisibilitySelector from "@/components/editor/VisibilitySelector";
 import MarkdownToolbar from "@/components/editor/MarkdownToolbar";
 import DiarySideCards from "@/components/editor/DiarySideCards";
 import EditorPageHeader from "@/components/editor/EditorPageHeader";
 import EditorTextarea from "@/components/editor/EditorTextarea";
+import DiaryEditorActions from "@/components/editor/DiaryEditorActions";
+import MobileVisibilityDialog from "@/components/editor/MobileVisibilityDialog";
 import { uploadEditorImage } from "@/components/editor/editorImageUpload";
 import { insertEditorText } from "@/components/editor/editorTextUtils";
 import {
@@ -18,10 +20,38 @@ import {
   getWritingBlockMessage,
 } from "@/lib/editor/writingGuard";
 import { getCurrentWritingUser } from "@/lib/editor/getCurrentWritingUser";
-import DiaryEditorActions from "@/components/editor/DiaryEditorActions";
 
 const MIN_DIARY_LENGTH = 11;
 const DAILY_DIARY_LIMIT = 3;
+
+type DiaryVisibility = "private" | "public" | "hidden" | "unlisted";
+
+const visibilityOptions = [
+  {
+    key: "private",
+    icon: "🔒",
+    title: "只给自己看",
+    desc: "这一天只放在自己的房间里。",
+  },
+  {
+    key: "public",
+    icon: "🌍",
+    title: "发布到日记广场",
+    desc: "让其他居民也能读见这一刻。",
+  },
+  {
+    key: "hidden",
+    icon: "🙈",
+    title: "隐藏日记",
+    desc: "不会出现在公开列表。",
+  },
+  {
+    key: "unlisted",
+    icon: "🔗",
+    title: "仅链接可见",
+    desc: "知道链接的人才能进入。",
+  },
+];
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -86,19 +116,19 @@ export default function NewDiaryPage() {
   const timeWarning = getTimeWarning();
 
   const [content, setContent] = useState("");
-  const [visibility, setVisibility] = useState<
-    "private" | "public" | "hidden" | "unlisted"
-  >("private");
+  const [visibility, setVisibility] = useState<DiaryVisibility>("private");
 
   const [publishing, setPublishing] = useState(false);
   const [draftSaving, setDraftSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
 
   const contentLength = content.trim().length;
+  const [editorMessage, setEditorMessage] = useState("");
 
   useEffect(() => {
     async function fetchUser() {
@@ -180,7 +210,7 @@ export default function NewDiaryPage() {
     if (!currentUser) return;
 
     if (!content.trim()) {
-      alert("先写一点点，再暂时收起来吧。");
+      setEditorMessage("先写几句话，我帮你放进草稿箱。");
       return;
     }
 
@@ -207,6 +237,7 @@ export default function NewDiaryPage() {
       return;
     }
 
+    setEditorMessage("已收进草稿箱，下次继续写。");
     router.push("/diary");
   }
 
@@ -214,7 +245,9 @@ export default function NewDiaryPage() {
     if (guardWriting("publish")) return;
 
     if (contentLength < MIN_DIARY_LENGTH) {
-      alert(`至少留下 ${MIN_DIARY_LENGTH} 个字吧。`);
+      setEditorMessage(
+        `再写几句话吧，至少留下 ${MIN_DIARY_LENGTH} 个字，让今天更完整一些。`
+      );
       return;
     }
 
@@ -243,7 +276,7 @@ export default function NewDiaryPage() {
     }
 
     if ((count || 0) >= DAILY_DIARY_LIMIT) {
-      alert("今天已经写了 3 篇日记。慢慢来，明天也会等你。");
+      setEditorMessage("今天已经写了 3 篇日记。慢慢来，明天也会等你。");
       setPublishing(false);
       return;
     }
@@ -266,7 +299,7 @@ export default function NewDiaryPage() {
     setPublishing(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
       return;
     }
 
@@ -279,6 +312,24 @@ export default function NewDiaryPage() {
     await checkFirstDiaryBadge(currentUser.id);
 
     router.push("/diary");
+  }
+
+  function handlePublishClick() {
+    setEditorMessage("");
+
+    if (contentLength < MIN_DIARY_LENGTH) {
+      setEditorMessage(
+        `再写几句话吧，至少留下 ${MIN_DIARY_LENGTH} 个字，让今天更完整一些。`
+      );
+      return;
+    }
+
+    if (window.innerWidth < 1024) {
+      setShowVisibilityDialog(true);
+      return;
+    }
+
+    publishDiary();
   }
 
   return (
@@ -320,52 +371,31 @@ export default function NewDiaryPage() {
             variant="diary"
           />
 
+          {editorMessage && (
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              {editorMessage}
+            </div>
+          )}
+
           <DiaryEditorActions
             contentLength={contentLength}
             minLength={MIN_DIARY_LENGTH}
             publishing={publishing}
             draftSaving={draftSaving}
-            publishDiary={publishDiary}
+            publishDiary={handlePublishClick}
             saveDraft={saveDraft}
             goBack={() => router.push("/diary")}
           />
         </section>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <VisibilitySelector
-            visibility={visibility}
-            setVisibility={(value) =>
-              setVisibility(
-                value as "private" | "public" | "hidden" | "unlisted"
-              )
-            }
-            options={[
-              {
-                key: "private",
-                icon: "🔒",
-                title: "只给自己看",
-                desc: "这一天只放在自己的房间里。",
-              },
-              {
-                key: "public",
-                icon: "🌍",
-                title: "发布到日记广场",
-                desc: "让其他居民也能读见这一刻。",
-              },
-              {
-                key: "hidden",
-                icon: "🙈",
-                title: "隐藏日记",
-                desc: "不会出现在公开列表。",
-              },
-              {
-                key: "unlisted",
-                icon: "🔗",
-                title: "仅链接可见",
-                desc: "知道链接的人才能进入。",
-              },
-            ]}
-          />
+          <div className="hidden lg:block">
+            <VisibilitySelector
+              visibility={visibility}
+              setVisibility={(value) => setVisibility(value as DiaryVisibility)}
+              options={visibilityOptions}
+            />
+          </div>
 
           <DiarySideCards remainingCount={remainingCount} />
 
@@ -378,6 +408,22 @@ export default function NewDiaryPage() {
           </div>
         </aside>
       </div>
+
+      <MobileVisibilityDialog
+        open={showVisibilityDialog}
+        visibility={visibility}
+        setVisibility={(value) => setVisibility(value as DiaryVisibility)}
+        options={visibilityOptions}
+        title="这篇日记要放在哪里？"
+        subtitle="选择可见性后，就可以把今天留下来了。"
+        confirmText="确定，留下今天"
+        cancelText="再看看"
+        onClose={() => setShowVisibilityDialog(false)}
+        onConfirm={() => {
+          setShowVisibilityDialog(false);
+          publishDiary();
+        }}
+      />
     </main>
   );
 }

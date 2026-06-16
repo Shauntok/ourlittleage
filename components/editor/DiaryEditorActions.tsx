@@ -45,8 +45,12 @@ export default function DiaryEditorActions({
           disabled={publishing || draftSaving}
           className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {draftSaving ? "正在收好..." : "暂时先这样"}
+          {draftSaving ? "正在收好..." : "先收进草稿箱"}
         </button>
+
+        <p className="mt-3 text-center text-xs text-zinc-500">
+          草稿只有自己能看见。
+        </p>
       </div>
     </div>
   );

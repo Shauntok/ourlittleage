@@ -39,6 +39,7 @@ export default function AdminContentPage() {
     const { data, error } = await supabase
       .from("posts")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", {
         ascending: false,
       });
@@ -120,6 +121,42 @@ export default function AdminContentPage() {
       id,
       `内容可见性修改为 ${visibility}`
     );
+
+    fetchContent();
+  }
+
+  async function softDeletePost(id: number) {
+    const confirmed = confirm(
+      "确定把这篇内容移入回收站吗？内容不会立刻永久删除，之后可恢复。"
+    );
+
+    if (!confirmed) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("请先登录。");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user.id,
+        delete_reason: "admin_soft_delete",
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await writeLog("soft_delete_content", id, "内容已移入回收站");
 
     fetchContent();
   }
@@ -220,6 +257,7 @@ export default function AdminContentPage() {
             post={post}
             author={profileMap[post.author_id]}
             updateVisibility={updateVisibility}
+            softDeletePost={softDeletePost}
             getTitle={getTitle}
             getViewHref={getViewHref}
           />
