@@ -7,7 +7,8 @@ const navItems = [
   { href: "/settings/profile", icon: "🏠", label: "房间" },
   { href: "/settings/privacy", icon: "🌙", label: "隐私" },
   { href: "/settings/account", icon: "🔐", label: "安全" },
-  { href: "/settings/about", icon: "🌌", label: "关于网站" }
+  { href: "/settings/about", icon: "🌌", label: "关于网站" },
+  { href: "/settings/changelog", icon: "✨", label: "更新日志" },
 ];
 
 export default function SettingsLayout({
