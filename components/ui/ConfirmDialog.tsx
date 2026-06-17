@@ -12,7 +12,8 @@ type ConfirmDialogProps = {
   danger?: boolean;
   loading?: boolean;
   onConfirm: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
+  onClose?: () => void;
   children?: ReactNode;
 };
 
@@ -26,9 +27,12 @@ export default function ConfirmDialog({
   loading = false,
   onConfirm,
   onCancel,
+  onClose,
   children,
 }: ConfirmDialogProps) {
   const [mounted, setMounted] = useState(false);
+
+  const handleClose = onCancel || onClose || (() => {});
 
   useEffect(() => {
     setMounted(true);
@@ -38,27 +42,32 @@ export default function ConfirmDialog({
     if (!open) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onCancel();
+      if (event.key === "Escape" && !loading) {
+        handleClose();
       }
     }
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onCancel]);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, loading, handleClose]);
 
   if (!mounted || !open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-5">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-5 py-8">
       <button
         type="button"
         aria-label="关闭确认窗口"
         className="absolute inset-0 bg-black/70 backdrop-blur-xl"
-        onClick={onCancel}
+        onClick={() => {
+          if (!loading) handleClose();
+        }}
       />
 
-      <section className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950/95 text-white shadow-[0_0_80px_rgba(255,255,255,0.08)]">
+      <section className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950/95 text-white shadow-[0_0_90px_rgba(255,255,255,0.09)]">
         <div className="p-6 md:p-7">
           <p className="text-xs tracking-[0.35em] text-white/25">CONFIRM</p>
 
@@ -76,7 +85,7 @@ export default function ConfirmDialog({
         <div className="flex justify-end gap-3 border-t border-white/10 p-5">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleClose}
             disabled={loading}
             className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm text-white/60 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
