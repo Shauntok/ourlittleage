@@ -78,6 +78,7 @@ async function getTodayArticleCount(userId: string) {
     .eq("author_id", userId)
     .eq("type", "article")
     .eq("status", "published")
+    .is("deleted_at", null)
     .gte("published_at", todayStart.toISOString())
     .lt("published_at", todayEnd.toISOString());
 
@@ -104,6 +105,7 @@ export default function NewArticlePage() {
   const [uploading, setUploading] = useState(false);
   const [editorMessage, setEditorMessage] = useState("");
   const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
+  const [showPromptDialog, setShowPromptDialog] = useState(false);
 
   const [remainingArticleCount, setRemainingArticleCount] =
     useState<number | null>(null);
@@ -255,7 +257,9 @@ export default function NewArticlePage() {
       const todayArticleCount = await getTodayArticleCount(currentUser.id);
 
       if (todayArticleCount >= DAILY_ARTICLE_LIMIT) {
-        setEditorMessage("今天已经写下很多故事了，先让它们沉淀一下吧，明天也会等你。");
+        setEditorMessage(
+          "今天已经写下很多故事了，先让它们沉淀一下吧，明天也会等你。"
+        );
         setRemainingArticleCount(0);
         setLoading(false);
         return;
@@ -371,11 +375,21 @@ export default function NewArticlePage() {
     <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-14 text-white md:px-6 md:pt-36">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-[minmax(680px,1.5fr)_minmax(420px,0.9fr)]">
         <section className="space-y-6">
-          <EditorPageHeader
-            eyebrow="NEW ARTICLE"
-            title="写一篇故事"
-            subtitle="文章适合长一点的想法、故事、作品和那些你想认真留下来的东西。"
-          />
+          <div className="relative">
+            <EditorPageHeader
+              eyebrow="NEW ARTICLE"
+              title="写一篇故事"
+              subtitle="文章适合长一点的想法、故事、作品和那些你想认真留下来的东西。"
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPromptDialog(true)}
+              className="absolute right-5 top-5 inline-flex animate-pulse items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 shadow-[0_0_26px_rgba(34,211,238,0.18)] transition hover:bg-cyan-400/15 lg:hidden"
+            >
+              ✨ 提示
+            </button>
+          </div>
 
           <ArticleTitleFields
             title={title}
@@ -429,7 +443,38 @@ export default function NewArticlePage() {
             />
           </div>
 
-          <ArticleSideCards remainingCount={remainingArticleCount} />
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl lg:hidden">
+            <p className="text-xs tracking-[0.3em] text-white/25">今日份额</p>
+
+            <p className="mt-5 text-sm leading-7 text-white/50">
+              {remainingArticleCount === null
+                ? "正在计算今天还能留下多少篇文章..."
+                : `今天还能留下 ${remainingArticleCount} 篇文章。`}
+            </p>
+
+            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-white/60"
+                style={{
+                  width:
+                    remainingArticleCount === null
+                      ? "0%"
+                      : `${Math.max(
+                          (remainingArticleCount / DAILY_ARTICLE_LIMIT) * 100,
+                          0
+                        )}%`,
+                }}
+              />
+            </div>
+
+            <p className="mt-5 text-sm leading-7 text-white/30">
+              长一点的故事，也可以慢慢写。
+            </p>
+          </div>
+
+          <div className="hidden lg:block">
+            <ArticleSideCards remainingCount={remainingArticleCount} />
+          </div>
 
           <ArticleMetaFields
             tags={tags}
@@ -447,6 +492,40 @@ export default function NewArticlePage() {
           </div>
         </aside>
       </div>
+
+      {showPromptDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-5 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+            onClick={() => setShowPromptDialog(false)}
+            aria-label="关闭写作提示"
+          />
+
+          <section className="relative z-10 w-full max-w-sm rounded-[2rem] border border-white/10 bg-zinc-950/95 p-6 text-white shadow-[0_0_80px_rgba(255,255,255,0.08)]">
+            <p className="text-xs tracking-[0.35em] text-white/25">
+              STORY HINTS
+            </p>
+
+            <h2 className="mt-4 text-2xl font-light">写作提示</h2>
+
+            <ul className="mt-5 space-y-4 text-sm leading-7 text-white/55">
+              <li>• 先写下来，不急着漂亮</li>
+              <li>• 让故事慢慢长出来</li>
+              <li>• 有些段落，晚一点整理也没关系</li>
+              <li>• 你正在留下一个会被未来读见的东西</li>
+            </ul>
+
+            <button
+              type="button"
+              onClick={() => setShowPromptDialog(false)}
+              className="mt-7 w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+            >
+              知道了
+            </button>
+          </section>
+        </div>
+      )}
 
       <MobileVisibilityDialog
         open={showVisibilityDialog}

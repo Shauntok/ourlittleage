@@ -122,6 +122,7 @@ export default function NewDiaryPage() {
   const [draftSaving, setDraftSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
+  const [showPromptDialog, setShowPromptDialog] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentProfile, setCurrentProfile] = useState<any>(null);
@@ -274,6 +275,7 @@ export default function NewDiaryPage() {
       .eq("author_id", currentUser.id)
       .eq("type", "diary")
       .eq("status", "published")
+      .is("deleted_at", null)
       .gte("published_at", todayStart.toISOString())
       .lt("published_at", todayEnd.toISOString());
 
@@ -355,13 +357,23 @@ export default function NewDiaryPage() {
             ← 回到日记列表
           </button>
 
-          <EditorPageHeader
-            eyebrow="WRITE TODAY"
-            title={formatDate(today)}
-            meta={`${formatWeekday(today)} · ${getMoodLabel(today)}`}
-            subtitle="有些话，不需要急着说完。"
-            warning={timeWarning}
-          />
+          <div className="relative">
+            <EditorPageHeader
+              eyebrow="WRITE TODAY"
+              title={formatDate(today)}
+              meta={`${formatWeekday(today)} · ${getMoodLabel(today)}`}
+              subtitle="有些话，不需要急着说完。"
+              warning={timeWarning}
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPromptDialog(true)}
+              className="absolute right-5 top-5 inline-flex animate-pulse items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 shadow-[0_0_26px_rgba(34,211,238,0.18)] transition hover:bg-cyan-400/15 lg:hidden"
+            >
+              ✨ 提示
+            </button>
+          </div>
 
           <MarkdownToolbar
             uploading={uploading}
@@ -406,7 +418,38 @@ export default function NewDiaryPage() {
             />
           </div>
 
-          <DiarySideCards remainingCount={remainingCount} />
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl lg:hidden">
+            <p className="text-xs tracking-[0.3em] text-white/25">今日份额</p>
+
+            <p className="mt-5 text-sm leading-7 text-white/50">
+              {remainingCount === null
+                ? "正在计算今天还能留下多少篇日记..."
+                : `今天还能留下 ${remainingCount} 篇日记。`}
+            </p>
+
+            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-white/60"
+                style={{
+                  width:
+                    remainingCount === null
+                      ? "0%"
+                      : `${Math.max(
+                          (remainingCount / DAILY_DIARY_LIMIT) * 100,
+                          0
+                        )}%`,
+                }}
+              />
+            </div>
+
+            <p className="mt-5 text-sm leading-7 text-white/30">
+              每天慢慢留下，不需要一次说完。
+            </p>
+          </div>
+
+          <div className="hidden lg:block">
+            <DiarySideCards remainingCount={remainingCount} />
+          </div>
 
           <div className="hidden lg:block">
             <MarkdownPreview
@@ -417,6 +460,40 @@ export default function NewDiaryPage() {
           </div>
         </aside>
       </div>
+
+      {showPromptDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-5 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+            onClick={() => setShowPromptDialog(false)}
+            aria-label="关闭写作提示"
+          />
+
+          <section className="relative z-10 w-full max-w-sm rounded-[2rem] border border-white/10 bg-zinc-950/95 p-6 text-white shadow-[0_0_80px_rgba(255,255,255,0.08)]">
+            <p className="text-xs tracking-[0.35em] text-white/25">
+              WRITING HINTS
+            </p>
+
+            <h2 className="mt-4 text-2xl font-light">写作提示</h2>
+
+            <ul className="mt-5 space-y-4 text-sm leading-7 text-white/55">
+              <li>• 不必完美</li>
+              <li>• 真实就好</li>
+              <li>• 你只需要面对自己</li>
+              <li>• 今天的自己，也值得被记住</li>
+            </ul>
+
+            <button
+              type="button"
+              onClick={() => setShowPromptDialog(false)}
+              className="mt-7 w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+            >
+              知道了
+            </button>
+          </section>
+        </div>
+      )}
 
       <MobileVisibilityDialog
         open={showVisibilityDialog}

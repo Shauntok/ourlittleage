@@ -69,6 +69,7 @@ export default function EditArticlePage() {
   const [editorMessage, setEditorMessage] = useState("");
   const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<
     "saveArticle" | "publishDraft" | null
   >(null);
@@ -470,8 +471,16 @@ export default function EditArticlePage() {
             ← {isDraft ? "回到草稿箱" : "回到文章"}
           </button>
 
-          <div>
-            <p className="text-xs tracking-[0.4em] text-white/25">
+          <div className="relative rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:p-8">
+            <button
+              type="button"
+              onClick={() => setShowPromptDialog(true)}
+              className="absolute right-5 top-5 inline-flex animate-pulse items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 shadow-[0_0_26px_rgba(34,211,238,0.18)] transition hover:bg-cyan-400/15 lg:hidden"
+            >
+              ✨ 提示
+            </button>
+
+            <p className="pr-24 text-xs tracking-[0.4em] text-white/25 lg:pr-0">
               {isDraft ? "EDIT DRAFT" : "EDIT ARTICLE"}
             </p>
 
@@ -511,6 +520,15 @@ export default function EditArticlePage() {
             insertTextAtCursor={insertTextAtCursor}
             variant="article"
           />
+
+          <div className="lg:hidden">
+            <ArticleMetaFields
+              tags={tags}
+              setTags={setTags}
+              notes={notes}
+              setNotes={setNotes}
+            />
+          </div>
 
           {editorMessage && (
             <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
@@ -586,8 +604,8 @@ export default function EditArticlePage() {
           </div>
         </section>
 
-        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <div className="hidden lg:block">
+        <aside className="hidden space-y-6 lg:sticky lg:top-24 lg:block lg:self-start">
+          <div>
             <VisibilitySelector
               visibility={visibility}
               setVisibility={(value) => setVisibility(value as ArticleVisibility)}
@@ -602,15 +620,47 @@ export default function EditArticlePage() {
             setNotes={setNotes}
           />
 
-          <div className="hidden lg:block">
-            <MarkdownPreview
-              content={content}
-              emptyTitle="这里会显示文章预览。"
-              emptyText="写下一个会被未来某个人读见的故事。"
-            />
-          </div>
+          <MarkdownPreview
+            content={content}
+            emptyTitle="这里会显示文章预览。"
+            emptyText="写下一个会被未来某个人读见的故事。"
+          />
         </aside>
       </div>
+
+      {showPromptDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-5 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+            onClick={() => setShowPromptDialog(false)}
+            aria-label="关闭写作提示"
+          />
+
+          <section className="relative z-10 w-full max-w-sm rounded-[2rem] border border-white/10 bg-zinc-950/95 p-6 text-white shadow-[0_0_80px_rgba(255,255,255,0.08)]">
+            <p className="text-xs tracking-[0.35em] text-white/25">
+              EDITING HINTS
+            </p>
+
+            <h2 className="mt-4 text-2xl font-light">整理提示</h2>
+
+            <ul className="mt-5 space-y-4 text-sm leading-7 text-white/55">
+              <li>• 不急着一次修完</li>
+              <li>• 先保留真实，再慢慢整理</li>
+              <li>• 删除一段，也是在替故事呼吸</li>
+              <li>• 让这篇文章变成更接近你的样子</li>
+            </ul>
+
+            <button
+              type="button"
+              onClick={() => setShowPromptDialog(false)}
+              className="mt-7 w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+            >
+              知道了
+            </button>
+          </section>
+        </div>
+      )}
 
       <MobileVisibilityDialog
         open={showVisibilityDialog}

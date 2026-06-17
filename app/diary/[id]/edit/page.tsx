@@ -90,6 +90,7 @@ export default function EditDiaryPage() {
   const [editorMessage, setEditorMessage] = useState("");
   const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<
     "saveDiary" | "publishDraft" | null
   >(null);
@@ -415,8 +416,16 @@ export default function EditDiaryPage() {
             ← {isDraft ? "回到草稿箱" : "回到这一天的日记阅读"}
           </button>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:p-8">
-            <p className="text-xs tracking-[0.35em] text-white/30">
+          <div className="relative rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:p-8">
+            <button
+              type="button"
+              onClick={() => setShowPromptDialog(true)}
+              className="absolute right-5 top-5 inline-flex animate-pulse items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 shadow-[0_0_26px_rgba(34,211,238,0.18)] transition hover:bg-cyan-400/15 lg:hidden"
+            >
+              ✨ 提示
+            </button>
+
+            <p className="pr-24 text-xs tracking-[0.35em] text-white/30 lg:pr-0">
               {isDraft ? "继续写日记草稿" : "重新翻开这一天"}
             </p>
 
@@ -527,8 +536,8 @@ export default function EditDiaryPage() {
                   {saving
                     ? "正在收好..."
                     : hasChanged
-                    ? "保存新的痕迹"
-                    : "回到日记"}
+                      ? "保存新的痕迹"
+                      : "回到日记"}
                 </button>
               )}
 
@@ -543,8 +552,8 @@ export default function EditDiaryPage() {
           </div>
         </section>
 
-        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <div className="hidden lg:block">
+        <aside className="hidden space-y-6 lg:sticky lg:top-24 lg:block lg:self-start">
+          <div>
             <VisibilitySelector
               visibility={visibility}
               setVisibility={(value) => setVisibility(value as DiaryVisibility)}
@@ -582,7 +591,7 @@ export default function EditDiaryPage() {
             </div>
           </div>
 
-          <div className="preview-scrollbar hidden max-h-[620px] overflow-y-auto rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl lg:block">
+          <div className="preview-scrollbar max-h-[620px] overflow-y-auto rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
             <p className="mb-5 text-xs tracking-[0.3em] text-white/30">
               预览
             </p>
@@ -599,6 +608,40 @@ export default function EditDiaryPage() {
           </div>
         </aside>
       </div>
+
+      {showPromptDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-5 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+            onClick={() => setShowPromptDialog(false)}
+            aria-label="关闭写作提示"
+          />
+
+          <section className="relative z-10 w-full max-w-sm rounded-[2rem] border border-white/10 bg-zinc-950/95 p-6 text-white shadow-[0_0_80px_rgba(255,255,255,0.08)]">
+            <p className="text-xs tracking-[0.35em] text-white/25">
+              REWRITE HINTS
+            </p>
+
+            <h2 className="mt-4 text-2xl font-light">补写提示</h2>
+
+            <ul className="mt-5 space-y-4 text-sm leading-7 text-white/55">
+              <li>• 有些情绪会迟到</li>
+              <li>• 后来的理解，也算答案</li>
+              <li>• 你不是在修改过去</li>
+              <li>• 只是终于愿意认真看它一眼</li>
+            </ul>
+
+            <button
+              type="button"
+              onClick={() => setShowPromptDialog(false)}
+              className="mt-7 w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+            >
+              知道了
+            </button>
+          </section>
+        </div>
+      )}
 
       <MobileVisibilityDialog
         open={showVisibilityDialog}
