@@ -35,10 +35,19 @@ function getReasonLabel(reason: string) {
 export default function AdminGrowthPage() {
   const [logs, setLogs] = useState<GrowthLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetchGrowthLogs();
   }, []);
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
 
   async function fetchGrowthLogs() {
     setLoading(true);
@@ -50,7 +59,7 @@ export default function AdminGrowthPage() {
       .limit(80);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       setLoading(false);
       return;
     }
@@ -72,7 +81,7 @@ export default function AdminGrowthPage() {
         .in("id", userIds);
 
       if (profilesError) {
-        alert(profilesError.message);
+        showToast(profilesError.message);
         setLoading(false);
         return;
       }
@@ -93,7 +102,13 @@ export default function AdminGrowthPage() {
   }
 
   return (
-    <div className="space-y-8 overflow-hidden">
+    <div className="relative space-y-8 overflow-hidden">
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[999] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
           <h1 className="text-4xl font-bold">成长记录 ✨</h1>
@@ -104,6 +119,7 @@ export default function AdminGrowthPage() {
         </div>
 
         <button
+          type="button"
           onClick={fetchGrowthLogs}
           className="rounded-full border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm text-zinc-300 transition hover:border-white hover:text-white"
         >

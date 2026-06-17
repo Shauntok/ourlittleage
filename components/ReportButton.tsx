@@ -36,19 +36,30 @@ export default function ReportButton({
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
 
   async function openReportModal() {
+    setMessage("");
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("请先登录后再举报。");
+      showMessage("先登录一下，再提交举报。");
       return;
     }
 
     if (authorId && user.id === authorId) {
-      alert("自己的内容不用举报啦，如果想调整，可以回去编辑。");
+      showMessage("这是你自己的内容。如果想调整，可以回去编辑。");
       return;
     }
 
@@ -56,22 +67,24 @@ export default function ReportButton({
   }
 
   async function submitReport() {
+    setMessage("");
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("请先登录后再举报。");
+      showMessage("先登录一下，再提交举报。");
       return;
     }
 
     if (authorId && user.id === authorId) {
-      alert("自己的内容不用举报啦，如果想调整，可以回去编辑。");
+      showMessage("这是你自己的内容。如果想调整，可以回去编辑。");
       return;
     }
 
     if (!reason.trim()) {
-      alert("请选择举报原因。");
+      showMessage("请选择一个举报原因。");
       return;
     }
 
@@ -87,13 +100,13 @@ export default function ReportButton({
 
     if (existingError) {
       setLoading(false);
-      alert(existingError.message);
+      showMessage(existingError.message);
       return;
     }
 
     if (existingReports && existingReports.length > 0) {
       setLoading(false);
-      alert("你已经举报过这个内容了，管理员会查看。请不要重复举报。");
+      showMessage("你已经举报过这个内容了，管理员会查看。请不要重复举报。");
       setOpen(false);
       return;
     }
@@ -112,19 +125,18 @@ export default function ReportButton({
     setLoading(false);
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return;
     }
 
-    setOpen(false);
     setReason("");
     setDetails("");
-
-    alert("举报已提交，管理员会查看。谢谢你帮忙守护小时代。");
+    setOpen(false);
+    showMessage("举报已提交，管理员会查看。谢谢你帮忙守护小时代。");
   }
 
   return (
-    <>
+    <div className="inline-flex flex-col items-start gap-2">
       <button
         type="button"
         onClick={openReportModal}
@@ -137,6 +149,12 @@ export default function ReportButton({
       >
         {loading ? "提交中..." : "举报"}
       </button>
+
+      {message && (
+        <p className="max-w-[260px] text-xs leading-5 text-amber-200/75">
+          {message}
+        </p>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/75 px-6 py-28 backdrop-blur-xl">
@@ -156,6 +174,12 @@ export default function ReportButton({
             </div>
 
             <div className="space-y-5 p-6">
+              {message && (
+                <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                  {message}
+                </div>
+              )}
+
               <div className="grid gap-2">
                 {reasonOptions.map((item) => (
                   <button
@@ -211,6 +235,6 @@ export default function ReportButton({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

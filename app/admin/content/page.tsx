@@ -6,6 +6,7 @@ import ContentFilters from "@/components/admin/content/ContentFilters";
 import ContentCard from "@/components/admin/content/ContentCard";
 import ContentStats from "@/components/admin/content/ContentStats";
 import ContentSearch from "@/components/admin/content/ContentSearch";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type ContentFilter = "all" | "article" | "diary";
 type StatusFilter = "all" | "published" | "draft";
@@ -16,22 +17,63 @@ type VisibilityFilter =
   | "private"
   | "unlisted";
 
+type ConfirmConfig = {
+  title: string;
+  description: string;
+  confirmText: string;
+  danger?: boolean;
+  action: (() => Promise<void>) | null;
+};
+
 export default function AdminContentPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, any>>({});
 
   const [filter, setFilter] = useState<ContentFilter>("all");
-  const [statusFilter, setStatusFilter] =
-    useState<StatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [visibilityFilter, setVisibilityFilter] =
     useState<VisibilityFilter>("all");
 
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const [message, setMessage] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const [confirmConfig, setConfirmConfig] = useState<ConfirmConfig>({
+    title: "",
+    description: "",
+    confirmText: "确认",
+    danger: false,
+    action: null,
+  });
+
   useEffect(() => {
     fetchContent();
   }, []);
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
+
+  function openConfirm(config: ConfirmConfig) {
+    setConfirmConfig(config);
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirm() {
+    if (!confirmConfig.action) return;
+
+    setConfirmLoading(true);
+    await confirmConfig.action();
+    setConfirmLoading(false);
+    setConfirmOpen(false);
+  }
 
   async function fetchContent() {
     setLoading(true);
@@ -45,7 +87,7 @@ export default function AdminContentPage() {
       });
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       setLoading(false);
       return;
     }
@@ -99,66 +141,74 @@ export default function AdminContentPage() {
     ]);
   }
 
-  async function updateVisibility(id: number, visibility: string) {
-    const confirmed = confirm(`确定把这篇内容设为 ${visibility} 吗？`);
-    if (!confirmed) return;
+  function updateVisibility(id: number, visibility: string) {
+    openConfirm({
+      title: "修改可见性？",
+      description: `确定把这篇内容设为「${visibility}」吗？`,
+      confirmText: "确认修改",
+      danger: visibility === "hidden" || visibility === "private",
+      action: async () => {
+        const { error } = await supabase
+          .from("posts")
+          .update({
+            visibility,
+            edited_at: new Date().toISOString(),
+          })
+          .eq("id", id);
 
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        visibility,
-        edited_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+        if (error) {
+          showMessage(error.message);
+          return;
+        }
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+        await writeLog(
+          "update_content_visibility",
+          id,
+          `内容可见性修改为 ${visibility}`
+        );
 
-    await writeLog(
-      "update_content_visibility",
-      id,
-      `内容可见性修改为 ${visibility}`
-    );
-
-    fetchContent();
+        await fetchContent();
+      },
+    });
   }
 
-  async function softDeletePost(id: number) {
-    const confirmed = confirm(
-      "确定把这篇内容移入回收站吗？内容不会立刻永久删除，之后可恢复。"
-    );
+  function softDeletePost(id: number) {
+    openConfirm({
+      title: "移入回收站？",
+      description:
+        "内容不会立刻永久删除，会先进入回收站。之后仍然可以恢复。",
+      confirmText: "移入回收站",
+      danger: true,
+      action: async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-    if (!confirmed) return;
+        if (!user) {
+          showMessage("请先登录。");
+          return;
+        }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+        const { error } = await supabase
+          .from("posts")
+          .update({
+            deleted_at: new Date().toISOString(),
+            deleted_by: user.id,
+            delete_reason: "admin_soft_delete",
+            edited_at: new Date().toISOString(),
+          })
+          .eq("id", id);
 
-    if (!user) {
-      alert("请先登录。");
-      return;
-    }
+        if (error) {
+          showMessage(error.message);
+          return;
+        }
 
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        deleted_at: new Date().toISOString(),
-        deleted_by: user.id,
-        delete_reason: "admin_soft_delete",
-        edited_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+        await writeLog("soft_delete_content", id, "内容已移入回收站");
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    await writeLog("soft_delete_content", id, "内容已移入回收站");
-
-    fetchContent();
+        await fetchContent();
+      },
+    });
   }
 
   function getTitle(post: any) {
@@ -182,10 +232,8 @@ export default function AdminContentPage() {
     const author = profileMap[post.author_id];
 
     const matchType = filter === "all" || post.type === filter;
-
     const matchStatus =
       statusFilter === "all" || post.status === statusFilter;
-
     const matchVisibility =
       visibilityFilter === "all" || post.visibility === visibilityFilter;
 
@@ -213,6 +261,7 @@ export default function AdminContentPage() {
         </div>
 
         <button
+          type="button"
           onClick={fetchContent}
           className="rounded-full border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm text-zinc-300 transition hover:border-white hover:text-white"
         >
@@ -263,6 +312,24 @@ export default function AdminContentPage() {
           />
         ))}
       </div>
+
+      {message && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        cancelText="取消"
+        danger={confirmConfig.danger}
+        loading={confirmLoading}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }

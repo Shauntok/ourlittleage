@@ -46,7 +46,7 @@ export async function generateMetadata({
     article.visibility === "hidden"
   ) {
     return {
-      title: "文章不存在｜小时代",
+      title: "文章不存在",
       description: "这篇文章暂时无法查看。",
       robots: {
         index: false,
@@ -55,13 +55,25 @@ export async function generateMetadata({
     };
   }
 
-  const title = `${article.title || "无标题文章"}｜小时代`;
+  const title = article.title || "无标题文章";
+  const brandedTitle = `${title}｜小时代`;
 
   const description =
     stripMarkdown(article.content || "").slice(0, 110) ||
     "有人在小时代留下了一篇故事。";
 
   const url = `https://ourlittleage.com/articles/${article.slug}`;
+
+  const robots =
+    article.visibility === "unlisted"
+      ? {
+          index: false,
+          follow: false,
+        }
+      : {
+          index: true,
+          follow: true,
+        };
 
   return {
     title,
@@ -72,40 +84,30 @@ export async function generateMetadata({
     },
 
     openGraph: {
-      title,
+      title: brandedTitle,
       description,
       url,
       siteName: "小时代",
       locale: "zh_CN",
       type: "article",
-
       images: [
         {
           url: "/og-cover.png",
           width: 1200,
           height: 630,
-          alt: title,
+          alt: brandedTitle,
         },
       ],
     },
 
     twitter: {
       card: "summary_large_image",
-      title,
+      title: brandedTitle,
       description,
       images: ["/og-cover.png"],
     },
 
-    robots:
-      article.visibility === "unlisted"
-        ? {
-            index: false,
-            follow: false,
-          }
-        : {
-            index: true,
-            follow: true,
-          },
+    robots,
   };
 }
 

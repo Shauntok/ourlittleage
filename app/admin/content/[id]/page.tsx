@@ -5,6 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/lib/supabase";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+
+type ConfirmConfig = {
+  title: string;
+  description: string;
+  confirmText: string;
+  danger?: boolean;
+  action: (() => Promise<void>) | null;
+};
 
 function getTitle(post: any) {
   if (post.title) return post.title;
@@ -31,9 +40,44 @@ export default function AdminContentDetailPage() {
   const [author, setAuthor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const [message, setMessage] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const [confirmConfig, setConfirmConfig] = useState<ConfirmConfig>({
+    title: "",
+    description: "",
+    confirmText: "确认",
+    danger: false,
+    action: null,
+  });
+
   useEffect(() => {
     fetchPost();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
+
+  function openConfirm(config: ConfirmConfig) {
+    setConfirmConfig(config);
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirm() {
+    if (!confirmConfig.action) return;
+
+    setConfirmLoading(true);
+    await confirmConfig.action();
+    setConfirmLoading(false);
+    setConfirmOpen(false);
+  }
 
   async function fetchPost() {
     setLoading(true);
@@ -45,7 +89,7 @@ export default function AdminContentDetailPage() {
       .maybeSingle();
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       setLoading(false);
       return;
     }
@@ -89,73 +133,84 @@ export default function AdminContentDetailPage() {
     ]);
   }
 
-  async function updateVisibility(visibility: string) {
+  function updateVisibility(visibility: string) {
     if (!post) return;
 
-    const ok = confirm(`确定把这篇内容设为 ${visibility} 吗？`);
-    if (!ok) return;
+    openConfirm({
+      title: "修改可见性？",
+      description: `确定把这篇内容设为「${visibility}」吗？`,
+      confirmText: "确认修改",
+      danger: visibility === "hidden" || visibility === "private",
+      action: async () => {
+        const { error } = await supabase
+          .from("posts")
+          .update({
+            visibility,
+            edited_at: new Date().toISOString(),
+          })
+          .eq("id", post.id);
 
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        visibility,
-        edited_at: new Date().toISOString(),
-      })
-      .eq("id", post.id);
+        if (error) {
+          showMessage(error.message);
+          return;
+        }
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+        await writeLog(
+          "update_content_visibility",
+          `内容可见性修改为 ${visibility}`
+        );
 
-    await writeLog(
-      "update_content_visibility",
-      `内容可见性修改为 ${visibility}`
-    );
-
-    setPost((current: any) => ({
-      ...current,
-      visibility,
-    }));
+        setPost((current: any) => ({
+          ...current,
+          visibility,
+        }));
+      },
+    });
   }
 
-  async function softDeletePost() {
+  function softDeletePost() {
     if (!post) return;
 
-    const confirmed = confirm(
-      "确定把这篇内容移入回收站吗？内容不会立刻永久删除，之后可恢复。"
-    );
+    openConfirm({
+      title: "移入回收站？",
+      description:
+        "内容不会立刻永久删除，会先进入回收站。之后仍然可以恢复。",
+      confirmText: "移入回收站",
+      danger: true,
+      action: async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-    if (!confirmed) return;
+        if (!user) {
+          showMessage("请先登录。");
+          return;
+        }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+        const { error } = await supabase
+          .from("posts")
+          .update({
+            deleted_at: new Date().toISOString(),
+            deleted_by: user.id,
+            delete_reason: "admin_soft_delete",
+            edited_at: new Date().toISOString(),
+          })
+          .eq("id", post.id);
 
-    if (!user) {
-      alert("请先登录。");
-      return;
-    }
+        if (error) {
+          showMessage(error.message);
+          return;
+        }
 
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        deleted_at: new Date().toISOString(),
-        deleted_by: user.id,
-        delete_reason: "admin_soft_delete",
-        edited_at: new Date().toISOString(),
-      })
-      .eq("id", post.id);
+        await writeLog("soft_delete_content", "内容已移入回收站");
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+        showMessage("内容已移入回收站。");
 
-    await writeLog("soft_delete_content", "内容已移入回收站");
-
-    alert("内容已移入回收站。");
-    router.push("/admin/content");
+        window.setTimeout(() => {
+          router.push("/admin/content");
+        }, 800);
+      },
+    });
   }
 
   if (loading) {
@@ -245,6 +300,7 @@ export default function AdminContentDetailPage() {
 
         <div className="mt-5 flex flex-wrap gap-3">
           <button
+            type="button"
             onClick={() => updateVisibility("public")}
             className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
           >
@@ -252,6 +308,7 @@ export default function AdminContentDetailPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => updateVisibility("hidden")}
             className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300 transition hover:bg-yellow-500/20"
           >
@@ -259,6 +316,7 @@ export default function AdminContentDetailPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => updateVisibility("private")}
             className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20"
           >
@@ -266,6 +324,7 @@ export default function AdminContentDetailPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => updateVisibility("unlisted")}
             className="rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20"
           >
@@ -273,6 +332,7 @@ export default function AdminContentDetailPage() {
           </button>
 
           <button
+            type="button"
             onClick={softDeletePost}
             className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20"
           >
@@ -304,6 +364,24 @@ export default function AdminContentDetailPage() {
           </p>
         )}
       </section>
+
+      {message && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        cancelText="取消"
+        danger={confirmConfig.danger}
+        loading={confirmLoading}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }

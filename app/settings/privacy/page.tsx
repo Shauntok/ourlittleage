@@ -13,9 +13,19 @@ export default function PrivacySettingsPage() {
   const [showJoinedDays, setShowJoinedDays] = useState(true);
   const [showBadges, setShowBadges] = useState(true);
 
+  const [message, setMessage] = useState("");
+
   useEffect(() => {
     loadSettings();
   }, []);
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4200);
+  }
 
   async function loadSettings() {
     const {
@@ -75,11 +85,11 @@ export default function PrivacySettingsPage() {
     setSaving(false);
 
     if (error) {
-      alert("保存失败：" + error.message);
+      showToast(`保存失败：${error.message}`);
       return;
     }
 
-    alert("隐私设置已保存 🌙");
+    showToast("隐私设置已保存 🌙");
   }
 
   if (loading) {
@@ -92,6 +102,12 @@ export default function PrivacySettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
+      {message && (
+        <div className="mb-6 rounded-[1.5rem] border border-violet-500/20 bg-violet-500/[0.08] px-5 py-4 text-sm text-violet-100 backdrop-blur-2xl">
+          {message}
+        </div>
+      )}
+
       <p className="text-xs tracking-[0.35em] text-white/25">PRIVACY</p>
 
       <h1 className="mt-4 text-4xl font-light tracking-tight md:text-5xl">

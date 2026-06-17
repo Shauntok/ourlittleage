@@ -59,13 +59,21 @@ function getStatusLabel(status: string) {
 export default function AdminFeedbackPage() {
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] =
-    useState<FeedbackStatus>("all");
+  const [statusFilter, setStatusFilter] = useState<FeedbackStatus>("all");
   const [search, setSearch] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetchFeedbacks();
   }, []);
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
 
   async function fetchFeedbacks() {
     setLoading(true);
@@ -89,7 +97,7 @@ export default function AdminFeedbackPage() {
       });
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       setLoading(false);
       return;
     }
@@ -120,10 +128,7 @@ export default function AdminFeedbackPage() {
     ]);
   }
 
-  async function updateStatus(
-    feedbackId: string,
-    status: string
-  ) {
+  async function updateStatus(feedbackId: string, status: string) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -141,7 +146,7 @@ export default function AdminFeedbackPage() {
       .eq("id", feedbackId);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       return;
     }
 
@@ -151,15 +156,14 @@ export default function AdminFeedbackPage() {
       `反馈状态修改为 ${status}`
     );
 
+    showToast(`反馈状态已更新为「${getStatusLabel(status)}」。`);
     await fetchFeedbacks();
   }
 
   const filteredFeedbacks = feedbacks.filter((item) => {
     const keyword = search.toLowerCase().trim();
 
-    const matchStatus =
-      statusFilter === "all" ||
-      item.status === statusFilter;
+    const matchStatus = statusFilter === "all" || item.status === statusFilter;
 
     const matchSearch =
       !keyword ||
@@ -173,48 +177,40 @@ export default function AdminFeedbackPage() {
   });
 
   const tabs = [
-    {
-      key: "all",
-      label: "全部",
-      count: feedbacks.length,
-    },
+    { key: "all", label: "全部", count: feedbacks.length },
     {
       key: "pending",
       label: "待处理",
-      count: feedbacks.filter(
-        (item) => item.status === "pending"
-      ).length,
+      count: feedbacks.filter((item) => item.status === "pending").length,
     },
     {
       key: "in_progress",
       label: "处理中",
-      count: feedbacks.filter(
-        (item) => item.status === "in_progress"
-      ).length,
+      count: feedbacks.filter((item) => item.status === "in_progress").length,
     },
     {
       key: "resolved",
       label: "已完成",
-      count: feedbacks.filter(
-        (item) => item.status === "resolved"
-      ).length,
+      count: feedbacks.filter((item) => item.status === "resolved").length,
     },
     {
       key: "closed",
       label: "已关闭",
-      count: feedbacks.filter(
-        (item) => item.status === "closed"
-      ).length,
+      count: feedbacks.filter((item) => item.status === "closed").length,
     },
   ] as const;
 
   return (
-    <div className="space-y-8 overflow-hidden">
+    <div className="relative space-y-8 overflow-hidden">
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[999] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
-          <h1 className="text-4xl font-bold">
-            反馈中心 💌
-          </h1>
+          <h1 className="text-4xl font-bold">反馈中心 💌</h1>
 
           <p className="mt-2 text-zinc-500">
             查看、追踪和处理居民提交的反馈。
@@ -240,9 +236,7 @@ export default function AdminFeedbackPage() {
         {tabs.map((item) => (
           <button
             key={item.key}
-            onClick={() =>
-              setStatusFilter(item.key as FeedbackStatus)
-            }
+            onClick={() => setStatusFilter(item.key as FeedbackStatus)}
             className={
               statusFilter === item.key
                 ? "rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition"
@@ -250,10 +244,7 @@ export default function AdminFeedbackPage() {
             }
           >
             {item.label}
-
-            <span className="ml-2 text-xs opacity-60">
-              {item.count}
-            </span>
+            <span className="ml-2 text-xs opacity-60">{item.count}</span>
           </button>
         ))}
       </div>
@@ -318,10 +309,7 @@ export default function AdminFeedbackPage() {
                   </p>
 
                   <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
-                    <span>
-                      提交者：
-                      {profile?.username || "未知居民"}
-                    </span>
+                    <span>提交者：{profile?.username || "未知居民"}</span>
 
                     {item.user_id && (
                       <Link
@@ -337,11 +325,7 @@ export default function AdminFeedbackPage() {
                       {new Date(item.created_at).toLocaleString("zh-CN")}
                     </span>
 
-                    {handler?.username && (
-                      <span>
-                        处理人：{handler.username}
-                      </span>
-                    )}
+                    {handler?.username && <span>处理人：{handler.username}</span>}
 
                     {item.handled_at && (
                       <span>
@@ -354,27 +338,21 @@ export default function AdminFeedbackPage() {
 
                 <div className="flex shrink-0 flex-wrap gap-2 lg:flex-col">
                   <button
-                    onClick={() =>
-                      updateStatus(item.id, "in_progress")
-                    }
+                    onClick={() => updateStatus(item.id, "in_progress")}
                     className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20"
                   >
                     处理中
                   </button>
 
                   <button
-                    onClick={() =>
-                      updateStatus(item.id, "resolved")
-                    }
+                    onClick={() => updateStatus(item.id, "resolved")}
                     className="rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300 transition hover:bg-green-500/20"
                   >
                     已完成
                   </button>
 
                   <button
-                    onClick={() =>
-                      updateStatus(item.id, "closed")
-                    }
+                    onClick={() => updateStatus(item.id, "closed")}
                     className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
                   >
                     关闭
@@ -382,9 +360,7 @@ export default function AdminFeedbackPage() {
 
                   {item.status !== "pending" && (
                     <button
-                      onClick={() =>
-                        updateStatus(item.id, "pending")
-                      }
+                      onClick={() => updateStatus(item.id, "pending")}
                       className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300 transition hover:bg-yellow-500/20"
                     >
                       退回待处理

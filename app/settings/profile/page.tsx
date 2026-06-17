@@ -3,14 +3,6 @@
 /**
  * ===== app/settings/profile/page.tsx =====
  * 房间资料设置页 / Room Profile Settings
- *
- * 注意：
- * 1. 这不是 Landing Page。
- * 2. 这不是 /u/[username] 个人公开房间页。
- * 3. 本页包含一个「ROOM PREVIEW」右侧预览组件，
- *    只是让用户在设置页预览自己的房间外观。
- * 4. 手机版会隐藏 ROOM PREVIEW，避免页面太长。
- * 5. 今日状态已移到 /home 的「今日状态」弹窗里。
  */
 
 import { ChangeEvent, useEffect, useState } from "react";
@@ -88,8 +80,9 @@ export default function ProfileSettingsPage() {
   const [cropOpen, setCropOpen] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] =
-    useState<Area | null>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     async function getProfile() {
@@ -136,6 +129,14 @@ export default function ProfileSettingsPage() {
     };
   }, [hasUnsavedChanges]);
 
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
+
   async function saveProfile() {
     if (!user) return;
 
@@ -144,22 +145,22 @@ export default function ProfileSettingsPage() {
     const usernameRegex = /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/;
 
     if (!cleanUsername) {
-      alert("居民名字不能为空。");
+      showToast("居民名字不能为空。");
       return;
     }
 
     if (cleanUsername.length < 3) {
-      alert("居民名字至少需要 3 个字符。");
+      showToast("居民名字至少需要 3 个字符。");
       return;
     }
 
     if (cleanUsername.length > 20) {
-      alert("居民名字不能超过 20 个字符。");
+      showToast("居民名字不能超过 20 个字符。");
       return;
     }
 
     if (!usernameRegex.test(cleanUsername)) {
-      alert("居民名字只能使用中文、英文、数字和底线。");
+      showToast("居民名字只能使用中文、英文、数字和底线。");
       return;
     }
 
@@ -180,8 +181,8 @@ export default function ProfileSettingsPage() {
       "ourlittleage",
     ];
 
-    if (reservedNames.includes(cleanUsername.toLowerCase())) {
-      alert("这个居民名字不能使用，请换一个。");
+    if (reservedNames.includes(cleanUsername)) {
+      showToast("这个居民名字不能使用，请换一个。");
       return;
     }
 
@@ -193,12 +194,12 @@ export default function ProfileSettingsPage() {
       .maybeSingle();
 
     if (existingUser) {
-      alert("这个居民名字已经有人使用了。");
+      showToast("这个居民名字已经有人使用了。");
       return;
     }
 
     if (cleanBio.length > BIO_LIMIT) {
-      alert(`个人简介最多 ${BIO_LIMIT} 字。`);
+      showToast(`个人简介最多 ${BIO_LIMIT} 字。`);
       return;
     }
 
@@ -217,7 +218,7 @@ export default function ProfileSettingsPage() {
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       return;
     }
 
@@ -229,7 +230,7 @@ export default function ProfileSettingsPage() {
     }));
 
     setHasUnsavedChanges(false);
-    alert("房间资料已更新。");
+    showToast("房间资料已更新。");
   }
 
   async function uploadAvatar(e: ChangeEvent<HTMLInputElement>) {
@@ -248,7 +249,7 @@ export default function ProfileSettingsPage() {
 
     if (error) {
       setUploading(false);
-      alert(error.message);
+      showToast(error.message);
       return;
     }
 
@@ -267,7 +268,7 @@ export default function ProfileSettingsPage() {
     setUploading(false);
 
     if (profileError) {
-      alert(profileError.message);
+      showToast(profileError.message);
       return;
     }
 
@@ -276,7 +277,7 @@ export default function ProfileSettingsPage() {
       avatar_url: publicUrl,
     }));
 
-    alert("头像已更新。");
+    showToast("头像已更新。");
   }
 
   function chooseBannerFile(e: ChangeEvent<HTMLInputElement>) {
@@ -285,13 +286,13 @@ export default function ProfileSettingsPage() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("请上传图片文件。");
+      showToast("请上传图片文件。");
       e.target.value = "";
       return;
     }
 
     if (file.size > 8 * 1024 * 1024) {
-      alert("图片不能超过 8MB。");
+      showToast("图片不能超过 8MB。");
       e.target.value = "";
       return;
     }
@@ -338,7 +339,7 @@ export default function ProfileSettingsPage() {
         });
 
       if (uploadError) {
-        alert(uploadError.message);
+        showToast(uploadError.message);
         setBannerUploading(false);
         return;
       }
@@ -358,7 +359,7 @@ export default function ProfileSettingsPage() {
         .eq("id", user.id);
 
       if (profileError) {
-        alert(profileError.message);
+        showToast(profileError.message);
         setBannerUploading(false);
         return;
       }
@@ -369,9 +370,9 @@ export default function ProfileSettingsPage() {
       }));
 
       closeCropModal();
-      alert("横幅已更新。");
+      showToast("横幅已更新。");
     } catch (error: any) {
-      alert(error.message || "裁剪图片失败。");
+      showToast(error.message || "裁剪图片失败。");
     }
 
     setBannerUploading(false);
@@ -575,15 +576,11 @@ export default function ProfileSettingsPage() {
                       setTheme(item.key);
                       setHasUnsavedChanges(true);
                     }}
-                    className={`
-                      flex items-center justify-between rounded-2xl border px-4 py-3
-                      text-left text-sm transition md:px-4 md:py-3.5
-                      ${
-                        active
-                          ? "border-white bg-white text-black shadow-[0_0_28px_rgba(255,255,255,0.12)]"
-                          : "border-white/10 bg-black/25 text-white/55 hover:border-white/25 hover:bg-white/[0.04] hover:text-white"
-                      }
-                    `}
+                    className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition md:px-4 md:py-3.5 ${
+                      active
+                        ? "border-white bg-white text-black shadow-[0_0_28px_rgba(255,255,255,0.12)]"
+                        : "border-white/10 bg-black/25 text-white/55 hover:border-white/25 hover:bg-white/[0.04] hover:text-white"
+                    }`}
                   >
                     <span className="flex items-center gap-2">
                       <span>{item.icon}</span>
@@ -750,6 +747,12 @@ export default function ProfileSettingsPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {message && (
+        <div className="fixed bottom-6 left-1/2 z-[120] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
         </div>
       )}
     </div>

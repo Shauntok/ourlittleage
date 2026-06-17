@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type Announcement = {
   id: string;
@@ -19,6 +21,14 @@ type ScheduleMode = "quick" | "custom";
 type QuickDelay = "15" | "30" | "60";
 type DatePreset = "today" | "tomorrow" | "afterTomorrow" | "custom";
 type Meridiem = "AM" | "PM";
+
+type ConfirmConfig = {
+  title: string;
+  description: string;
+  confirmText: string;
+  danger?: boolean;
+  action: (() => Promise<void>) | null;
+};
 
 export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -39,9 +49,43 @@ export default function AdminAnnouncementsPage() {
   const [hour, setHour] = useState("8");
   const [minute, setMinute] = useState("00");
 
+  const [message, setMessage] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const [confirmConfig, setConfirmConfig] = useState<ConfirmConfig>({
+    title: "",
+    description: "",
+    confirmText: "确认",
+    danger: false,
+    action: null,
+  });
+
   useEffect(() => {
     bootAnnouncementsPage();
   }, []);
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
+
+  function openConfirm(config: ConfirmConfig) {
+    setConfirmConfig(config);
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirm() {
+    if (!confirmConfig.action) return;
+
+    setConfirmLoading(true);
+    await confirmConfig.action();
+    setConfirmLoading(false);
+    setConfirmOpen(false);
+  }
 
   async function bootAnnouncementsPage() {
     await publishDueAnnouncements();
@@ -173,7 +217,7 @@ export default function AdminAnnouncementsPage() {
 
     if (error) {
       console.error(error);
-      alert("读取公告失败。");
+      showMessage("读取公告失败。");
       setLoading(false);
       return;
     }
@@ -213,18 +257,18 @@ export default function AdminAnnouncementsPage() {
 
   async function createAnnouncement() {
     if (!title.trim() || !content.trim()) {
-      alert("请填写公告标题和内容。");
+      showMessage("请填写公告标题和内容。");
       return;
     }
 
     if (publishMode === "scheduled") {
       if (!scheduledDate) {
-        alert("请选择有效的预约发布时间。");
+        showMessage("请选择有效的预约发布时间。");
         return;
       }
 
       if (scheduledDate <= new Date()) {
-        alert("预约发布时间必须晚于现在。");
+        showMessage("预约发布时间必须晚于现在。");
         return;
       }
     }
@@ -291,9 +335,11 @@ export default function AdminAnnouncementsPage() {
       setMinute("00");
 
       setAnnouncements((prev) => [data as Announcement, ...prev]);
+
+      showMessage(publishMode === "now" ? "公告已发布。" : "预约公告已保存。");
     } catch (error) {
       console.error(error);
-      alert("发布公告失败，请检查 Supabase 字段 / RLS / notifications 表结构。");
+      showMessage("发布公告失败，请检查 Supabase 字段 / RLS / notifications 表结构。");
     } finally {
       setSubmitting(false);
     }
@@ -312,7 +358,7 @@ export default function AdminAnnouncementsPage() {
 
     if (error) {
       console.error(error);
-      alert("更新公告状态失败。");
+      showMessage("更新公告状态失败。");
       setUpdatingId(null);
       return;
     }
@@ -331,34 +377,41 @@ export default function AdminAnnouncementsPage() {
       )
     );
 
+    showMessage(nextActive ? "公告已重新显示。" : "公告已关闭。");
     setUpdatingId(null);
   }
 
-  async function deleteAnnouncement(item: Announcement) {
-    const ok = confirm(`确定要删除公告「${item.title}」吗？`);
-    if (!ok) return;
+  function deleteAnnouncement(item: Announcement) {
+    openConfirm({
+      title: "删除公告？",
+      description: `确定要删除公告「${item.title}」吗？删除后不会再出现在公告列表。`,
+      confirmText: "删除公告",
+      danger: true,
+      action: async () => {
+        setUpdatingId(item.id);
 
-    setUpdatingId(item.id);
+        const { error } = await supabase
+          .from("announcements")
+          .delete()
+          .eq("id", item.id);
 
-    const { error } = await supabase
-      .from("announcements")
-      .delete()
-      .eq("id", item.id);
+        if (error) {
+          console.error(error);
+          showMessage("删除公告失败。");
+          setUpdatingId(null);
+          return;
+        }
 
-    if (error) {
-      console.error(error);
-      alert("删除公告失败。");
-      setUpdatingId(null);
-      return;
-    }
+        await writeLog("delete_announcement", item.id, `删除公告：${item.title}`);
 
-    await writeLog("delete_announcement", item.id, `删除公告：${item.title}`);
+        setAnnouncements((prev) =>
+          prev.filter((announcement) => announcement.id !== item.id)
+        );
 
-    setAnnouncements((prev) =>
-      prev.filter((announcement) => announcement.id !== item.id)
-    );
-
-    setUpdatingId(null);
+        showMessage("公告已删除。");
+        setUpdatingId(null);
+      },
+    });
   }
 
   return (
@@ -512,9 +565,7 @@ export default function AdminAnnouncementsPage() {
                         <button
                           type="button"
                           onClick={() => setDatePreset("afterTomorrow")}
-                          className={buttonClass(
-                            datePreset === "afterTomorrow"
-                          )}
+                          className={buttonClass(datePreset === "afterTomorrow")}
                         >
                           后天
                         </button>
@@ -616,6 +667,7 @@ export default function AdminAnnouncementsPage() {
             )}
 
             <button
+              type="button"
               onClick={createAnnouncement}
               disabled={submitting}
               className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
@@ -623,8 +675,8 @@ export default function AdminAnnouncementsPage() {
               {submitting
                 ? "处理中..."
                 : publishMode === "now"
-                  ? "立即发布"
-                  : "保存预约公告"}
+                ? "立即发布"
+                : "保存预约公告"}
             </button>
           </div>
         </section>
@@ -660,8 +712,8 @@ export default function AdminAnnouncementsPage() {
                               status === "显示中"
                                 ? "bg-emerald-500/10 text-emerald-300"
                                 : status === "已预约"
-                                  ? "bg-amber-500/10 text-amber-300"
-                                  : "bg-zinc-700/60 text-zinc-300"
+                                ? "bg-amber-500/10 text-amber-300"
+                                : "bg-zinc-700/60 text-zinc-300"
                             }`}
                           >
                             {status}
@@ -683,6 +735,7 @@ export default function AdminAnnouncementsPage() {
                       <div className="flex shrink-0 gap-2">
                         {waiting ? (
                           <button
+                            type="button"
                             disabled
                             className="cursor-not-allowed rounded-lg border border-amber-500/30 px-3 py-2 text-xs text-amber-300/80"
                           >
@@ -690,6 +743,7 @@ export default function AdminAnnouncementsPage() {
                           </button>
                         ) : (
                           <button
+                            type="button"
                             disabled={isUpdating}
                             onClick={() => toggleAnnouncement(item)}
                             className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 transition hover:border-violet-500 hover:text-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
@@ -697,12 +751,13 @@ export default function AdminAnnouncementsPage() {
                             {isUpdating
                               ? "处理中..."
                               : item.is_active
-                                ? "关闭"
-                                : "重新显示"}
+                              ? "关闭"
+                              : "重新显示"}
                           </button>
                         )}
 
                         <button
+                          type="button"
                           disabled={isUpdating}
                           onClick={() => deleteAnnouncement(item)}
                           className="rounded-lg border border-red-900/70 px-3 py-2 text-xs text-red-300 transition hover:border-red-500 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
@@ -718,6 +773,24 @@ export default function AdminAnnouncementsPage() {
           )}
         </section>
       </div>
+
+      {message && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        cancelText="取消"
+        danger={confirmConfig.danger}
+        loading={confirmLoading}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+      />
     </main>
   );
 }

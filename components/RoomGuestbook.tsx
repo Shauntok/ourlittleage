@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type ProfileInfo = {
   username: string | null;
@@ -26,13 +27,27 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
   const [messages, setMessages] = useState<RoomMessage[]>([]);
   const [content, setContent] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
+  const [message, setMessage] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMessages();
     getCurrentUser();
   }, [roomOwnerId]);
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
 
   async function getCurrentUser() {
     const {
@@ -55,7 +70,7 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
       .limit(20);
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       setFetching(false);
       return;
     }
@@ -97,12 +112,12 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
     const cleanContent = content.trim();
 
     if (!cleanContent) {
-      alert("请先写一点东西。");
+      showMessage("写一点点就好，再轻轻留下来。");
       return;
     }
 
     if (cleanContent.length < 2) {
-      alert("留言至少需要 2 个字。");
+      showMessage("留言至少需要 2 个字。");
       return;
     }
 
@@ -111,7 +126,7 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("请先登录。");
+      showMessage("先登录一下，再留下房间留言。");
       return;
     }
 
@@ -128,7 +143,7 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
     setLoading(false);
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return;
     }
 
@@ -136,9 +151,15 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
     fetchMessages();
   }
 
-  async function deleteMessage(id: string) {
-    const confirmed = confirm("确定删除这条房间留言吗？");
-    if (!confirmed) return;
+  function openDeleteDialog(id: string) {
+    setDeleteTargetId(id);
+    setShowDeleteDialog(true);
+  }
+
+  async function deleteMessage() {
+    if (!deleteTargetId) return;
+
+    setDeleting(true);
 
     const { error } = await supabase
       .from("room_messages")
@@ -146,23 +167,26 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
         is_deleted: true,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", id)
+      .eq("id", deleteTargetId)
       .eq("author_id", currentUserId);
 
+    setDeleting(false);
+
     if (error) {
-      alert(error.message);
+      setShowDeleteDialog(false);
+      showMessage(error.message);
       return;
     }
 
+    setShowDeleteDialog(false);
+    setDeleteTargetId(null);
     fetchMessages();
   }
 
   return (
     <section className="scroll-mt-28 space-y-5" id="guestbook">
       <div>
-        <p className="text-xs tracking-[0.35em] text-white/25">
-          GUESTBOOK
-        </p>
+        <p className="text-xs tracking-[0.35em] text-white/25">GUESTBOOK</p>
 
         <h2 className="mt-2 text-2xl font-light md:mt-4 md:text-3xl">
           房间留言
@@ -172,6 +196,12 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
           路过这个房间的人，可以轻轻留下一句话。
         </p>
       </div>
+
+      {message && (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          {message}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl">
         <textarea
@@ -210,15 +240,15 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
           </div>
         )}
 
-        {messages.map((message) => {
-          const profile = message.authorProfile;
+        {messages.map((item) => {
+          const profile = item.authorProfile;
           const profileHref = profile?.username
             ? `/u/${encodeURIComponent(profile.username)}`
             : null;
 
           return (
             <article
-              key={message.id}
+              key={item.id}
               className="min-w-0 overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-2xl"
             >
               <div className="flex items-start gap-3">
@@ -260,17 +290,17 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
                   )}
 
                   <p className="mt-1 text-xs text-white/25">
-                    {new Date(message.created_at).toLocaleString("zh-CN")}
+                    {new Date(item.created_at).toLocaleString("zh-CN")}
                   </p>
 
                   <p className="safe-pre mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-white/60 [overflow-wrap:anywhere]">
-                    {message.content}
+                    {item.content}
                   </p>
 
-                  {currentUserId === message.author_id && (
+                  {currentUserId === item.author_id && (
                     <button
                       type="button"
-                      onClick={() => deleteMessage(message.id)}
+                      onClick={() => openDeleteDialog(item.id)}
                       className="mt-4 rounded-full border border-red-500/20 bg-red-500/[0.05] px-4 py-2 text-xs text-red-200/55 transition hover:bg-red-500/[0.1] hover:text-red-200"
                     >
                       删除留言
@@ -282,6 +312,21 @@ export default function RoomGuestbook({ roomOwnerId }: Props) {
           );
         })}
       </div>
+
+      <ConfirmDialog
+        open={showDeleteDialog}
+        title="删除这条房间留言？"
+        description="这条留言会从房间里隐藏。之后如果需要，我们可以再做管理端恢复。"
+        confirmText="删除留言"
+        cancelText="再想想"
+        danger
+        loading={deleting}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setDeleteTargetId(null);
+        }}
+        onConfirm={deleteMessage}
+      />
     </section>
   );
 }

@@ -5,69 +5,75 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
-
   const router = useRouter();
 
-  const [email, setEmail] =
-    useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const [password, setPassword] =
-    useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
 
   async function login() {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !password.trim()) {
+      showToast("请输入 Email 和 Password。");
+      return;
+    }
 
     setLoading(true);
 
-    const { error } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
 
     setLoading(false);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       return;
     }
 
-    // ===== 检查 role =====
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("登录失败");
+      showToast("登录失败，请重新尝试。");
       return;
     }
 
-    const { data: profile } =
-      await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
-    const allowedRoles = [
-      "owner",
-      "admin",
-      "moderator",
-    ];
+    if (profileError) {
+      showToast(profileError.message);
+      return;
+    }
 
-    if (
-      !profile ||
-      !allowedRoles.includes(
-        profile.role
-      )
-    ) {
-      alert("你没有后台权限");
+    const allowedRoles = ["owner", "admin", "moderator"];
+
+    if (!profile || !allowedRoles.includes(profile.role)) {
+      showToast("你没有后台权限。");
 
       await supabase.auth.signOut();
 
-      router.push("/home");
+      window.setTimeout(() => {
+        router.push("/home");
+      }, 900);
+
       return;
     }
 
@@ -75,51 +81,50 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-black px-6">
-      <div className="w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-950/50 p-8 space-y-6">
+    <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[999] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-center text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
 
+      <div className="w-full max-w-md space-y-6 rounded-3xl border border-zinc-800 bg-zinc-950/50 p-8">
         <div className="space-y-2 text-center">
-          <h1 className="text-4xl font-bold">
-            后台登录 🔐
-          </h1>
+          <h1 className="text-4xl font-bold">后台登录 🔐</h1>
 
-          <p className="text-zinc-500">
-            仅限管理员进入。
-          </p>
+          <p className="text-zinc-500">仅限管理员进入。</p>
         </div>
 
         <div className="space-y-4">
-
           <input
             type="email"
             placeholder="Email"
             value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-            className="w-full rounded-2xl border border-zinc-800 bg-black p-4 outline-none focus:border-white"
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-2xl border border-zinc-800 bg-black p-4 outline-none transition focus:border-white"
           />
 
           <input
             type="password"
             placeholder="Password"
             value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-            className="w-full rounded-2xl border border-zinc-800 bg-black p-4 outline-none focus:border-white"
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                login();
+              }
+            }}
+            className="w-full rounded-2xl border border-zinc-800 bg-black p-4 outline-none transition focus:border-white"
           />
 
           <button
+            type="button"
             onClick={login}
             disabled={loading}
-            className="w-full rounded-2xl bg-white px-6 py-4 font-bold text-black hover:opacity-80 transition"
+            className="w-full rounded-2xl bg-white px-6 py-4 font-bold text-black transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {loading
-              ? "登录中..."
-              : "进入后台"}
+            {loading ? "登录中..." : "进入后台"}
           </button>
-
         </div>
       </div>
     </main>

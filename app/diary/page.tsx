@@ -56,6 +56,54 @@ export default function DiaryPage() {
   const [diaries, setDiaries] = useState<any[]>([]);
   const [filter, setFilter] = useState<"all" | "published" | "draft">("all");
   const [selectedDate, setSelectedDate] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    fetchDiaries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4200);
+  }
+
+  async function fetchDiaries() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.push("/home");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("author_id", user.id)
+      .or("type.eq.diary,type.is.null")
+      .is("deleted_at", null);
+
+    if (error) {
+      showToast(error.message);
+      setLoading(false);
+      return;
+    }
+
+    const sortedDiaries = (data || []).sort((a, b) => {
+      const dateA = new Date(a.published_at || a.created_at).getTime();
+      const dateB = new Date(b.published_at || b.created_at).getTime();
+
+      return dateB - dateA;
+    });
+
+    setDiaries(sortedDiaries);
+    setLoading(false);
+  }
 
   const filteredDiaries = diaries.filter((diary) => {
     if (filter === "published" && diary.status !== "published") {
@@ -77,43 +125,6 @@ export default function DiaryPage() {
     return true;
   });
 
-  useEffect(() => {
-    async function fetchDiaries() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push("/home");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("author_id", user.id)
-        .or("type.eq.diary,type.is.null");
-
-      if (error) {
-        alert(error.message);
-        setLoading(false);
-        return;
-      }
-
-      const sortedDiaries = (data || []).sort((a, b) => {
-        const dateA = new Date(a.published_at || a.created_at).getTime();
-        const dateB = new Date(b.published_at || b.created_at).getTime();
-
-        return dateB - dateA;
-      });
-
-      setDiaries(sortedDiaries);
-      setLoading(false);
-    }
-
-    fetchDiaries();
-  }, [router]);
-
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -128,6 +139,12 @@ export default function DiaryPage() {
     <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[580px] md:w-[580px]" />
+
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[999] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
 
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex flex-col justify-between gap-5 md:mb-20 md:flex-row md:items-end md:gap-8">
@@ -175,6 +192,7 @@ export default function DiaryPage() {
             ].map((item) => (
               <button
                 key={item.key}
+                type="button"
                 onClick={() => setFilter(item.key as any)}
                 className={
                   filter === item.key
@@ -219,24 +237,7 @@ export default function DiaryPage() {
               <Link
                 key={diary.id}
                 href={`/diary/${diary.id}`}
-                className="
-                  group
-                  block
-                  min-w-0
-                  overflow-hidden
-                  rounded-[2rem]
-                  border
-                  border-white/10
-                  bg-white/[0.03]
-                  p-6
-                  backdrop-blur-2xl
-                  transition-all
-                  duration-700
-                  hover:-translate-y-1
-                  hover:border-white/20
-                  hover:bg-white/[0.05]
-                  md:p-8
-                "
+                className="group block min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.05] md:p-8"
               >
                 <div className="flex flex-wrap items-center gap-2 text-xs text-white/35 md:gap-3">
                   <span>{formatWeekday(diaryDate)}</span>
@@ -250,20 +251,7 @@ export default function DiaryPage() {
                   {formatDate(diaryDate)}
                 </h2>
 
-                <p
-                  className="
-                    safe-pre
-                    mt-5
-                    line-clamp-3
-                    text-[14px]
-                    leading-[2]
-                    text-white/50
-                    md:mt-8
-                    md:line-clamp-4
-                    md:text-[15px]
-                    md:leading-[2.2]
-                  "
-                >
+                <p className="safe-pre mt-5 line-clamp-3 text-[14px] leading-[2] text-white/50 md:mt-8 md:line-clamp-4 md:text-[15px] md:leading-[2.2]">
                   {diary.content}
                 </p>
 

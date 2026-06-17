@@ -28,10 +28,19 @@ function formatDate(value: string | null) {
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetchAnnouncements();
   }, []);
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4200);
+  }
 
   async function fetchAnnouncements() {
     setLoading(true);
@@ -44,7 +53,7 @@ export default function AnnouncementsPage() {
 
     if (error) {
       console.error("fetch announcements error:", error);
-      alert(`读取公告失败：${error.message}`);
+      showToast(`读取公告失败：${error.message}`);
       setLoading(false);
       return;
     }
@@ -55,6 +64,12 @@ export default function AnnouncementsPage() {
 
   return (
     <main className="min-h-screen bg-zinc-950 px-4 py-8 text-zinc-100 md:px-8">
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[999] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
       <div className="mx-auto max-w-3xl space-y-6">
         <section>
           <Link

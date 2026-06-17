@@ -10,8 +10,41 @@ import MarkdownToolbar from "@/components/editor/MarkdownToolbar";
 import ArticleMetaFields from "@/components/editor/ArticleMetaFields";
 import ArticleTitleFields from "@/components/editor/ArticleTitleFields";
 import EditorTextarea from "@/components/editor/EditorTextarea";
+import MobileVisibilityDialog from "@/components/editor/MobileVisibilityDialog";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { uploadEditorImage } from "@/components/editor/editorImageUpload";
 import { insertEditorText } from "@/components/editor/editorTextUtils";
+
+type ArticleVisibility = "public" | "hidden" | "unlisted" | "private";
+
+const MIN_ARTICLE_CONTENT_LENGTH = 500;
+
+const visibilityOptions = [
+  {
+    key: "public",
+    icon: "🌍",
+    title: "公开发布",
+    desc: "所有居民都可以看到。",
+  },
+  {
+    key: "hidden",
+    icon: "🙈",
+    title: "隐藏文章",
+    desc: "不会主动出现在公开列表。",
+  },
+  {
+    key: "unlisted",
+    icon: "🔗",
+    title: "仅链接可见",
+    desc: "有链接的人才能进入。",
+  },
+  {
+    key: "private",
+    icon: "🔒",
+    title: "只给自己看",
+    desc: "只有你自己能看到。",
+  },
+];
 
 export default function EditArticlePage() {
   const params = useParams();
@@ -22,6 +55,7 @@ export default function EditArticlePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [article, setArticle] = useState<any>(null);
 
   const [title, setTitle] = useState("");
@@ -29,8 +63,15 @@ export default function EditArticlePage() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
-  const [visibility, setVisibility] = useState("public");
+  const [visibility, setVisibility] = useState<ArticleVisibility>("public");
+
   const [originalSnapshot, setOriginalSnapshot] = useState("");
+  const [editorMessage, setEditorMessage] = useState("");
+  const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    "saveArticle" | "publishDraft" | null
+  >(null);
 
   const cleanTitle = title.trim();
   const cleanContent = content.trim();
@@ -55,6 +96,7 @@ export default function EditArticlePage() {
         .eq("id", id)
         .eq("author_id", user.id)
         .eq("type", "article")
+        .is("deleted_at", null)
         .single();
 
       if (error || !data) {
@@ -62,13 +104,15 @@ export default function EditArticlePage() {
         return;
       }
 
+      const loadedVisibility = (data.visibility || "public") as ArticleVisibility;
+
       setArticle(data);
       setTitle(data.title || "");
       setSlug(data.slug || "");
       setContent(data.content || "");
       setTags(data.tags || "");
       setNotes(data.notes || "");
-      setVisibility(data.visibility || "public");
+      setVisibility(loadedVisibility);
 
       setOriginalSnapshot(
         JSON.stringify({
@@ -77,7 +121,7 @@ export default function EditArticlePage() {
           content: data.content || "",
           tags: data.tags || "",
           notes: data.notes || "",
-          visibility: data.visibility || "public",
+          visibility: loadedVisibility,
           status: data.status || "draft",
         })
       );
@@ -115,27 +159,44 @@ export default function EditArticlePage() {
   const hasChanged = makeSnapshot() !== originalSnapshot;
 
   function validateTitle() {
+    setEditorMessage("");
+
     if (!cleanTitle) {
-      alert("请输入文章标题。");
+      setEditorMessage("给这篇故事起个名字吧，之后才找得到它。");
       return false;
     }
 
     if (titleCount > 25) {
-      alert(`文章标题不能超过 25 个字。目前是 ${titleCount} 个字。`);
+      setEditorMessage(`标题有点长了，目前是 ${titleCount} 个字，最多 25 个字。`);
       return false;
     }
 
     return true;
   }
 
-  function validateContent() {
+  function validateContentForPublish() {
+    setEditorMessage("");
+
     if (!cleanContent) {
-      alert("请输入文章内容。");
+      setEditorMessage("写一点点就好，不需要一次说完。");
       return false;
     }
 
-    if (contentCount < 500) {
-      alert(`文章正文至少需要 500 字。目前只有 ${contentCount} 字。`);
+    if (contentCount < MIN_ARTICLE_CONTENT_LENGTH) {
+      setEditorMessage(
+        `这篇故事还可以再慢慢展开一点，至少留下 ${MIN_ARTICLE_CONTENT_LENGTH} 个字吧。`
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  function validateContentForDraft() {
+    setEditorMessage("");
+
+    if (!cleanContent) {
+      setEditorMessage("写一点点就好，我帮你先收进草稿箱。");
       return false;
     }
 
@@ -161,7 +222,7 @@ export default function EditArticlePage() {
       const publicUrl = await uploadEditorImage(file);
       insertTextAtCursor(`\n\n![](${publicUrl})\n\n`);
     } catch (error: any) {
-      alert(error.message);
+      setEditorMessage(error.message);
     } finally {
       setUploading(false);
     }
@@ -180,11 +241,7 @@ export default function EditArticlePage() {
 
   async function saveDraft() {
     if (!validateTitle()) return;
-
-    if (!cleanContent) {
-      alert("请至少填写一点文章内容。");
-      return;
-    }
+    if (!validateContentForDraft()) return;
 
     const finalSlug =
       generateSlug(slug.trim()) || generateSlug(cleanTitle) || `article-${id}`;
@@ -194,7 +251,7 @@ export default function EditArticlePage() {
     const exists = await checkSlug(finalSlug);
 
     if (exists) {
-      alert("这个 slug 已经存在，请修改。");
+      setEditorMessage("这个链接已经有人用过了，换一个 slug 吧。");
       setSaving(false);
       return;
     }
@@ -216,7 +273,7 @@ export default function EditArticlePage() {
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
       return;
     }
 
@@ -225,24 +282,21 @@ export default function EditArticlePage() {
 
   async function publishDraft() {
     if (!validateTitle()) return;
-    if (!validateContent()) return;
+    if (!validateContentForPublish()) return;
 
     const finalSlug = generateSlug(slug.trim()) || generateSlug(cleanTitle);
 
     if (!finalSlug) {
-      alert("slug 无法生成，请换一个标题或手动填写。");
+      setEditorMessage("这个标题暂时生成不了链接，换个标题或手动填一下 slug 吧。");
       return;
     }
-
-    const confirmed = confirm("确定发布这篇草稿吗？");
-    if (!confirmed) return;
 
     setSaving(true);
 
     const exists = await checkSlug(finalSlug);
 
     if (exists) {
-      alert("这个 slug 已经存在，请修改。");
+      setEditorMessage("这个链接已经有人用过了，换一个 slug 吧。");
       setSaving(false);
       return;
     }
@@ -265,7 +319,7 @@ export default function EditArticlePage() {
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
       return;
     }
 
@@ -274,12 +328,12 @@ export default function EditArticlePage() {
 
   async function saveArticle() {
     if (!validateTitle()) return;
-    if (!validateContent()) return;
+    if (!validateContentForPublish()) return;
 
     const finalSlug = generateSlug(slug.trim()) || generateSlug(cleanTitle);
 
     if (!finalSlug) {
-      alert("slug 无法生成，请换一个标题或手动填写。");
+      setEditorMessage("这个标题暂时生成不了链接，换个标题或手动填一下 slug 吧。");
       return;
     }
 
@@ -293,7 +347,7 @@ export default function EditArticlePage() {
     const exists = await checkSlug(finalSlug);
 
     if (exists) {
-      alert("这个 slug 已经存在，请修改。");
+      setEditorMessage("这个链接已经有人用过了，换一个 slug 吧。");
       setSaving(false);
       return;
     }
@@ -314,7 +368,7 @@ export default function EditArticlePage() {
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
       return;
     }
 
@@ -322,26 +376,74 @@ export default function EditArticlePage() {
   }
 
   async function deleteArticle() {
-    const confirmed = confirm("确定删除这篇文章吗？");
-    if (!confirmed) return;
+    setDeleting(true);
 
-    const { error } = await supabase.from("posts").delete().eq("id", id);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id || null,
+        delete_reason: "author_soft_delete",
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    setDeleting(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
+      setShowDeleteDialog(false);
       return;
     }
 
+    setShowDeleteDialog(false);
     router.push(isDraft ? "/drafts" : "/articles");
   }
 
   function leaveWithoutSaving() {
     if (hasChanged) {
-      const confirmed = confirm("你还有没保存的修改，确定离开吗？");
-      if (!confirmed) return;
+      setEditorMessage("这一页还有没保存的修改。想离开的话，请先保存。");
+      return;
     }
 
     router.push(isDraft ? "/drafts" : `/articles/${article.slug}`);
+  }
+
+  function handleSaveArticleClick() {
+    if (window.innerWidth < 1024) {
+      setPendingAction("saveArticle");
+      setShowVisibilityDialog(true);
+      return;
+    }
+
+    saveArticle();
+  }
+
+  function handlePublishDraftClick() {
+    if (window.innerWidth < 1024) {
+      setPendingAction("publishDraft");
+      setShowVisibilityDialog(true);
+      return;
+    }
+
+    publishDraft();
+  }
+
+  function confirmVisibilityAction() {
+    setShowVisibilityDialog(false);
+
+    if (pendingAction === "saveArticle") {
+      saveArticle();
+      return;
+    }
+
+    if (pendingAction === "publishDraft") {
+      publishDraft();
+    }
   }
 
   if (loading) {
@@ -410,18 +512,26 @@ export default function EditArticlePage() {
             variant="article"
           />
 
+          {editorMessage && (
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              {editorMessage}
+            </div>
+          )}
+
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2 text-xs">
               <p
                 className={
-                  contentCount < 500
+                  contentCount < MIN_ARTICLE_CONTENT_LENGTH
                     ? "text-yellow-100/55"
                     : "text-emerald-100/55"
                 }
               >
                 已写 {contentCount} 字
-                {contentCount < 500
-                  ? ` · 距离发布建议还差 ${500 - contentCount} 字`
+                {contentCount < MIN_ARTICLE_CONTENT_LENGTH
+                  ? ` · 距离发布建议还差 ${
+                      MIN_ARTICLE_CONTENT_LENGTH - contentCount
+                    } 字`
                   : " · 已达到发布长度"}
               </p>
 
@@ -449,7 +559,7 @@ export default function EditArticlePage() {
                   </button>
 
                   <button
-                    onClick={publishDraft}
+                    onClick={handlePublishDraftClick}
                     disabled={saving}
                     className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
                   >
@@ -458,7 +568,7 @@ export default function EditArticlePage() {
                 </>
               ) : (
                 <button
-                  onClick={saveArticle}
+                  onClick={handleSaveArticleClick}
                   disabled={saving}
                   className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
                 >
@@ -467,46 +577,23 @@ export default function EditArticlePage() {
               )}
 
               <button
-                onClick={deleteArticle}
+                onClick={() => setShowDeleteDialog(true)}
                 className="rounded-full border border-red-500/20 bg-red-500/[0.06] px-6 py-3 text-sm text-red-200/80 transition hover:bg-red-500/[0.12]"
               >
-                删除
+                移入回收站
               </button>
             </div>
           </div>
         </section>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <VisibilitySelector
-            visibility={visibility}
-            setVisibility={setVisibility}
-            options={[
-              {
-                key: "public",
-                icon: "🌍",
-                title: "公开发布",
-                desc: "所有居民都可以看到。",
-              },
-              {
-                key: "hidden",
-                icon: "🙈",
-                title: "隐藏文章",
-                desc: "不会主动出现在公开列表。",
-              },
-              {
-                key: "unlisted",
-                icon: "🔗",
-                title: "仅链接可见",
-                desc: "有链接的人才能进入。",
-              },
-              {
-                key: "private",
-                icon: "🔒",
-                title: "只给自己看",
-                desc: "只有你自己能看到。",
-              },
-            ]}
-          />
+          <div className="hidden lg:block">
+            <VisibilitySelector
+              visibility={visibility}
+              setVisibility={(value) => setVisibility(value as ArticleVisibility)}
+              options={visibilityOptions}
+            />
+          </div>
 
           <ArticleMetaFields
             tags={tags}
@@ -524,6 +611,34 @@ export default function EditArticlePage() {
           </div>
         </aside>
       </div>
+
+      <MobileVisibilityDialog
+        open={showVisibilityDialog}
+        visibility={visibility}
+        setVisibility={(value) => setVisibility(value as ArticleVisibility)}
+        options={visibilityOptions}
+        title={isDraft ? "这篇草稿要发布到哪里？" : "这篇文章要保存成什么可见性？"}
+        subtitle="选择可见性后，我就帮你把修改收好。"
+        confirmText={isDraft ? "确定，发布文章" : "确定，保存修改"}
+        cancelText="再看看"
+        onClose={() => {
+          setShowVisibilityDialog(false);
+          setPendingAction(null);
+        }}
+        onConfirm={confirmVisibilityAction}
+      />
+
+      <ConfirmDialog
+        open={showDeleteDialog}
+        title="移入回收站？"
+        description="这篇文章不会立刻永久删除，会先进入回收站。之后仍然可以恢复。"
+        confirmText="移入回收站"
+        cancelText="再想想"
+        danger
+        loading={deleting}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={deleteArticle}
+      />
     </main>
   );
 }

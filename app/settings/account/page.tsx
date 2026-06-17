@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import PasswordInput from "@/components/ui/PasswordInput";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function AccountSettingsPage() {
   const router = useRouter();
@@ -15,6 +16,11 @@ export default function AccountSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [message, setMessage] = useState("");
+
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   useEffect(() => {
     loadAccount();
@@ -34,50 +40,61 @@ export default function AccountSettingsPage() {
     setLoading(false);
   }
 
-  async function updatePassword() {
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
+
+  function updatePassword() {
     if (!email) {
-      alert("无法读取当前邮箱，请重新登录后再试。");
+      showMessage("无法读取当前邮箱，请重新登录后再试。");
       return;
     }
 
     if (!currentPassword.trim()) {
-      alert("请输入当前密码。");
+      showMessage("请输入当前密码。");
       return;
     }
 
     if (!newPassword.trim()) {
-      alert("请输入新密码。");
+      showMessage("请输入新密码。");
       return;
     }
 
     if (newPassword.length < 8) {
-      alert("新密码至少需要 8 个字符。");
+      showMessage("新密码至少需要 8 个字符。");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      alert("两次输入的新密码不一致。");
+      showMessage("两次输入的新密码不一致。");
       return;
     }
 
     if (currentPassword === newPassword) {
-      alert("新密码不能和当前密码一样。");
+      showMessage("新密码不能和当前密码一样。");
       return;
     }
 
-    const confirmed = confirm("确定要修改密码吗？");
-    if (!confirmed) return;
+    setShowPasswordDialog(true);
+  }
 
+  async function confirmUpdatePassword() {
+    setShowPasswordDialog(false);
     setSaving(true);
 
-    const { error: verifyError } = await supabase.auth.signInWithPassword({
-      email,
-      password: currentPassword,
-    });
+    const { error: verifyError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
 
     if (verifyError) {
       setSaving(false);
-      alert("当前密码不正确，请重新输入。");
+      showMessage("当前密码不正确，请重新输入。");
       return;
     }
 
@@ -87,7 +104,7 @@ export default function AccountSettingsPage() {
 
     if (error) {
       setSaving(false);
-      alert("修改密码失败：" + error.message);
+      showMessage(`修改密码失败：${error.message}`);
       return;
     }
 
@@ -108,19 +125,24 @@ export default function AccountSettingsPage() {
       ]);
     }
 
-    setSaving(false);
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
 
-    alert("密码已更新 🔐");
+    setSaving(false);
+
+    showMessage("密码已更新 🔐");
   }
 
-  async function signOut() {
-    const confirmed = confirm("确定要登出小时代吗？");
-    if (!confirmed) return;
+  function signOut() {
+    setShowLogoutDialog(true);
+  }
+
+  async function confirmSignOut() {
+    setShowLogoutDialog(false);
 
     await supabase.auth.signOut();
+
     router.push("/");
   }
 
@@ -217,6 +239,35 @@ export default function AccountSettingsPage() {
           登出
         </button>
       </section>
+
+      {message && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={showPasswordDialog}
+        title="修改密码？"
+        description="修改完成后，下次登录需要使用新密码。"
+        confirmText="确认修改"
+        cancelText="取消"
+        loading={saving}
+        onClose={() => setShowPasswordDialog(false)}
+        onConfirm={confirmUpdatePassword}
+      />
+
+      <ConfirmDialog
+        open={showLogoutDialog}
+        title="登出小时代？"
+        description="登出后，需要重新输入账号密码才能回来。"
+        confirmText="登出"
+        cancelText="取消"
+        danger
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={confirmSignOut}
+      />
     </div>
   );
 }
+

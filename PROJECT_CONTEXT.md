@@ -1,21 +1,20 @@
-# 小时代 PROJECT_CONTEXT v3.0
+# 小时代 PROJECT_CONTEXT v3.1
 
 更新时间：
 
-2026-06-14
+2026-06-15
 
 项目状态：
 
-Alpha 0.8
+Alpha 0.9 Hotfix
 
 正式域名：
 
 https://www.ourlittleage.com
 
-预计上线时间：
+Alpha 实际上线时间：
 
-2026-06-15
-05:20 AM（Malaysia Time）
+2026-06-15 05:20 AM（Malaysia Time）
 
 ---
 
@@ -54,7 +53,7 @@ https://www.ourlittleage.com
 
 # 当前开发阶段
 
-Alpha 0.8
+Alpha 0.9 Hotfix
 
 状态：
 
@@ -64,7 +63,19 @@ Alpha 0.8
 
 🟢 运营后台完成
 
-🟡 上线前最终打磨
+🟡 上线后优化中
+
+🚨 Hotfix 模式
+
+当前重点：
+
+* 修复 Alpha 上线后问题
+* 全站移动端适配
+* 替换原生 alert
+* 统一交互体验
+* 权限验证
+* SEO 检查
+* 性能优化
 
 ---
 
@@ -72,11 +83,11 @@ Alpha 0.8
 
 整体进度：
 
-92% ~ 95%
+95% ~ 97%
 
 当前阶段：
 
-不再是做功能。
+不再新增核心功能。
 
 而是：
 
@@ -85,7 +96,7 @@ Alpha 0.8
 * 修 Bug
 * 手机适配
 * 权限验证
-* 上线准备
+* 上线稳定性优化
 
 ---
 
@@ -110,6 +121,7 @@ Alpha 0.8
 * 举报
 * 成长
 * 徽章
+* 通知
 
 建立联系。
 
@@ -123,7 +135,7 @@ Alpha 0.8
 
 定位：
 
-居民进入小时代前的深夜入口
+居民进入小时代前的深夜入口。
 
 特点：
 
@@ -137,9 +149,8 @@ Alpha 0.8
 
 架构：
 
-app/page.tsx
-
-components/landing/LandingClient.tsx
+* app/page.tsx
+* components/landing/LandingClient.tsx
 
 状态：
 
@@ -177,7 +188,7 @@ components/landing/LandingClient.tsx
 
 定位：
 
-居民控制台
+居民控制台。
 
 已完成：
 
@@ -209,7 +220,7 @@ components/landing/LandingClient.tsx
 
 定位：
 
-整个世界的公共入口
+整个世界的公共入口。
 
 包含：
 
@@ -219,21 +230,11 @@ components/landing/LandingClient.tsx
 
 /space/diaries
 
----
-
 ## 热门日记
 
-根据：
+计算规则：
 
-likes × 3
-
-*
-
-comments × 2
-
-计算
-
----
+likes × 3 + comments × 2
 
 ## 最新文章
 
@@ -241,21 +242,11 @@ comments × 2
 
 /space/articles
 
----
-
 ## 热门文章
 
-根据：
+计算规则：
 
-likes × 3
-
-*
-
-comments × 2
-
-计算
-
----
+likes × 3 + comments × 2
 
 移动端：
 
@@ -321,7 +312,7 @@ Feed 切换模式
 
 定位：
 
-居民公开主页
+居民公开主页。
 
 已完成：
 
@@ -356,6 +347,104 @@ Feed 切换模式
 * 留下的光
 * 社区信任
 * 等级进度条
+
+隐私控制：
+
+* 显示等级
+* 显示留下的光
+* 显示社区信任
+* 显示徽章
+* 显示居住天数
+
+---
+
+# 编辑器系统 V2
+
+统一组件：
+
+* EditorPageHeader
+* EditorTextarea
+* MarkdownToolbar
+* MarkdownPreview
+* VisibilitySelector
+* MobileVisibilityDialog
+* DiaryEditorActions
+* DiarySideCards
+
+新增能力：
+
+* Markdown 图片上传
+* 光标插入文本
+* Ctrl + S 保存草稿
+* 移动端发布弹窗
+* 写作权限守卫
+
+核心文件：
+
+* lib/editor/writingGuard.ts
+* lib/editor/getCurrentWritingUser.ts
+
+支持状态：
+
+* active
+* warned
+* muted
+* banned
+
+当前行为：
+
+muted / banned 用户静默跳转：
+
+/home
+
+后续计划：
+
+恢复站内 Toast 提示。
+
+---
+
+# 草稿系统 V1
+
+路径：
+
+/drafts
+
+支持：
+
+* 日记草稿
+* 文章草稿
+
+功能：
+
+* 分类统计
+* 摘要预览
+* 最后编辑时间
+* 可见性展示
+
+编辑流：
+
+文章：
+
+/drafts → /articles/edit/[id]
+
+日记：
+
+/drafts → /diary/[id]/edit
+
+规则：
+
+* 保存草稿保持 draft
+* 发布后切换 published
+
+Navbar：
+
+桌面端头像菜单新增草稿入口。
+
+移动端暂不显示。
+
+状态：
+
+完成
 
 ---
 
@@ -421,6 +510,17 @@ Lv1 ~ Lv5
 
 -0.05 信任
 
+growth_logs 新增字段：
+
+actor_id
+
+用于记录成长触发者。
+
+已支持：
+
+* post_liked
+* comment_liked
+
 ---
 
 # 徽章系统 V1
@@ -458,9 +558,9 @@ PostComments.tsx
 * 评论喜欢
 * 评论成长奖励
 
-评论喜欢规则：
+规则：
 
-同一居民只能保留一个喜欢记录
+同一居民只能保留一个喜欢记录。
 
 状态：
 
@@ -492,7 +592,7 @@ PostComments.tsx
 
 成长闭环：
 
-已解决：
+举报成功：
 
 +0.05 信任
 
@@ -502,7 +602,7 @@ PostComments.tsx
 
 ---
 
-# 通知系统 V2
+# 通知系统 V2.5
 
 路径：
 
@@ -528,9 +628,18 @@ PostComments.tsx
 * 成长奖励
 * 管理员操作
 
-Navbar 红点同步：
+Navbar 红点同步事件：
 
 notifications-updated
+
+未来规划：
+
+通知聚合系统。
+
+示例：
+
+* A、B、C 喜欢了你的文章
+* A、B 回复了你的日记
 
 状态：
 
@@ -555,9 +664,8 @@ notifications-updated
 
 发布模式：
 
-now
-
-scheduled
+* now
+* scheduled
 
 字段：
 
@@ -604,13 +712,10 @@ Vercel Cron
 
 角色：
 
-owner
-
-admin
-
-moderator
-
-user
+* owner
+* admin
+* moderator
+* user
 
 已完成模块：
 
@@ -624,6 +729,54 @@ user
 * 反馈管理
 * 通知中心
 * 操作日志
+* 成长记录
+
+权限规则：
+
+moderator：
+
+* 不可修改角色
+* 不可操作 owner
+
+admin：
+
+* 不可创建 owner
+* 不可修改 owner
+
+owner：
+
+* 拥有最终权限
+
+---
+
+# 反馈系统 V1
+
+路径：
+
+/feedback
+/admin/feedback
+
+支持：
+
+* Bug 反馈
+* 功能建议
+* 使用体验
+* 投诉举报
+* 其他反馈
+
+状态流转：
+
+* pending
+* in_progress
+* resolved
+* closed
+
+支持：
+
+* 搜索
+* 状态筛选
+* 处理记录
+* Admin Log
 
 ---
 
@@ -637,6 +790,10 @@ user
 * PageTransition
 * PageRouterTransition
 * TranslatedText
+
+状态：
+
+持续完善中
 
 ---
 
@@ -654,6 +811,102 @@ PageRouterTransition
 状态：
 
 核心页面已接入
+
+长期目标：
+
+全站统一。
+
+---
+
+# 页面架构优化
+
+目标：
+
+从：
+
+useEffect + loading
+
+迁移到：
+
+Server Component + Client Component
+
+减少：
+
+* 黑屏
+* 闪屏
+* 重复请求
+
+已完成：
+
+* /space/articles
+
+进行中：
+
+* /home
+
+后续：
+
+* /notifications
+* /u/[username]
+
+---
+
+# UI 交互系统
+
+目标：
+
+全站移除：
+
+alert()
+
+统一替换：
+
+sonner
+
+安装：
+
+npm install sonner
+
+Root Layout 已接入：
+
+Toaster
+
+统一使用：
+
+* toast.success()
+* toast.error()
+* toast.info()
+
+状态：
+
+迁移中
+
+---
+
+# SEO 基础设施
+
+Root Layout 已完成：
+
+* metadata
+* metadataBase
+* OpenGraph
+* Twitter Card
+* canonical
+* themeColor
+
+OG 图片：
+
+/og-cover.png
+
+待检查：
+
+* sitemap.xml
+* robots.txt
+* Google Search Console
+
+状态：
+
+进行中
 
 ---
 
@@ -685,11 +938,28 @@ PageRouterTransition
 
 ---
 
+# Hotfix（2026-06-14 ～ 2026-06-15）
+
+已修复：
+
+* notifications RLS 导致互动通知失效
+* growth_logs profiles relationship 冲突
+* LikeButton 缺少 actor_id
+* 公告预约发布缺少 Cron
+* 部分用户注册后 profile 创建异常
+
+持续观察：
+
+* 重复点赞通知
+* 部分 Admin Log 漏记录
+
+---
+
 # 上线前 P0
 
 必须完成：
 
-* username 唯一性验证
+* username 唯一性强化
 * Route 残留检查
 * Navbar 检查
 * 权限测试
@@ -699,6 +969,7 @@ PageRouterTransition
 * Sitemap 检查
 * Robots 检查
 * Cron 生产环境验证
+* Sonner 全站替换完成
 
 ---
 
@@ -738,7 +1009,26 @@ PageRouterTransition
 
 ---
 
-# Alpha 0.9 候选功能
+4. 通知聚合系统
+
+目标：
+
+减少高频互动通知。
+
+---
+
+5. Server Component 重构
+
+优先页面：
+
+* /home
+* /space
+* /notifications
+* /u/[username]
+
+---
+
+# Alpha 1.0 候选功能
 
 上线后再做：
 

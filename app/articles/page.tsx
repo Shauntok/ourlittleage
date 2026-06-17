@@ -54,10 +54,19 @@ export default function ArticlesPage() {
   const [filter, setFilter] = useState<"all" | "published" | "draft">("all");
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetchArticles();
   }, []);
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4200);
+  }
 
   async function fetchArticles() {
     const {
@@ -76,12 +85,13 @@ export default function ArticlesPage() {
       )
       .eq("author_id", user.id)
       .eq("type", "article")
+      .is("deleted_at", null)
       .order("created_at", {
         ascending: false,
       });
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       setLoading(false);
       return;
     }
@@ -122,6 +132,12 @@ export default function ArticlesPage() {
     <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[580px] md:w-[580px]" />
+
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[999] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
 
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex flex-col justify-between gap-5 md:mb-20 md:flex-row md:items-end md:gap-8">
@@ -170,6 +186,7 @@ export default function ArticlesPage() {
             ].map((item) => (
               <button
                 key={item.key}
+                type="button"
                 onClick={() => setFilter(item.key as any)}
                 className={
                   filter === item.key
@@ -250,20 +267,7 @@ export default function ArticlesPage() {
               <Link
                 key={article.id}
                 href={`/articles/${article.slug}`}
-                className="
-                  group
-                  min-w-0
-                  overflow-hidden
-                  rounded-[2rem]
-                  border border-white/10
-                  bg-white/[0.035]
-                  backdrop-blur-2xl
-                  transition-all
-                  duration-500
-                  hover:-translate-y-1
-                  hover:border-white/20
-                  hover:bg-white/[0.055]
-                "
+                className="group min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
               >
                 {image && (
                   <div className="h-44 overflow-hidden border-b border-white/10 bg-white/[0.03] md:h-56">
@@ -286,31 +290,12 @@ export default function ArticlesPage() {
                     </span>
                   </div>
 
-                  <h2
-                    className="
-                      safe-text
-                      line-clamp-2
-                      text-xl
-                      font-light
-                      text-white/90
-                      md:text-2xl
-                    "
-                  >
+                  <h2 className="safe-text line-clamp-2 text-xl font-light text-white/90 md:text-2xl">
                     {article.title || "无标题文章"}
                   </h2>
 
                   {excerpt && (
-                    <p
-                      className="
-                        safe-pre
-                        mt-3
-                        line-clamp-3
-                        text-sm
-                        leading-7
-                        text-white/40
-                        md:mt-4
-                      "
-                    >
+                    <p className="safe-pre mt-3 line-clamp-3 text-sm leading-7 text-white/40 md:mt-4">
                       {excerpt}...
                     </p>
                   )}
@@ -325,16 +310,7 @@ export default function ArticlesPage() {
                         .map((tag) => (
                           <span
                             key={tag}
-                            className="
-                              safe-text
-                              max-w-full
-                              rounded-full
-                              bg-white/[0.05]
-                              px-3
-                              py-1
-                              text-xs
-                              text-white/35
-                            "
+                            className="safe-text max-w-full rounded-full bg-white/[0.05] px-3 py-1 text-xs text-white/35"
                           >
                             #{tag}
                           </span>

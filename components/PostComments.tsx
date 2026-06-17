@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { addUserGrowth } from "@/lib/community-growth";
 import ReportButton from "@/components/ReportButton";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { checkFirstCommentBadge } from "@/lib/badge-awards";
 
 type Props = {
@@ -42,12 +43,26 @@ export default function PostComments({ postId }: Props) {
   const [loading, setLoading] = useState(false);
   const [likeLoadingId, setLikeLoadingId] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
   const [currentUserId, setCurrentUserId] = useState("");
   const [postAuthorId, setPostAuthorId] = useState("");
+
+  const [message, setMessage] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchComments();
   }, [postId, sortMode]);
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
 
   async function fetchCurrentUser() {
     const {
@@ -161,7 +176,7 @@ export default function PostComments({ postId }: Props) {
       });
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       setFetching(false);
       return;
     }
@@ -204,20 +219,22 @@ export default function PostComments({ postId }: Props) {
   }
 
   async function submitComment() {
-    if (!content.trim()) {
-      alert("请输入评论内容。");
+    const finalContent = content.trim();
+
+    if (!finalContent) {
+      showMessage("写一点点回应吧，哪怕只是很短的一句。");
       return;
     }
 
-    if (content.trim().length < 2) {
-      alert("评论至少需要 2 个字。");
+    if (finalContent.length < 2) {
+      showMessage("留言至少需要 2 个字。");
       return;
     }
 
     const user = await fetchCurrentUser();
 
     if (!user) {
-      alert("请先登录。");
+      showMessage("先登录一下，再把留言留下来。");
       return;
     }
 
@@ -230,25 +247,23 @@ export default function PostComments({ postId }: Props) {
       .single();
 
     if (profileError) {
-      alert(profileError.message);
+      showMessage(profileError.message);
       setLoading(false);
       return;
     }
 
     if (profile?.status === "muted") {
-      alert("你目前已被禁言，无法发表评论。");
+      showMessage("你目前已被禁言，暂时不能留言。");
       setLoading(false);
       return;
     }
 
     if (profile?.status === "banned") {
-      alert("你的账号已被封禁。");
+      showMessage("你的账号已被封禁。");
       await supabase.auth.signOut();
       window.location.href = "/";
       return;
     }
-
-    const finalContent = content.trim();
 
     const { error } = await supabase.from("comments").insert([
       {
@@ -261,7 +276,7 @@ export default function PostComments({ postId }: Props) {
     setLoading(false);
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return;
     }
 
@@ -287,12 +302,12 @@ export default function PostComments({ postId }: Props) {
 
   async function toggleCommentLike(comment: CommentItem) {
     if (!currentUserId) {
-      alert("请先登录后再喜欢留言。");
+      showMessage("先登录一下，再把喜欢留下来。");
       return;
     }
 
     if (currentUserId === comment.author_id) {
-      alert("这束光已经属于你自己了。");
+      showMessage("这束光已经属于你自己了。");
       return;
     }
 
@@ -307,7 +322,7 @@ export default function PostComments({ postId }: Props) {
 
     if (existingError) {
       setLikeLoadingId(null);
-      alert(existingError.message);
+      showMessage(existingError.message);
       return;
     }
 
@@ -323,7 +338,7 @@ export default function PostComments({ postId }: Props) {
       setLikeLoadingId(null);
 
       if (error) {
-        alert(error.message);
+        showMessage(error.message);
         return;
       }
 
@@ -353,7 +368,7 @@ export default function PostComments({ postId }: Props) {
 
       if (error) {
         setLikeLoadingId(null);
-        alert(error.message);
+        showMessage(error.message);
         return;
       }
 
@@ -411,7 +426,7 @@ export default function PostComments({ postId }: Props) {
 
     if (error) {
       setLikeLoadingId(null);
-      alert(error.message);
+      showMessage(error.message);
       return;
     }
 
@@ -453,14 +468,22 @@ export default function PostComments({ postId }: Props) {
     setLikeLoadingId(null);
   }
 
-  async function deleteComment(id: string) {
-    const confirmed = confirm("确定删除这条留言吗？");
-    if (!confirmed) return;
+  function openDeleteCommentDialog(id: string) {
+    setDeleteTargetId(id);
+    setShowDeleteDialog(true);
+  }
+
+  async function deleteComment() {
+    if (!deleteTargetId) return;
+
+    setDeleting(true);
 
     const user = await fetchCurrentUser();
 
     if (!user) {
-      alert("请先登录。");
+      setDeleting(false);
+      setShowDeleteDialog(false);
+      showMessage("先登录一下，再删除留言。");
       return;
     }
 
@@ -470,14 +493,19 @@ export default function PostComments({ postId }: Props) {
         is_deleted: true,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", id)
+      .eq("id", deleteTargetId)
       .eq("author_id", user.id);
 
+    setDeleting(false);
+
     if (error) {
-      alert(error.message);
+      setShowDeleteDialog(false);
+      showMessage(error.message);
       return;
     }
 
+    setShowDeleteDialog(false);
+    setDeleteTargetId(null);
     fetchComments();
   }
 
@@ -494,6 +522,12 @@ export default function PostComments({ postId }: Props) {
           在这里留下温柔一点的回应。也许作者今晚刚好需要这一句话。
         </p>
       </div>
+
+      {message && (
+        <div className="mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          {message}
+        </div>
+      )}
 
       <div className="mt-6 overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl md:mt-8 md:rounded-[2rem]">
         <textarea
@@ -644,7 +678,7 @@ export default function PostComments({ postId }: Props) {
 
                     {currentUserId === comment.author_id && (
                       <button
-                        onClick={() => deleteComment(comment.id)}
+                        onClick={() => openDeleteCommentDialog(comment.id)}
                         className="rounded-full border border-red-500/20 bg-red-500/[0.05] px-5 py-2.5 text-sm text-red-200/55 transition hover:bg-red-500/[0.1] hover:text-red-200"
                       >
                         删除留言
@@ -657,6 +691,21 @@ export default function PostComments({ postId }: Props) {
           );
         })}
       </div>
+
+      <ConfirmDialog
+        open={showDeleteDialog}
+        title="删除这条留言？"
+        description="这条留言会从当前页面隐藏。之后如果需要，我们可以再做回收站或管理端恢复。"
+        confirmText="删除留言"
+        cancelText="再想想"
+        danger
+        loading={deleting}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setDeleteTargetId(null);
+        }}
+        onConfirm={deleteComment}
+      />
     </section>
   );
 }

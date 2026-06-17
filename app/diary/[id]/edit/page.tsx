@@ -1,13 +1,47 @@
 "use client";
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { useParams } from "next/navigation";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
+import VisibilitySelector from "@/components/editor/VisibilitySelector";
 import MarkdownToolbar from "@/components/editor/MarkdownToolbar";
 import EditorTextarea from "@/components/editor/EditorTextarea";
+import MobileVisibilityDialog from "@/components/editor/MobileVisibilityDialog";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { uploadEditorImage } from "@/components/editor/editorImageUpload";
+import { insertEditorText } from "@/components/editor/editorTextUtils";
 
 type DiaryVisibility = "private" | "public" | "hidden" | "unlisted";
+
+const MIN_DIARY_LENGTH = 11;
+
+const visibilityOptions = [
+  {
+    key: "private",
+    icon: "🔒",
+    title: "只给自己看",
+    desc: "这一天只放在自己的房间里。",
+  },
+  {
+    key: "public",
+    icon: "🌍",
+    title: "发布到日记广场",
+    desc: "让其他居民也能读见这一刻。",
+  },
+  {
+    key: "hidden",
+    icon: "🙈",
+    title: "隐藏日记",
+    desc: "不会出现在公开列表。",
+  },
+  {
+    key: "unlisted",
+    icon: "🔗",
+    title: "仅链接可见",
+    desc: "知道链接的人才能进入。",
+  },
+];
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -39,11 +73,13 @@ function getVisibilityLabel(visibility: DiaryVisibility) {
 
 export default function EditDiaryPage() {
   const params = useParams();
+  const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const id = String(params.id);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const [diary, setDiary] = useState<any>(null);
@@ -51,9 +87,16 @@ export default function EditDiaryPage() {
   const [visibility, setVisibility] = useState<DiaryVisibility>("private");
 
   const [originalSnapshot, setOriginalSnapshot] = useState("");
+  const [editorMessage, setEditorMessage] = useState("");
+  const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    "saveDiary" | "publishDraft" | null
+  >(null);
 
   const cleanContent = content.trim();
   const isDraft = diary?.status === "draft";
+  const diaryDate = diary?.published_at || diary?.created_at;
 
   useEffect(() => {
     async function fetchDiary() {
@@ -62,7 +105,7 @@ export default function EditDiaryPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        window.location.href = "/home";
+        router.push("/home");
         return;
       }
 
@@ -72,10 +115,11 @@ export default function EditDiaryPage() {
         .eq("id", id)
         .eq("author_id", user.id)
         .eq("type", "diary")
+        .is("deleted_at", null)
         .single();
 
       if (error || !data) {
-        window.location.href = "/diary";
+        router.push("/diary");
         return;
       }
 
@@ -98,7 +142,7 @@ export default function EditDiaryPage() {
     }
 
     fetchDiary();
-  }, [id]);
+  }, [id, router]);
 
   function makeSnapshot(nextStatus = diary?.status || "draft") {
     return JSON.stringify({
@@ -112,28 +156,44 @@ export default function EditDiaryPage() {
   const contentChanged = content !== (diary?.content || "");
 
   function goToDiaryDetail() {
-    window.location.href = `/diary/${id}`;
+    router.push(`/diary/${id}`);
   }
 
   function goToDrafts() {
-    window.location.href = "/drafts";
+    router.push("/drafts");
   }
 
   function insertTextAtCursor(beforeText: string, afterText = "") {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
+    insertEditorText({
+      textareaRef,
+      beforeText,
+      afterText,
+      setContent,
+    });
+  }
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.slice(start, end);
-    const insertText = beforeText + selectedText + afterText;
+  function validateDraft() {
+    setEditorMessage("");
 
-    textarea.setRangeText(insertText, start, end, "end");
-    setContent(textarea.value);
+    if (!cleanContent) {
+      setEditorMessage("写一点点就好，我帮你先收进草稿箱。");
+      return false;
+    }
 
-    const newPosition = start + insertText.length;
-    textarea.focus();
-    textarea.setSelectionRange(newPosition, newPosition);
+    return true;
+  }
+
+  function validatePublish() {
+    setEditorMessage("");
+
+    if (cleanContent.length < MIN_DIARY_LENGTH) {
+      setEditorMessage(
+        `再写几句话吧，至少留下 ${MIN_DIARY_LENGTH} 个字，让今天更完整一些。`
+      );
+      return false;
+    }
+
+    return true;
   }
 
   async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
@@ -142,43 +202,29 @@ export default function EditDiaryPage() {
 
     setUploading(true);
 
-    const cleanName = file.name.replace(/\s+/g, "-");
-    const fileName = `${Date.now()}-${cleanName}`;
-
-    const { error } = await supabase.storage
-      .from("images")
-      .upload(fileName, file);
-
-    setUploading(false);
-
-    if (error) {
-      alert(error.message);
-      return;
+    try {
+      const publicUrl = await uploadEditorImage(file);
+      insertTextAtCursor(`\n\n![](${publicUrl})\n\n`);
+    } catch (error: any) {
+      setEditorMessage(error.message);
+    } finally {
+      setUploading(false);
     }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("images").getPublicUrl(fileName);
-
-    insertTextAtCursor(`\n\n![](${publicUrl})\n\n`);
   }
 
   async function saveDraft() {
-    if (!cleanContent) {
-      alert("先写一点点，再暂时收起来吧。");
-      return;
-    }
+    if (!validateDraft()) return;
 
     setSaving(true);
 
-    const diaryDate = diary?.published_at || diary?.created_at;
-    const fallbackTitle = `日记 · ${formatDate(diaryDate)}`;
+    const fallbackDate = diaryDate || new Date().toISOString();
+    const fallbackTitle = diary?.title || `日记 · ${formatDate(fallbackDate)}`;
     const fallbackSlug = diary?.slug || `diary-${diary?.id || Date.now()}`;
 
     const { error } = await supabase
       .from("posts")
       .update({
-        title: diary?.title || fallbackTitle,
+        title: fallbackTitle,
         slug: fallbackSlug,
         content: cleanContent,
         visibility,
@@ -190,7 +236,7 @@ export default function EditDiaryPage() {
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
       return;
     }
 
@@ -198,18 +244,13 @@ export default function EditDiaryPage() {
   }
 
   async function publishDraft() {
-    if (cleanContent.length < 11) {
-      alert("至少留下 11 个字吧。");
-      return;
-    }
-
-    const confirmed = confirm("确定留下今天吗？发布后会成为正式日记。");
-    if (!confirmed) return;
+    if (!validatePublish()) return;
 
     setSaving(true);
 
     const now = new Date();
-    const fallbackTitle = diary?.title || `日记 · ${formatDate(now.toISOString())}`;
+    const fallbackTitle =
+      diary?.title || `日记 · ${formatDate(now.toISOString())}`;
     const fallbackSlug = diary?.slug || `diary-${diary?.id || Date.now()}`;
 
     const { error } = await supabase
@@ -228,7 +269,7 @@ export default function EditDiaryPage() {
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
       return;
     }
 
@@ -236,10 +277,7 @@ export default function EditDiaryPage() {
   }
 
   async function saveDiary() {
-    if (!cleanContent) {
-      alert("日记内容不能为空。");
-      return;
-    }
+    if (!validateDraft()) return;
 
     if (!hasChanged) {
       goToDiaryDetail();
@@ -248,14 +286,14 @@ export default function EditDiaryPage() {
 
     setSaving(true);
 
-    const diaryDate = diary?.published_at || diary?.created_at;
-    const fallbackTitle = `日记 · ${formatDate(diaryDate)}`;
+    const fallbackDate = diaryDate || new Date().toISOString();
+    const fallbackTitle = diary?.title || `日记 · ${formatDate(fallbackDate)}`;
     const fallbackSlug = diary?.slug || `diary-${diary?.id || Date.now()}`;
 
     const { error } = await supabase
       .from("posts")
       .update({
-        title: diary?.title || fallbackTitle,
+        title: fallbackTitle,
         slug: fallbackSlug,
         content: cleanContent,
         visibility,
@@ -269,7 +307,7 @@ export default function EditDiaryPage() {
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
       return;
     }
 
@@ -277,28 +315,38 @@ export default function EditDiaryPage() {
   }
 
   async function deleteDiary() {
-    const confirmed = confirm(
-      isDraft
-        ? "确定删除这篇日记草稿吗？"
-        : "确定要放下这一天吗？删除后，这篇日记会被永久移除。"
-    );
+    setDeleting(true);
 
-    if (!confirmed) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    const { error } = await supabase.from("posts").delete().eq("id", id);
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id || null,
+        delete_reason: "author_soft_delete",
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    setDeleting(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
+      setShowDeleteDialog(false);
       return;
     }
 
-    window.location.href = isDraft ? "/drafts" : "/diary";
+    setShowDeleteDialog(false);
+    router.push(isDraft ? "/drafts" : "/diary");
   }
 
   function leaveWithoutSaving() {
     if (hasChanged) {
-      const confirmed = confirm("这一页还有没存好的痕迹，确定先离开吗？");
-      if (!confirmed) return;
+      setEditorMessage("这一页还有没保存的痕迹。先保存一下，再离开也不迟。");
+      return;
     }
 
     if (isDraft) {
@@ -307,6 +355,39 @@ export default function EditDiaryPage() {
     }
 
     goToDiaryDetail();
+  }
+
+  function handleSaveDiaryClick() {
+    if (window.innerWidth < 1024) {
+      setPendingAction("saveDiary");
+      setShowVisibilityDialog(true);
+      return;
+    }
+
+    saveDiary();
+  }
+
+  function handlePublishDraftClick() {
+    if (window.innerWidth < 1024) {
+      setPendingAction("publishDraft");
+      setShowVisibilityDialog(true);
+      return;
+    }
+
+    publishDraft();
+  }
+
+  function confirmVisibilityAction() {
+    setShowVisibilityDialog(false);
+
+    if (pendingAction === "saveDiary") {
+      saveDiary();
+      return;
+    }
+
+    if (pendingAction === "publishDraft") {
+      publishDraft();
+    }
   }
 
   if (loading) {
@@ -318,8 +399,6 @@ export default function EditDiaryPage() {
       </main>
     );
   }
-
-  const diaryDate = diary?.published_at || diary?.created_at;
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
@@ -397,6 +476,12 @@ export default function EditDiaryPage() {
             variant="diary"
           />
 
+          {editorMessage && (
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              {editorMessage}
+            </div>
+          )}
+
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-white/35">
               {cleanContent.length} 字 ·{" "}
@@ -425,7 +510,7 @@ export default function EditDiaryPage() {
 
                   <button
                     type="button"
-                    onClick={publishDraft}
+                    onClick={handlePublishDraftClick}
                     disabled={saving}
                     className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
                   >
@@ -435,7 +520,7 @@ export default function EditDiaryPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={saveDiary}
+                  onClick={handleSaveDiaryClick}
                   disabled={saving}
                   className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-40"
                 >
@@ -449,67 +534,22 @@ export default function EditDiaryPage() {
 
               <button
                 type="button"
-                onClick={deleteDiary}
+                onClick={() => setShowDeleteDialog(true)}
                 className="rounded-full border border-red-500/20 bg-red-500/[0.06] px-6 py-3 text-sm text-red-200/70 transition hover:bg-red-500/[0.12] hover:text-red-100"
               >
-                {isDraft ? "删除草稿" : "删除回忆"}
+                {isDraft ? "移入回收站" : "放进回收站"}
               </button>
             </div>
           </div>
         </section>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl">
-            <p className="text-xs tracking-[0.3em] text-white/30">可见性</p>
-
-            <div className="mt-5 grid gap-3">
-              {[
-                {
-                  key: "private",
-                  icon: "🔒",
-                  title: "只给自己看",
-                  desc: "这一天只放在自己的房间里。",
-                },
-                {
-                  key: "public",
-                  icon: "🌍",
-                  title: "发布到日记广场",
-                  desc: "让其他居民也能读见这一刻。",
-                },
-                {
-                  key: "hidden",
-                  icon: "🙈",
-                  title: "隐藏日记",
-                  desc: "不会出现在公开列表。",
-                },
-                {
-                  key: "unlisted",
-                  icon: "🔗",
-                  title: "仅链接可见",
-                  desc: "知道链接的人才能进入。",
-                },
-              ].map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setVisibility(item.key as DiaryVisibility)}
-                  className={`rounded-2xl border px-5 py-4 text-left transition ${
-                    visibility === item.key
-                      ? "border-white/25 bg-white/[0.09] text-white"
-                      : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:text-white/70"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span>{item.icon}</span>
-                    <span className="text-sm font-medium">{item.title}</span>
-                  </div>
-
-                  <p className="mt-1.5 text-[11px] leading-5 text-white/30">
-                    {item.desc}
-                  </p>
-                </button>
-              ))}
-            </div>
+          <div className="hidden lg:block">
+            <VisibilitySelector
+              visibility={visibility}
+              setVisibility={(value) => setVisibility(value as DiaryVisibility)}
+              options={visibilityOptions}
+            />
           </div>
 
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 text-sm leading-7 text-white/40 backdrop-blur-2xl">
@@ -559,6 +599,38 @@ export default function EditDiaryPage() {
           </div>
         </aside>
       </div>
+
+      <MobileVisibilityDialog
+        open={showVisibilityDialog}
+        visibility={visibility}
+        setVisibility={(value) => setVisibility(value as DiaryVisibility)}
+        options={visibilityOptions}
+        title={isDraft ? "这篇草稿要放在哪里？" : "这篇日记要保存成什么可见性？"}
+        subtitle="选择可见性后，我就帮你把这一页收好。"
+        confirmText={isDraft ? "确定，留下今天" : "确定，保存修改"}
+        cancelText="再看看"
+        onClose={() => {
+          setShowVisibilityDialog(false);
+          setPendingAction(null);
+        }}
+        onConfirm={confirmVisibilityAction}
+      />
+
+      <ConfirmDialog
+        open={showDeleteDialog}
+        title="放进回收站？"
+        description={
+          isDraft
+            ? "这篇日记草稿不会立刻永久删除，会先进入回收站。之后仍然可以恢复。"
+            : "这一天不会立刻永久消失，会先进入回收站。之后仍然可以恢复。"
+        }
+        confirmText={isDraft ? "移入回收站" : "放进回收站"}
+        cancelText="再想想"
+        danger
+        loading={deleting}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={deleteDiary}
+      />
     </main>
   );
 }

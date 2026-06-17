@@ -1,9 +1,11 @@
+
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type AdminLink = {
   href: string;
@@ -14,9 +16,14 @@ type AdminLink = {
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [pendingHref, setPendingHref] = useState("");
+
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+
   const [counts, setCounts] = useState({
     reports: 0,
     feedbacks: 0,
@@ -73,9 +80,24 @@ export default function AdminSidebar() {
 
   const communityLinks: AdminLink[] = [
     { href: "/admin/users", label: "居民管理", icon: "👥" },
-    { href: "/admin/comments", label: "评论管理", icon: "💬", badge: counts.comments },
-    { href: "/admin/reports", label: "举报中心", icon: "🚩", badge: counts.reports },
-    { href: "/admin/feedback", label: "反馈中心", icon: "💌", badge: counts.feedbacks },
+    {
+      href: "/admin/comments",
+      label: "评论管理",
+      icon: "💬",
+      badge: counts.comments,
+    },
+    {
+      href: "/admin/reports",
+      label: "举报中心",
+      icon: "🚩",
+      badge: counts.reports,
+    },
+    {
+      href: "/admin/feedback",
+      label: "反馈中心",
+      icon: "💌",
+      badge: counts.feedbacks,
+    },
   ];
 
   const contentLinks: AdminLink[] = [
@@ -104,20 +126,32 @@ export default function AdminSidebar() {
     currentRole === "admin" ||
     currentRole === "moderator";
 
-  function handleNavigate(e: React.MouseEvent<HTMLAnchorElement>) {
+  function handleNavigate(
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) {
     if (!(window as any).adminHasUnsavedChanges) {
       setMobileOpen(false);
       return;
     }
 
-    const confirmed = confirm("你有未保存修改，确定要离开吗？");
+    e.preventDefault();
+    setPendingHref(href);
+    setShowLeaveDialog(true);
+  }
 
-    if (!confirmed) {
-      e.preventDefault();
+  function confirmLeave() {
+    if (!pendingHref) {
+      setShowLeaveDialog(false);
       return;
     }
 
+    (window as any).adminHasUnsavedChanges = false;
+
+    setShowLeaveDialog(false);
     setMobileOpen(false);
+
+    router.push(pendingHref);
   }
 
   function isActiveLink(href: string) {
@@ -149,7 +183,7 @@ export default function AdminSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={handleNavigate}
+                onClick={(e) => handleNavigate(e, item.href)}
                 className={
                   active
                     ? "group flex items-center gap-3 rounded-2xl bg-white px-2.5 py-2 font-bold text-black transition"
@@ -166,7 +200,7 @@ export default function AdminSidebar() {
                   {item.icon}
                 </span>
 
-                <span className="font-medium text-[13px]">{item.label}</span>
+                <span className="text-[13px] font-medium">{item.label}</span>
                 {renderBadge(item.badge)}
               </Link>
             );
@@ -238,6 +272,17 @@ export default function AdminSidebar() {
           </nav>
         </div>
       </aside>
+
+      <ConfirmDialog
+        open={showLeaveDialog}
+        title="离开这个页面？"
+        description="你还有未保存的修改。离开后，这些修改可能不会被保存。"
+        confirmText="离开"
+        cancelText="继续编辑"
+        danger
+        onClose={() => setShowLeaveDialog(false)}
+        onConfirm={confirmLeave}
+      />
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function AdminBadgesPage() {
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -13,6 +14,21 @@ export default function AdminBadgesPage() {
 
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    title: string;
+    description: string;
+    danger?: boolean;
+    action: (() => Promise<void>) | null;
+  }>({
+    title: "",
+    description: "",
+    danger: false,
+    action: null,
+  });
 
   const [badgeName, setBadgeName] = useState("");
   const [badgeColor, setBadgeColor] = useState("violet");
@@ -21,6 +37,32 @@ export default function AdminBadgesPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
+
+  function openConfirm(config: {
+    title: string;
+    description: string;
+    danger?: boolean;
+    action: () => Promise<void>;
+  }) {
+    setConfirmConfig(config);
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirm() {
+    if (!confirmConfig.action) return;
+
+    setConfirmOpen(false);
+
+    await confirmConfig.action();
+  }
 
   async function fetchData() {
     const { data: profilesData } = await supabase
@@ -97,7 +139,7 @@ export default function AdminBadgesPage() {
     const cleanDescription = badgeDescription.trim();
 
     if (!cleanName) {
-      alert("请输入徽章名称。");
+      showMessage("请输入徽章名称。");
       return;
     }
 
@@ -114,7 +156,7 @@ export default function AdminBadgesPage() {
       .single();
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return;
     }
 
@@ -125,41 +167,52 @@ export default function AdminBadgesPage() {
     setBadgeColor("violet");
 
     fetchData();
-    alert("徽章已创建 🎖️");
+    showMessage("徽章已创建 🎖️");
   }
 
-  async function deleteBadge(badgeId: string) {
-    const confirmed = confirm("确定删除这个徽章吗？已发给居民的对应记录也可能需要一起清理。");
-    if (!confirmed) return;
+  function deleteBadge(badgeId: string) {
+    openConfirm({
+      title: "删除徽章？",
+      description: "已发放给居民的对应记录也会一起清理。",
+      danger: true,
 
-    await supabase
-      .from("user_badges")
-      .delete()
-      .eq("badge_id", badgeId);
+      action: async () => {
+        await supabase
+          .from("user_badges")
+          .delete()
+          .eq("badge_id", badgeId);
 
-    const { error } = await supabase
-      .from("badges")
-      .delete()
-      .eq("id", badgeId);
+        const { error } = await supabase
+          .from("badges")
+          .delete()
+          .eq("id", badgeId);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+        if (error) {
+          showMessage(error.message);
+          return;
+        }
 
-    await writeLog("delete_badge", "badge", badgeId, "删除徽章");
+        await writeLog(
+          "delete_badge",
+          "badge",
+          badgeId,
+          "删除徽章"
+        );
 
-    if (selectedUserId) {
-      fetchUserBadges(selectedUserId);
-    }
+        if (selectedUserId) {
+          fetchUserBadges(selectedUserId);
+        }
 
-    fetchData();
-    alert("徽章已删除");
+        fetchData();
+
+        showMessage("徽章已删除");
+      },
+    });
   }
 
   async function giveBadge() {
     if (!selectedUserId || !selectedBadgeId) {
-      alert("请选择居民和徽章。");
+      showMessage("请选择居民和徽章。");
       return;
     }
 
@@ -177,7 +230,7 @@ export default function AdminBadgesPage() {
       .maybeSingle();
 
     if (existingBadge) {
-      alert("这个居民已经拥有这个徽章了。");
+      showMessage("这个居民已经拥有这个徽章了。");
       setLoading(false);
       return;
     }
@@ -197,7 +250,7 @@ export default function AdminBadgesPage() {
     setLoading(false);
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return;
     }
 
@@ -223,36 +276,41 @@ export default function AdminBadgesPage() {
       },
     ]);
 
-    alert("徽章已颁发 🎖️");
+    showMessage("徽章已颁发 🎖️");
     fetchUserBadges(selectedUserId);
   }
 
-  async function removeBadge(userBadgeId: string) {
-    const confirmed = confirm("确定移除这个徽章吗？");
-    if (!confirmed) return;
+  function removeBadge(userBadgeId: string) {
+    openConfirm({
+      title: "移除徽章？",
+      description: "移除后，该居民将失去这个徽章。",
+      danger: true,
 
-    const { error } = await supabase
-      .from("user_badges")
-      .delete()
-      .eq("id", userBadgeId);
+      action: async () => {
+        const { error } = await supabase
+          .from("user_badges")
+          .delete()
+          .eq("id", userBadgeId);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+        if (error) {
+          showMessage(error.message);
+          return;
+        }
 
-    await writeLog(
-      "remove_badge",
-      "user",
-      selectedUserId,
-      `移除 user_badge ID: ${userBadgeId}`
-    );
+        await writeLog(
+          "remove_badge",
+          "user",
+          selectedUserId,
+          `移除 user_badge ID: ${userBadgeId}`
+        );
 
-    setUserBadges((current) =>
-      current.filter((item) => item.id !== userBadgeId)
-    );
+        setUserBadges((current) =>
+          current.filter((item) => item.id !== userBadgeId)
+        );
 
-    alert("徽章已移除");
+        showMessage("徽章已移除");
+      },
+    });
   }
 
   function getBadgeStyle(color: string) {
@@ -447,6 +505,24 @@ export default function AdminBadgesPage() {
           </div>
         )}
       </section>
+
+        {message && (
+          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+            {message}
+          </div>
+        )}
+
+        <ConfirmDialog
+          open={confirmOpen}
+          title={confirmConfig.title}
+          description={confirmConfig.description}
+          confirmText="确认"
+          cancelText="取消"
+          danger={confirmConfig.danger}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={handleConfirm}
+        />
+
     </div>
   );
 }

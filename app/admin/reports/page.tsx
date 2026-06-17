@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { addUserGrowth } from "@/lib/community-growth";
 import ReportFilters from "@/components/admin/reports/ReportFilters";
 import ReportCard from "@/components/admin/reports/ReportCard";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { fetchAdminReportsData } from "@/components/admin/reports/reportData";
 
 import type {
@@ -19,21 +19,75 @@ export default function AdminReportsPage() {
   const [targetReportCountMap, setTargetReportCountMap] = useState<
     Record<string, number>
   >({});
+
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("active");
   const [sortMode, setSortMode] = useState<"newest" | "oldest">("newest");
   const [currentRole, setCurrentRole] = useState("user");
+
+  const [message, setMessage] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    title: string;
+    description: string;
+    confirmText: string;
+    danger?: boolean;
+    action: (() => Promise<void>) | null;
+  }>({
+    title: "",
+    description: "",
+    confirmText: "确认",
+    danger: false,
+    action: null,
+  });
 
   useEffect(() => {
     fetchReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortMode]);
 
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
+
+  function openConfirm(config: {
+    title: string;
+    description: string;
+    confirmText?: string;
+    danger?: boolean;
+    action: () => Promise<void>;
+  }) {
+    setConfirmConfig({
+      title: config.title,
+      description: config.description,
+      confirmText: config.confirmText || "确认",
+      danger: config.danger || false,
+      action: config.action,
+    });
+
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirm() {
+    if (!confirmConfig.action) return;
+
+    setConfirmLoading(true);
+    await confirmConfig.action();
+    setConfirmLoading(false);
+    setConfirmOpen(false);
+  }
+
   function canManageTarget(target?: TargetInfo) {
     if (!target) return false;
 
     if (target.authorRole === "owner" && currentRole !== "owner") {
-      alert("只有 owner 可以处理 owner 相关目标。");
+      showMessage("只有 owner 可以处理 owner 相关目标。");
       return false;
     }
 
@@ -68,7 +122,7 @@ export default function AdminReportsPage() {
     ]);
 
     if (error) {
-      alert("写入操作日志失败：" + error.message);
+      showMessage("写入操作日志失败：" + error.message);
     }
   }
 
@@ -83,7 +137,7 @@ export default function AdminReportsPage() {
       setTargetReportCountMap(result.targetReportCountMap);
       setCurrentRole(result.currentRole);
     } catch (error: any) {
-      alert("读取举报失败：" + error.message);
+      showMessage("读取举报失败：" + error.message);
     }
 
     setLoading(false);
@@ -93,14 +147,14 @@ export default function AdminReportsPage() {
     const target = targetMap[reportId];
 
     if (target?.authorRole === "owner" && currentRole !== "owner") {
-      alert("只有 owner 可以处理 owner 相关举报。");
+      showMessage("只有 owner 可以处理 owner 相关举报。");
       return;
     }
 
     const currentReport = reports.find((item) => item.id === reportId);
 
     if (!currentReport) {
-      alert("找不到这条举报。");
+      showMessage("找不到这条举报。");
       return;
     }
 
@@ -108,7 +162,7 @@ export default function AdminReportsPage() {
       currentReport.status === "resolved" ||
       currentReport.status === "rejected"
     ) {
-      alert("这条举报已经结案，不能重复处理。");
+      showMessage("这条举报已经结案，不能重复处理。");
       return;
     }
 
@@ -134,7 +188,7 @@ export default function AdminReportsPage() {
       .eq("id", reportId);
 
     if (error) {
-      alert("更新举报状态失败：" + error.message);
+      showMessage("更新举报状态失败：" + error.message);
       return;
     }
 
@@ -180,30 +234,35 @@ export default function AdminReportsPage() {
 
     if (!canManageTarget(target)) return;
 
-    const confirmed = confirm("确定隐藏这个内容吗？");
-    if (!confirmed) return;
+    openConfirm({
+      title: "隐藏这个内容？",
+      description: "隐藏后，普通居民将无法继续看到这篇内容。这条举报也会被标记为已解决。",
+      confirmText: "隐藏内容",
+      danger: true,
+      action: async () => {
+        const { error } = await supabase
+          .from("posts")
+          .update({
+            visibility: "hidden",
+            edited_at: new Date().toISOString(),
+          })
+          .eq("id", postId);
 
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        visibility: "hidden",
-        edited_at: new Date().toISOString(),
-      })
-      .eq("id", postId);
+        if (error) {
+          showMessage("隐藏内容失败：" + error.message);
+          return;
+        }
 
-    if (error) {
-      alert("隐藏内容失败：" + error.message);
-      return;
-    }
+        await writeLog(
+          "hide_reported_post",
+          "post",
+          postId,
+          `从举报 ${reportId} 隐藏内容`
+        );
 
-    await writeLog(
-      "hide_reported_post",
-      "post",
-      postId,
-      `从举报 ${reportId} 隐藏内容`
-    );
-
-    await updateStatus(reportId, "resolved");
+        await updateStatus(reportId, "resolved");
+      },
+    });
   }
 
   async function hideComment(commentId: string, reportId: string) {
@@ -211,30 +270,35 @@ export default function AdminReportsPage() {
 
     if (!canManageTarget(target)) return;
 
-    const confirmed = confirm("确定隐藏这条评论吗？");
-    if (!confirmed) return;
+    openConfirm({
+      title: "隐藏这条评论？",
+      description: "隐藏后，普通居民将无法继续看到这条评论。这条举报也会被标记为已解决。",
+      confirmText: "隐藏评论",
+      danger: true,
+      action: async () => {
+        const { error } = await supabase
+          .from("comments")
+          .update({
+            is_hidden: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", commentId);
 
-    const { error } = await supabase
-      .from("comments")
-      .update({
-        is_hidden: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", commentId);
+        if (error) {
+          showMessage("隐藏评论失败：" + error.message);
+          return;
+        }
 
-    if (error) {
-      alert("隐藏评论失败：" + error.message);
-      return;
-    }
+        await writeLog(
+          "hide_reported_comment",
+          "comment",
+          commentId,
+          `从举报 ${reportId} 隐藏评论`
+        );
 
-    await writeLog(
-      "hide_reported_comment",
-      "comment",
-      commentId,
-      `从举报 ${reportId} 隐藏评论`
-    );
-
-    await updateStatus(reportId, "resolved");
+        await updateStatus(reportId, "resolved");
+      },
+    });
   }
 
   async function updateUserStatus(
@@ -247,67 +311,78 @@ export default function AdminReportsPage() {
     if (!canManageTarget(target)) return;
 
     if (target?.authorRole === "owner") {
-      alert("owner 不能被警告、禁言或封禁。");
+      showMessage("owner 不能被警告、禁言或封禁。");
       return;
     }
 
-    const confirmed = confirm(`确定把这个用户设为 ${status} 吗？`);
-    if (!confirmed) return;
+    const statusText = {
+      warned: "警告",
+      muted: "禁言",
+      banned: "封禁",
+    };
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
+    openConfirm({
+      title: `${statusText[status]}这个用户？`,
+      description: `确定要把这个用户设为「${statusText[status]}」吗？这条举报也会被标记为已解决。`,
+      confirmText: statusText[status],
+      danger: status !== "warned",
+      action: async () => {
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", userId);
 
-    if (error) {
-      alert("修改用户状态失败：" + error.message);
-      return;
-    }
+        if (error) {
+          showMessage("修改用户状态失败：" + error.message);
+          return;
+        }
 
-    await writeLog(
-      "update_reported_user_status",
-      "user",
-      userId,
-      `从举报 ${reportId} 修改用户状态为 ${status}`
-    );
+        await writeLog(
+          "update_reported_user_status",
+          "user",
+          userId,
+          `从举报 ${reportId} 修改用户状态为 ${status}`
+        );
 
-    await supabase.from("notifications").insert([
-      {
-        user_id: userId,
-        title:
-          status === "warned"
-            ? "⚠️ 社区提醒"
-            : status === "muted"
-            ? "🔇 你已被暂时禁言"
-            : "🚫 账号已被封禁",
-        content:
-          status === "warned"
-            ? "你的内容或行为被管理员提醒，请注意社区秩序。"
-            : status === "muted"
-            ? "你目前暂时无法发表评论，请等待管理层进一步处理。"
-            : "由于违反社区规范，你的账号已被封禁。",
-        type: "system",
+        await supabase.from("notifications").insert([
+          {
+            user_id: userId,
+            title:
+              status === "warned"
+                ? "⚠️ 社区提醒"
+                : status === "muted"
+                ? "🔇 你已被暂时禁言"
+                : "🚫 账号已被封禁",
+            content:
+              status === "warned"
+                ? "你的内容或行为被管理员提醒，请注意社区秩序。"
+                : status === "muted"
+                ? "你目前暂时无法发表评论，请等待管理层进一步处理。"
+                : "由于违反社区规范，你的账号已被封禁。",
+            type: "system",
+          },
+        ]);
+
+        window.dispatchEvent(new Event("notifications-updated"));
+
+        await updateStatus(reportId, "resolved");
       },
-    ]);
-
-    window.dispatchEvent(new Event("notifications-updated"));
-
-    await updateStatus(reportId, "resolved");
+    });
   }
 
   async function markMaliciousReport(reportId: string) {
     if (isOwnerTarget(reportId) && currentRole !== "owner") {
-      alert("只有 owner 可以处理 owner 相关举报。");
+      showMessage("只有 owner 可以处理 owner 相关举报。");
       return;
     }
 
     const currentReport = reports.find((item) => item.id === reportId);
 
     if (!currentReport) {
-      alert("找不到这条举报。");
+      showMessage("找不到这条举报。");
       return;
     }
 
@@ -315,21 +390,21 @@ export default function AdminReportsPage() {
       currentReport.status === "resolved" ||
       currentReport.status === "rejected"
     ) {
-      alert("这条举报已经结案，不能重复处理。");
+      showMessage("这条举报已经结案，不能重复处理。");
       return;
     }
 
-    const confirmed = confirm(
-      "确定标记为恶意举报吗？这会扣除举报人的社区信任。"
-    );
+    openConfirm({
+      title: "标记为恶意举报？",
+      description: "这会扣除举报人的社区信任，并把这条举报标记为已驳回。",
+      confirmText: "标记恶意",
+      danger: true,
+      action: async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-    if (!confirmed) return;
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const now = new Date().toISOString();
+        const now = new Date().toISOString();
 
         const { error } = await supabase
           .from("reports")
@@ -342,57 +417,44 @@ export default function AdminReportsPage() {
           })
           .eq("id", reportId);
 
-          if (error) {
-            alert("标记恶意举报失败：" + error.message);
-            return;
-          }
+        if (error) {
+          showMessage("标记恶意举报失败：" + error.message);
+          return;
+        }
 
-    setReports((current) =>
-      current.map((report) =>
-        report.id === reportId
-          ? {
-              ...report,
-              status: "rejected",
-              is_malicious: true,
-              report_rewarded: true,
-              handled_by: user?.id,
-              handled_at: now,
-            }
-          : report
-      )
-    );
+        setReports((current) =>
+          current.map((report) =>
+            report.id === reportId
+              ? {
+                  ...report,
+                  status: "rejected",
+                  is_malicious: true,
+                  report_rewarded: true,
+                  handled_by: user?.id,
+                  handled_at: now,
+                }
+              : report
+          )
+        );
 
-    if (!currentReport.report_rewarded && currentReport.reporter_id) {
-      await addUserGrowth({
-        userId: currentReport.reporter_id,
-        trust: -0.05,
-        reason: "malicious_report",
-      });
-    }
+        if (!currentReport.report_rewarded && currentReport.reporter_id) {
+          await addUserGrowth({
+            userId: currentReport.reporter_id,
+            trust: -0.05,
+            reason: "malicious_report",
+          });
+        }
 
-    await writeLog(
-      "mark_malicious_report",
-      "report",
-      reportId,
-      "标记为恶意举报，并扣除举报人社区信任"
-    );
+        await writeLog(
+          "mark_malicious_report",
+          "report",
+          reportId,
+          "标记为恶意举报，并扣除举报人社区信任"
+        );
 
-    await fetchReports();
-  }
-
-  function getStatusStyle(status: string) {
-    switch (status) {
-      case "pending":
-        return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300";
-      case "reviewed":
-        return "border-blue-500/30 bg-blue-500/10 text-blue-300";
-      case "resolved":
-        return "border-green-500/30 bg-green-500/10 text-green-300";
-      case "rejected":
-        return "border-zinc-700 bg-zinc-900 text-zinc-300";
-      default:
-        return "border-zinc-700 bg-zinc-900 text-zinc-300";
-    }
+        await fetchReports();
+      },
+    });
   }
 
   const allReports = reports;
@@ -422,20 +484,20 @@ export default function AdminReportsPage() {
       ? maliciousReports
       : activeReports;
 
-      const currentFilterLabel =
-        filter === "active"
-          ? "待处理"
-          : filter === "all"
-          ? "全部"
-          : filter === "pending"
-          ? "未审核"
-          : filter === "reviewed"
-          ? "审核中"
-          : filter === "resolved"
-          ? "已解决"
-          : filter === "rejected"
-          ? "已驳回"
-          : "恶意";
+  const currentFilterLabel =
+    filter === "active"
+      ? "待处理"
+      : filter === "all"
+      ? "全部"
+      : filter === "pending"
+      ? "未审核"
+      : filter === "reviewed"
+      ? "审核中"
+      : filter === "resolved"
+      ? "已解决"
+      : filter === "rejected"
+      ? "已驳回"
+      : "恶意";
 
   const counts = {
     active: activeReports.length,
@@ -467,6 +529,7 @@ export default function AdminReportsPage() {
         </div>
 
         <button
+          type="button"
           onClick={fetchReports}
           className="rounded-full border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm text-zinc-300 transition hover:border-white hover:text-white"
         >
@@ -475,7 +538,6 @@ export default function AdminReportsPage() {
       </div>
 
       <section className="space-y-5">
-
         <ReportFilters
           filter={filter}
           setFilter={setFilter}
@@ -518,6 +580,24 @@ export default function AdminReportsPage() {
           })}
         </div>
       </section>
+
+      {message && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        cancelText="取消"
+        danger={confirmConfig.danger}
+        loading={confirmLoading}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }

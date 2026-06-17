@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+
 import "./globals.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
@@ -52,7 +54,6 @@ export const metadata: Metadata = {
     title: "小时代｜深夜故事社区",
     description:
       "世界已经睡了，但这里还有一些人，静静留下今天。",
-
     images: ["/og-cover.png"],
   },
 
@@ -61,7 +62,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
@@ -85,6 +86,14 @@ export default function RootLayout({
             </PageRouterTransition>
           </SiteShell>
         </LanguageProvider>
+
+        <Toaster
+          position="top-center"
+          richColors
+          closeButton
+          theme="dark"
+          duration={4000}
+        />
       </body>
     </html>
   );

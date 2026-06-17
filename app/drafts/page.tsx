@@ -50,40 +50,47 @@ function getVisibilityLabel(visibility: string | null) {
 export default function DraftsPage() {
   const [drafts, setDrafts] = useState<DraftPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    async function fetchDrafts() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        window.location.href = "/";
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("posts")
-        .select(
-          "id, type, title, slug, content, visibility, created_at, edited_at"
-        )
-        .eq("author_id", user.id)
-        .eq("status", "draft")
-        .in("type", ["diary", "article"])
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        alert(error.message);
-        setLoading(false);
-        return;
-      }
-
-      setDrafts((data || []) as DraftPost[]);
-      setLoading(false);
-    }
-
     fetchDrafts();
   }, []);
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4200);
+  }
+
+  async function fetchDrafts() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/";
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("posts")
+      .select("id, type, title, slug, content, visibility, created_at, edited_at")
+      .eq("author_id", user.id)
+      .eq("status", "draft")
+      .in("type", ["diary", "article"])
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      showToast(error.message);
+      setLoading(false);
+      return;
+    }
+
+    setDrafts((data || []) as DraftPost[]);
+    setLoading(false);
+  }
 
   const diaryDrafts = drafts.filter((item) => item.type === "diary").length;
   const articleDrafts = drafts.filter((item) => item.type === "article").length;
@@ -92,6 +99,12 @@ export default function DraftsPage() {
     <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[620px] md:w-[620px]" />
+
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[999] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
 
       <div className="mx-auto max-w-5xl">
         <Link
@@ -102,9 +115,7 @@ export default function DraftsPage() {
         </Link>
 
         <header className="mb-8 md:mb-12">
-          <p className="text-xs tracking-[0.4em] text-white/25">
-            DRAFT BOX
-          </p>
+          <p className="text-xs tracking-[0.4em] text-white/25">DRAFT BOX</p>
 
           <h1 className="mt-3 text-5xl font-light tracking-tight md:mt-6 md:text-6xl">
             草稿箱
@@ -189,7 +200,8 @@ export default function DraftsPage() {
                 </div>
 
                 <h2 className="safe-text mt-5 line-clamp-2 break-all text-2xl font-light text-white/85 transition group-hover:text-white md:text-3xl">
-                  {item.title || (item.type === "diary" ? "未命名日记" : "未命名文章")}
+                  {item.title ||
+                    (item.type === "diary" ? "未命名日记" : "未命名文章")}
                 </h2>
 
                 {excerpt && (

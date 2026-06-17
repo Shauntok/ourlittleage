@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import UserStats from "@/components/admin/users/UserStats";
 import UserGrowthActions from "@/components/admin/users/UserGrowthActions";
@@ -14,9 +13,8 @@ import UserAdminLogs from "@/components/admin/users/UserAdminLogs";
 import UserProfileHeader from "@/components/admin/users/UserProfileHeader";
 import UserBioCard from "@/components/admin/users/UserBioCard";
 import UserJoinedCard from "@/components/admin/users/UserJoinedCard";
-import { fetchUserDetailData }
-from "@/components/admin/users/userDetailData";
 import UserProfileInfoCard from "@/components/admin/users/UserProfileInfoCard";
+import { fetchUserDetailData } from "@/components/admin/users/userDetailData";
 
 export default function AdminUserDetailPage() {
   const params = useParams();
@@ -31,12 +29,26 @@ export default function AdminUserDetailPage() {
   const [relatedReports, setRelatedReports] = useState<any[]>([]);
   const [adminLogs, setAdminLogs] = useState<any[]>([]);
 
+  const [message, setMessage] = useState("");
+
   const [stats, setStats] = useState({
     articleTotal: 0,
     diaryTotal: 0,
     commentTotal: 0,
     reportTotal: 0,
   });
+
+  useEffect(() => {
+    fetchUser();
+  }, [id]);
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
 
   function toNumber(value: any) {
     return Number(value || 0);
@@ -67,10 +79,6 @@ export default function AdminUserDetailPage() {
     setStats(data.stats);
   }
 
-  useEffect(() => {
-    fetchUser();
-  }, [id]);
-
   async function writeUserLog(action: string, details: string) {
     const {
       data: { user },
@@ -97,41 +105,39 @@ export default function AdminUserDetailPage() {
     if (!user) return;
 
     if (currentRole === "moderator") {
-      alert("moderator 无法修改身份");
+      showMessage("moderator 无法修改身份");
       return;
     }
 
     if (currentRole === "admin") {
       if (profile.role === "owner") {
-        alert("admin 无法修改 owner");
+        showMessage("admin 无法修改 owner");
         return;
       }
 
       if (newRole === "owner") {
-        alert("admin 无法创建 owner");
+        showMessage("admin 无法创建 owner");
         return;
       }
     }
 
     if (profile.role === "owner" && !isSelf(user.id)) {
-      alert("不能修改其他 owner 身份");
+      showMessage("不能修改其他 owner 身份");
       return;
     }
 
     if (isSelf(user.id) && profile.role === "owner" && newRole !== "owner") {
-      alert("不能把自己的 owner 权限降级，否则会失去最高权限。");
+      showMessage("不能把自己的 owner 权限降级，否则会失去最高权限。");
       return;
     }
 
     const { error } = await supabase
       .from("profiles")
-      .update({
-        role: newRole,
-      })
+      .update({ role: newRole })
       .eq("id", id);
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return;
     }
 
@@ -142,8 +148,8 @@ export default function AdminUserDetailPage() {
       role: newRole,
     }));
 
-    fetchUser();
-    alert("身份已更新 👑");
+    await fetchUser();
+    showMessage("身份已更新 👑");
   }
 
   async function updateStatus(newStatus: string) {
@@ -154,34 +160,32 @@ export default function AdminUserDetailPage() {
     if (!user) return;
 
     if (currentRole === "moderator") {
-      alert("moderator 无法修改状态");
+      showMessage("moderator 无法修改状态");
       return;
     }
 
     if (currentRole === "admin" && profile.role === "owner") {
-      alert("admin 无法管理 owner");
+      showMessage("admin 无法管理 owner");
       return;
     }
 
     if (isTargetOwner() && !isSelf(user.id)) {
-      alert("不能修改其他 owner 的状态。");
+      showMessage("不能修改其他 owner 的状态。");
       return;
     }
 
     if (isTargetOwner() && newStatus !== "active") {
-      alert("owner 不能被警告、禁言或封禁。");
+      showMessage("owner 不能被警告、禁言或封禁。");
       return;
     }
 
     const { error } = await supabase
       .from("profiles")
-      .update({
-        status: newStatus,
-      })
+      .update({ status: newStatus })
       .eq("id", id);
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return;
     }
 
@@ -226,18 +230,18 @@ export default function AdminUserDetailPage() {
       status: newStatus,
     }));
 
-    fetchUser();
-    alert("状态已更新 🚨");
+    await fetchUser();
+    showMessage("状态已更新 🚨");
   }
 
-  async function updateGrowth(updates: any, message: string) {
+  async function updateGrowth(updates: any, messageText: string) {
     if (currentRole !== "owner" && currentRole !== "admin") {
-      alert("只有 owner / admin 可以调整成长数值。");
+      showMessage("只有 owner / admin 可以调整成长数值。");
       return false;
     }
 
     if (currentRole === "admin" && profile.role === "owner") {
-      alert("admin 无法调整 owner 的成长数值。");
+      showMessage("admin 无法调整 owner 的成长数值。");
       return false;
     }
 
@@ -247,18 +251,18 @@ export default function AdminUserDetailPage() {
       .eq("id", id);
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return false;
     }
 
-    await writeUserLog("update_growth", message);
+    await writeUserLog("update_growth", messageText);
 
     setProfile((current: any) => ({
       ...current,
       ...updates,
     }));
 
-    fetchUser();
+    await fetchUser();
     return true;
   }
 
@@ -267,9 +271,7 @@ export default function AdminUserDetailPage() {
     const nextLight = Number((currentLight + amount).toFixed(2));
 
     const success = await updateGrowth(
-      {
-        exp: nextLight,
-      },
+      { exp: nextLight },
       `留下的光 +${amount.toFixed(2)}，目前 ${nextLight.toFixed(2)}`
     );
 
@@ -279,12 +281,15 @@ export default function AdminUserDetailPage() {
       {
         user_id: id,
         title: "✨ 留下的光增加",
-        content: `你获得了 ${amount.toFixed(2)} 点「留下的光」。当前留下的光：${nextLight.toFixed(2)}`,
+        content: `你获得了 ${amount.toFixed(
+          2
+        )} 点「留下的光」。当前留下的光：${nextLight.toFixed(2)}`,
         type: "system",
       },
     ]);
 
     window.dispatchEvent(new Event("notifications-updated"));
+    showMessage("留下的光已更新 ✨");
   }
 
   async function adjustTrust(amount: number) {
@@ -292,10 +297,10 @@ export default function AdminUserDetailPage() {
     const nextTrust = Math.max(0, Number((currentTrust + amount).toFixed(2)));
 
     const success = await updateGrowth(
-      {
-        trust_score: nextTrust,
-      },
-      `社区信任 ${amount > 0 ? "+" : ""}${amount.toFixed(2)}，目前 ${nextTrust.toFixed(2)}`
+      { trust_score: nextTrust },
+      `社区信任 ${amount > 0 ? "+" : ""}${amount.toFixed(
+        2
+      )}，目前 ${nextTrust.toFixed(2)}`
     );
 
     if (!success) return;
@@ -306,21 +311,22 @@ export default function AdminUserDetailPage() {
         title: "🌙 社区信任变化",
         content: `你的社区信任 ${
           amount > 0 ? "增加" : "减少"
-        }了 ${Math.abs(amount).toFixed(2)} 点。当前社区信任：${nextTrust.toFixed(2)}`,
+        }了 ${Math.abs(amount).toFixed(
+          2
+        )} 点。当前社区信任：${nextTrust.toFixed(2)}`,
         type: "system",
       },
     ]);
 
     window.dispatchEvent(new Event("notifications-updated"));
+    showMessage("社区信任已更新 🌙");
   }
 
   async function changeLevel(amount: number) {
     const nextLevel = Math.min(5, Math.max(1, (profile.level || 1) + amount));
 
     const success = await updateGrowth(
-      {
-        level: nextLevel,
-      },
+      { level: nextLevel },
       `等级 ${amount > 0 ? "+" : ""}${amount}，目前 Lv.${nextLevel}`
     );
 
@@ -337,6 +343,7 @@ export default function AdminUserDetailPage() {
     ]);
 
     window.dispatchEvent(new Event("notifications-updated"));
+    showMessage("居民等级已更新 🏆");
   }
 
   function getRoleStyle(role: string) {
@@ -397,7 +404,6 @@ export default function AdminUserDetailPage() {
 
   return (
     <div className="space-y-8">
-      
       <UserProfileHeader
         profile={profile}
         currentRole={currentRole}
@@ -437,9 +443,16 @@ export default function AdminUserDetailPage() {
       <UserRecentComments comments={userComments} />
 
       <UserRelatedReports reports={relatedReports} />
+
       <UserAdminLogs logs={adminLogs} />
 
       <UserJoinedCard createdAt={profile.created_at} />
+
+      {message && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
     </div>
   );
 }

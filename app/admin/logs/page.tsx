@@ -172,10 +172,20 @@ export default function AdminLogsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<LogFilter>("all");
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     checkAndFetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4200);
+  }
 
   async function checkAndFetchLogs() {
     setLoading(true);
@@ -208,7 +218,7 @@ export default function AdminLogsPage() {
       });
 
     if (error) {
-      alert("读取操作日志失败：" + error.message);
+      showToast(`读取操作日志失败：${error.message}`);
       setLoading(false);
       return;
     }
@@ -312,6 +322,12 @@ export default function AdminLogsPage() {
 
   return (
     <div className="space-y-8">
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[999] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
           <h1 className="text-4xl font-bold">操作日志 📜</h1>
@@ -322,6 +338,7 @@ export default function AdminLogsPage() {
         </div>
 
         <button
+          type="button"
           onClick={checkAndFetchLogs}
           className="rounded-full border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm text-zinc-300 transition hover:border-white hover:text-white"
         >

@@ -10,6 +10,16 @@ export default function FeedbackPage() {
   const [sending, setSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const [message, setMessage] = useState("");
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4000);
+  }
+
   async function submitFeedback() {
     if (sending) return;
 

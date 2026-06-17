@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type Props = {
   ownerId: string;
@@ -26,6 +27,10 @@ export default function RoomStatusButton({
   const [moodEmoji, setMoodEmoji] = useState(initialMoodEmoji || "");
   const [statusMessage, setStatusMessage] = useState(initialStatusMessage || "");
   const [saving, setSaving] = useState(false);
+
+  const [message, setMessage] = useState("");
+  const [clearing, setClearing] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -52,7 +57,7 @@ export default function RoomStatusButton({
     if (!isOwner) return;
 
     if (!moodEmoji && !statusMessage.trim()) {
-      alert("请先选择心情或写一句状态。");
+      showMessage("先选一个心情，或写一句今天的状态。");
       return;
     }
 
@@ -73,7 +78,7 @@ export default function RoomStatusButton({
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return;
     }
 
@@ -84,8 +89,7 @@ export default function RoomStatusButton({
   async function clearStatus() {
     if (!isOwner) return;
 
-    const confirmed = confirm("确定清除今日状态吗？");
-    if (!confirmed) return;
+    setClearing(true);
 
     const { error } = await supabase
       .from("profiles")
@@ -97,20 +101,32 @@ export default function RoomStatusButton({
       })
       .eq("id", ownerId);
 
+    setClearing(false);
+
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
+      setShowClearDialog(false);
       return;
     }
 
     setMoodEmoji("");
     setStatusMessage("");
     onStatusChange?.("", "");
+    setShowClearDialog(false);
     setOpen(false);
   }
 
   const hasStatus = moodEmoji || statusMessage;
 
   if (!hasStatus && !isOwner) return null;
+
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
 
   const modal =
     open && mounted
@@ -184,6 +200,12 @@ export default function RoomStatusButton({
                   className="mt-5 w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-sm leading-7 outline-none transition whitespace-pre-wrap break-words [overflow-wrap:anywhere] focus:border-white/30"
                 />
 
+                {message && (
+                  <div className="mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                    {message}
+                  </div>
+                )}
+
                 <p className="mt-2 text-right text-xs text-white/25">
                   {statusMessage.length} / 80
                 </p>
@@ -201,7 +223,7 @@ export default function RoomStatusButton({
                 {hasStatus && (
                   <button
                     type="button"
-                    onClick={clearStatus}
+                    onClick={() => setShowClearDialog(true)}
                     className="rounded-full border border-red-500/25 bg-red-500/[0.08] px-6 py-3 text-sm text-red-100/70 transition hover:bg-red-500/[0.12] hover:text-red-100"
                   >
                     清除状态
@@ -245,6 +267,18 @@ export default function RoomStatusButton({
         </button>
 
         {modal}
+
+        <ConfirmDialog
+          open={showClearDialog}
+          title="清除今日状态？"
+          description="清除后，房间里就不会再显示这句今日状态。之后你还是可以重新设置。"
+          confirmText="清除状态"
+          cancelText="再想想"
+          danger
+          loading={clearing}
+          onClose={() => setShowClearDialog(false)}
+          onConfirm={clearStatus}
+        />
       </>
     );
   }
@@ -284,6 +318,18 @@ export default function RoomStatusButton({
       </button>
 
       {modal}
+
+      <ConfirmDialog
+        open={showClearDialog}
+        title="清除今日状态？"
+        description="清除后，房间里就不会再显示这句今日状态。之后你还是可以重新设置。"
+        confirmText="清除状态"
+        cancelText="再想想"
+        danger
+        loading={clearing}
+        onClose={() => setShowClearDialog(false)}
+        onConfirm={clearStatus}
+      />
     </>
   );
 }

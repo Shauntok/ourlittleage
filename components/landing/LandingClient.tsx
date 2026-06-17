@@ -76,18 +76,27 @@ export default function LandingClient() {
 
   const [loginLoading, setLoginLoading] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4200);
+  }
 
   async function handleEnter() {
     const cleanEmail = email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!cleanEmail || !password.trim()) {
-      alert("请输入邮箱和密码。");
+      showToast("请输入邮箱和密码。");
       return;
     }
 
     if (!emailRegex.test(cleanEmail)) {
-      alert("请输入正确的邮箱格式。");
+      showToast("请输入正确的邮箱格式。");
       return;
     }
 
@@ -102,13 +111,13 @@ export default function LandingClient() {
 
     if (error) {
       if (error.message.toLowerCase().includes("email not confirmed")) {
-        alert(
+        showToast(
           "这个邮箱还没有完成验证。请先到邮箱点击验证链接，也可以检查垃圾邮件 / Spam。"
         );
         return;
       }
 
-      alert("登录失败，请检查邮箱或密码。");
+      showToast("登录失败，请检查邮箱或密码。");
       return;
     }
 
@@ -136,37 +145,37 @@ export default function LandingClient() {
       !registerPassword.trim() ||
       !confirmPassword.trim()
     ) {
-      alert("请填写居民名字、生日、邮箱和密码。");
+      showToast("请填写居民名字、生日、邮箱和密码。");
       return;
     }
 
     if (cleanUsername.length < 3) {
-      alert("居民名字至少需要 3 个字符。");
+      showToast("居民名字至少需要 3 个字符。");
       return;
     }
 
     if (cleanUsername.length > 20) {
-      alert("居民名字不能超过 20 个字符。");
+      showToast("居民名字不能超过 20 个字符。");
       return;
     }
 
     if (!usernameRegex.test(cleanUsername)) {
-      alert("居民名字只能使用中文、英文、数字和底线。");
+      showToast("居民名字只能使用中文、英文、数字和底线。");
       return;
     }
 
     if (!emailRegex.test(cleanEmail)) {
-      alert("请输入正确的邮箱格式。");
+      showToast("请输入正确的邮箱格式。");
       return;
     }
 
     if (registerPassword.length < 8) {
-      alert("密码至少需要 8 位。");
+      showToast("密码至少需要 8 位。");
       return;
     }
 
     if (registerPassword !== confirmPassword) {
-      alert("两次输入的密码不一样。");
+      showToast("两次输入的密码不一样。");
       return;
     }
 
@@ -180,13 +189,13 @@ export default function LandingClient() {
 
     if (usernameCheckError) {
       setRegisterLoading(false);
-      alert(usernameCheckError.message);
+      showToast(usernameCheckError.message);
       return;
     }
 
     if (existingProfile) {
       setRegisterLoading(false);
-      alert("这个居民名字已经有人住下了，请换一个名字。");
+      showToast("这个居民名字已经有人住下了，请换一个名字。");
       return;
     }
 
@@ -206,13 +215,11 @@ export default function LandingClient() {
     setRegisterLoading(false);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       return;
     }
 
-    alert(
-      "验证邮件已经发送到你的邮箱。\n\n请先到邮箱点击验证链接，完成后再回来登录。\n\n如果没有看到邮件，也记得检查垃圾邮件 / Spam。"
-    );
+    showToast("验证邮件已经发送到你的邮箱。请先点击验证链接，完成后再回来登录。");
 
     setAuthMode("login");
     setEmail(cleanEmail);
@@ -310,10 +317,16 @@ export default function LandingClient() {
               key={item.text}
               className={`
                 absolute ${item.className}
-                max-w-[210px] rounded-3xl border border-white/15
-                bg-white/[0.055] px-4 py-3 text-xs text-white/40
+                max-w-[180px]
+                rounded-3xl
+                border border-white/15
+                bg-white/[0.055]
+                px-4 py-3
+                text-xs text-white/40
                 shadow-[0_0_40px_rgba(255,255,255,0.035)]
-                backdrop-blur-md md:max-w-none md:px-5 md:py-4
+                backdrop-blur-md
+                md:max-w-[220px]
+                md:px-5 md:py-4
                 md:text-sm md:text-white/45
               `}
               style={
@@ -349,13 +362,19 @@ export default function LandingClient() {
         </div>
 
         <div
-          className="absolute bottom-[17%] left-1/2 z-[4] -translate-x-1/2 text-sm text-zinc-700 md:bottom-40 md:left-auto md:right-32 md:translate-x-0 md:text-lg"
+          className="absolute bottom-[17%] left-1/2 z-[4] -translate-x-1/2 md:bottom-40 md:left-auto md:right-32 md:translate-x-0"
           style={{
-            transform: `translateY(${scrollY * 0.06}px)`,
             opacity: Math.max(0.45 - scrollY / 900, 0),
           }}
         >
-          ☕ 凌晨 3:44
+          <div
+            className="text-sm text-zinc-700 md:text-lg"
+            style={{
+              transform: `translateY(${scrollY * 0.06}px)`,
+            }}
+          >
+            ☕ 凌晨 3:44
+          </div>
         </div>
 
         <div
@@ -470,14 +489,7 @@ export default function LandingClient() {
                 placeholder="邮箱"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="
-                  w-full rounded-2xl border border-white/10 bg-white/[0.07]
-                  px-5 py-4 text-sm text-white outline-none
-                  shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
-                  transition-all duration-500 placeholder:text-white/25
-                  focus:border-white/35 focus:bg-white/[0.12]
-                  focus:shadow-[0_0_30px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]
-                "
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.07] px-5 py-4 text-sm text-white outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-500 placeholder:text-white/25 focus:border-white/35 focus:bg-white/[0.12] focus:shadow-[0_0_30px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]"
               />
 
               <PasswordInput
@@ -490,14 +502,7 @@ export default function LandingClient() {
                 type="button"
                 onClick={handleEnter}
                 disabled={loginLoading}
-                className="
-                  w-full rounded-2xl bg-white py-4 text-sm font-semibold
-                  text-black shadow-[0_0_40px_rgba(255,255,255,0.12)]
-                  transition-all duration-500 hover:scale-[1.01]
-                  hover:bg-white/90 hover:shadow-[0_0_60px_rgba(255,255,255,0.18)]
-                  active:scale-[0.99] disabled:cursor-not-allowed
-                  disabled:opacity-60
-                "
+                className="w-full rounded-2xl bg-white py-4 text-sm font-semibold text-black shadow-[0_0_40px_rgba(255,255,255,0.12)] transition-all duration-500 hover:scale-[1.01] hover:bg-white/90 hover:shadow-[0_0_60px_rgba(255,255,255,0.18)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loginLoading ? "进入中..." : "进入小时代"}
               </button>
@@ -553,12 +558,7 @@ export default function LandingClient() {
                   placeholder="你想在小时代叫什么名字？"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="
-                    w-full rounded-2xl border border-white/10 bg-white/[0.07]
-                    px-5 py-4 text-sm text-white outline-none
-                    transition-all duration-500 placeholder:text-white/25
-                    focus:border-white/35 focus:bg-white/[0.12]
-                  "
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.07] px-5 py-4 text-sm text-white outline-none transition-all duration-500 placeholder:text-white/25 focus:border-white/35 focus:bg-white/[0.12]"
                 />
 
                 <div className="grid grid-cols-3 gap-3">
@@ -635,12 +635,7 @@ export default function LandingClient() {
                   placeholder="邮箱"
                   value={registerEmail}
                   onChange={(e) => setRegisterEmail(e.target.value)}
-                  className="
-                    w-full rounded-2xl border border-white/10 bg-white/[0.07]
-                    px-5 py-4 text-sm text-white outline-none
-                    transition-all duration-500 placeholder:text-white/25
-                    focus:border-white/35 focus:bg-white/[0.12]
-                  "
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.07] px-5 py-4 text-sm text-white outline-none transition-all duration-500 placeholder:text-white/25 focus:border-white/35 focus:bg-white/[0.12]"
                 />
 
                 <PasswordInput
@@ -659,11 +654,7 @@ export default function LandingClient() {
                   type="button"
                   onClick={handleRegister}
                   disabled={registerLoading}
-                  className="
-                    w-full rounded-2xl bg-white py-4 text-sm font-semibold
-                    text-black transition hover:bg-white/90
-                    disabled:cursor-not-allowed disabled:opacity-60
-                  "
+                  className="w-full rounded-2xl bg-white py-4 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {registerLoading ? "创建中..." : "创建并进入小时代"}
                 </button>
@@ -682,25 +673,16 @@ export default function LandingClient() {
       </section>
 
       <div
-        className={`
-          fixed left-1/2 z-40 -translate-x-1/2 transition-all duration-1000 ease-out
-          ${
-            showLoginDock
-              ? "bottom-10 scale-100 opacity-100"
-              : "-bottom-24 scale-95 opacity-0"
-          }
-        `}
+        className={`fixed left-1/2 z-40 -translate-x-1/2 transition-all duration-1000 ease-out ${
+          showLoginDock
+            ? "bottom-10 scale-100 opacity-100"
+            : "-bottom-24 scale-95 opacity-0"
+        }`}
       >
         <button
           type="button"
           onClick={scrollToPortal}
-          className="
-            rounded-full border border-white/10 bg-white/[0.055]
-            px-5 py-2.5 text-xs font-medium tracking-wide text-white/70
-            shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_34px_rgba(255,255,255,0.08)]
-            backdrop-blur-2xl transition-all duration-500
-            hover:border-white/20 hover:bg-white/[0.09] hover:text-white/90
-          "
+          className="rounded-full border border-white/10 bg-white/[0.055] px-5 py-2.5 text-xs font-medium tracking-wide text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_34px_rgba(255,255,255,0.08)] backdrop-blur-2xl transition-all duration-500 hover:border-white/20 hover:bg-white/[0.09] hover:text-white/90"
         >
           进入居民入口
         </button>
@@ -710,35 +692,19 @@ export default function LandingClient() {
         <button
           type="button"
           onClick={() => setMusicOpen(!musicOpen)}
-          className="
-            group flex items-center gap-3 rounded-full border border-white/10
-            bg-white/[0.055] px-4 py-3 text-white/70
-            shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_34px_rgba(255,255,255,0.08)]
-            backdrop-blur-2xl transition-all duration-500
-            hover:bg-white/[0.09] hover:text-white/90
-          "
+          className="group flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.055] px-4 py-3 text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_34px_rgba(255,255,255,0.08)] backdrop-blur-2xl transition-all duration-500 hover:bg-white/[0.09] hover:text-white/90"
         >
           <span
-            className={`
-              h-8 w-8 rounded-full border border-white/20
-              bg-[radial-gradient(circle,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0.08)_38%,rgba(255,255,255,0.02)_70%)]
-              shadow-[0_0_24px_rgba(255,255,255,0.12)]
-              ${musicOpen ? "animate-[spin_8s_linear_infinite]" : ""}
-            `}
+            className={`h-8 w-8 rounded-full border border-white/20 bg-[radial-gradient(circle,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0.08)_38%,rgba(255,255,255,0.02)_70%)] shadow-[0_0_24px_rgba(255,255,255,0.12)] ${
+              musicOpen ? "animate-[spin_8s_linear_infinite]" : ""
+            }`}
           />
 
           <span className="hidden text-xs md:block">玻璃 · 深夜播放</span>
         </button>
 
         {musicOpen && (
-          <div
-            className="
-              animate-in fade-in slide-in-from-bottom-4 absolute bottom-16
-              right-0 w-[280px] overflow-hidden rounded-3xl border
-              border-white/10 bg-black/80 p-3 shadow-[0_0_70px_rgba(255,255,255,0.08)]
-              backdrop-blur-2xl duration-500
-            "
-          >
+          <div className="animate-in fade-in slide-in-from-bottom-4 absolute bottom-16 right-0 w-[280px] overflow-hidden rounded-3xl border border-white/10 bg-black/80 p-3 shadow-[0_0_70px_rgba(255,255,255,0.08)] backdrop-blur-2xl duration-500">
             <p className="mb-3 px-2 text-xs tracking-[0.25em] text-white/35">
               NOW PLAYING
             </p>
@@ -755,6 +721,12 @@ export default function LandingClient() {
           </div>
         )}
       </div>
+
+      {message && (
+        <div className="fixed bottom-6 left-1/2 z-[120] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-center text-sm leading-6 text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
     </main>
   );
 }

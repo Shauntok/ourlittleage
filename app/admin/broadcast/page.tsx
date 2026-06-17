@@ -8,6 +8,7 @@ import BroadcastTargetSelector from "@/components/broadcast/BroadcastTargetSelec
 import BroadcastMessageEditor from "@/components/broadcast/BroadcastMessageEditor";
 import BroadcastPreview from "@/components/broadcast/BroadcastPreview";
 import ScheduledBroadcasts from "@/components/broadcast/ScheduledBroadcasts";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type TargetMode = "self" | "single" | "all";
 type MessageType = "system" | "announcement" | "event" | "reward" | "private";
@@ -23,6 +24,14 @@ type ScheduledBroadcast = {
   status: string;
   sent_at: string | null;
   sent_count: number | null;
+};
+
+type ConfirmConfig = {
+  title: string;
+  description: string;
+  confirmText: string;
+  danger?: boolean;
+  action: (() => Promise<void>) | null;
 };
 
 export default function AdminBroadcastPage() {
@@ -50,6 +59,18 @@ export default function AdminBroadcastPage() {
   const [scheduledLoading, setScheduledLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+
+  const [message, setMessage] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const [confirmConfig, setConfirmConfig] = useState<ConfirmConfig>({
+    title: "",
+    description: "",
+    confirmText: "确认",
+    danger: false,
+    action: null,
+  });
 
   useEffect(() => {
     async function checkPermission() {
@@ -92,6 +113,28 @@ export default function AdminBroadcastPage() {
     checkPermission();
   }, []);
 
+  function showMessage(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+  }
+
+  function openConfirm(config: ConfirmConfig) {
+    setConfirmConfig(config);
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirm() {
+    if (!confirmConfig.action) return;
+
+    setConfirmLoading(true);
+    await confirmConfig.action();
+    setConfirmLoading(false);
+    setConfirmOpen(false);
+  }
+
   async function fetchScheduledBroadcasts() {
     setScheduledLoading(true);
 
@@ -103,6 +146,7 @@ export default function AdminBroadcastPage() {
 
     if (error) {
       console.error(error);
+      showMessage("读取待发信件失败。");
       setScheduledLoading(false);
       return;
     }
@@ -139,7 +183,7 @@ export default function AdminBroadcastPage() {
 
     if (targetMode === "single") {
       if (!targetUserId) {
-        alert("请选择指定居民。");
+        showMessage("请选择指定居民。");
         return [];
       }
 
@@ -152,7 +196,7 @@ export default function AdminBroadcastPage() {
       .eq("status", "active");
 
     if (error) {
-      alert(error.message);
+      showMessage(error.message);
       return [];
     }
 
@@ -164,45 +208,45 @@ export default function AdminBroadcastPage() {
     const cleanContent = content.trim();
 
     if (!["owner", "admin"].includes(currentRole)) {
-      alert("你没有发送全站信件的权限。");
+      showMessage("你没有发送全站信件的权限。");
       return null;
     }
 
     if (!cleanTitle) {
-      alert("请输入信件标题。");
+      showMessage("请输入信件标题。");
       return null;
     }
 
     if (!cleanContent) {
-      alert("请输入信件内容。");
+      showMessage("请输入信件内容。");
       return null;
     }
 
     if (cleanTitle.length > 80) {
-      alert("信件标题不能超过 80 个字符。");
+      showMessage("信件标题不能超过 80 个字符。");
       return null;
     }
 
     if (cleanContent.length > 2000) {
-      alert("信件内容不能超过 2000 个字符。");
+      showMessage("信件内容不能超过 2000 个字符。");
       return null;
     }
 
     if (sendMode === "scheduled") {
       if (!scheduledFor) {
-        alert("请选择预约发送时间。");
+        showMessage("请选择预约发送时间。");
         return null;
       }
 
       const scheduledDate = new Date(scheduledFor);
 
       if (Number.isNaN(scheduledDate.getTime())) {
-        alert("预约发送时间无效。");
+        showMessage("预约发送时间无效。");
         return null;
       }
 
       if (scheduledDate <= new Date()) {
-        alert("预约发送时间必须晚于现在。");
+        showMessage("预约发送时间必须晚于现在。");
         return null;
       }
     }
@@ -222,65 +266,80 @@ export default function AdminBroadcastPage() {
     const targetUsers = await getTargetUsers();
     if (targetUsers.length === 0) return;
 
-    const confirmed = confirm(
-      targetMode === "self"
-        ? "确定只发送给自己测试吗？"
-        : targetMode === "single"
-          ? "确定发送给这个指定居民吗？"
-          : `你正在发送给所有 active 居民，共 ${targetUsers.length} 位。\n\n这会进入每个人的信箱，确定继续吗？`
-    );
+    openConfirm({
+      title:
+        targetMode === "self"
+          ? "发送测试信？"
+          : targetMode === "single"
+          ? "发送给指定居民？"
+          : "发送给所有居民？",
+      description:
+        targetMode === "self"
+          ? "这封信只会发送到你自己的信箱，用来测试效果。"
+          : targetMode === "single"
+          ? "这封信会发送给你选择的指定居民。"
+          : `你正在发送给所有 active 居民，共 ${targetUsers.length} 位。发送后会进入每个人的信箱。`,
+      confirmText:
+        targetMode === "self"
+          ? "发送测试信"
+          : targetMode === "single"
+          ? "发送给居民"
+          : "发送给所有居民",
+      danger: targetMode === "all",
+      action: async () => {
+        setSending(true);
 
-    if (!confirmed) return;
+        const rows = targetUsers.map((user) => ({
+          user_id: user.id,
+          title: valid.cleanTitle,
+          content: valid.cleanContent,
+          type: messageType,
+          is_read: false,
+          is_important: isImportant,
+          is_starred: false,
+        }));
 
-    setSending(true);
+        const { error: insertError } = await supabase
+          .from("notifications")
+          .insert(rows);
 
-    const rows = targetUsers.map((user) => ({
-      user_id: user.id,
-      title: valid.cleanTitle,
-      content: valid.cleanContent,
-      type: messageType,
-      is_read: false,
-      is_important: isImportant,
-      is_starred: false,
-    }));
+        if (insertError) {
+          showMessage(insertError.message);
+          setSending(false);
+          return;
+        }
 
-    const { error: insertError } = await supabase
-      .from("notifications")
-      .insert(rows);
+        await supabase.from("admin_logs").insert([
+          {
+            admin_id: currentUser.id,
+            action:
+              targetMode === "self"
+                ? "test_broadcast"
+                : targetMode === "single"
+                ? "single_broadcast"
+                : "broadcast",
+            target_type: "notifications",
+            target_id: targetMode === "single" ? targetUserId : null,
+            details: `${getTypeLabel(messageType)}：${
+              valid.cleanTitle
+            } (${targetUsers.length} users)`,
+          },
+        ]);
 
-    if (insertError) {
-      alert(insertError.message);
-      setSending(false);
-      return;
-    }
+        notifyNavbar();
+        resetForm();
 
-    await supabase.from("admin_logs").insert([
-      {
-        admin_id: currentUser.id,
-        action:
+        setSending(false);
+
+        showMessage(
           targetMode === "self"
-            ? "test_broadcast"
+            ? "测试信件已发送给自己。"
             : targetMode === "single"
-              ? "single_broadcast"
-              : "broadcast",
-        target_type: "notifications",
-        target_id: targetMode === "single" ? targetUserId : null,
-        details: `${getTypeLabel(messageType)}：${valid.cleanTitle} (${targetUsers.length} users)`,
+            ? "信件已发送给指定居民。"
+            : `已发送给 ${targetUsers.length} 位用户。`
+        );
       },
-    ]);
-
-    notifyNavbar();
-    resetForm();
-
-    setSending(false);
-
-    alert(
-      targetMode === "self"
-        ? "测试信件已发送给自己。"
-        : targetMode === "single"
-          ? "信件已发送给指定居民。"
-          : `已发送给 ${targetUsers.length} 位用户。`
-    );
+    });
   }
 
   async function scheduleBroadcast() {
@@ -290,98 +349,112 @@ export default function AdminBroadcastPage() {
     if (!valid) return;
 
     if (targetMode === "single" && !targetUserId) {
-      alert("请选择指定居民。");
+      showMessage("请选择指定居民。");
       return;
     }
 
     const scheduledDate = new Date(scheduledFor);
 
-    const confirmed = confirm(
-      targetMode === "self"
-        ? "确定预约一封只发给自己的测试信吗？"
-        : targetMode === "single"
-          ? "确定预约发送给这个指定居民吗？"
-          : "你正在预约一封全站信件。\n\n到时间后会发送给所有 active 居民，确定继续吗？"
-    );
+    openConfirm({
+      title:
+        targetMode === "self"
+          ? "预约测试信？"
+          : targetMode === "single"
+          ? "预约发送给指定居民？"
+          : "预约全站信件？",
+      description:
+        targetMode === "self"
+          ? "这封测试信会在预约时间发送给你自己。"
+          : targetMode === "single"
+          ? "这封信会在预约时间发送给指定居民。"
+          : "这封全站信件会在预约时间发送给所有 active 居民。",
+      confirmText: "确认预约",
+      danger: targetMode === "all",
+      action: async () => {
+        setSending(true);
 
-    if (!confirmed) return;
+        const { data, error } = await supabase
+          .from("scheduled_broadcasts")
+          .insert({
+            created_by: currentUser.id,
+            target_mode: targetMode,
+            target_user_id: targetMode === "single" ? targetUserId : null,
+            message_type: messageType,
+            title: valid.cleanTitle,
+            content: valid.cleanContent,
+            is_important: isImportant,
+            scheduled_for: scheduledDate.toISOString(),
+            status: "scheduled",
+          })
+          .select()
+          .single();
 
-    setSending(true);
+        if (error) {
+          showMessage(error.message);
+          setSending(false);
+          return;
+        }
 
-    const { data, error } = await supabase
-      .from("scheduled_broadcasts")
-      .insert({
-        created_by: currentUser.id,
-        target_mode: targetMode,
-        target_user_id: targetMode === "single" ? targetUserId : null,
-        message_type: messageType,
-        title: valid.cleanTitle,
-        content: valid.cleanContent,
-        is_important: isImportant,
-        scheduled_for: scheduledDate.toISOString(),
-        status: "scheduled",
-      })
-      .select()
-      .single();
+        await supabase.from("admin_logs").insert([
+          {
+            admin_id: currentUser.id,
+            action: "schedule_broadcast",
+            target_type: "scheduled_broadcast",
+            target_id: String(data.id),
+            details: `${getTypeLabel(messageType)}：${valid.cleanTitle}`,
+          },
+        ]);
 
-    if (error) {
-      alert(error.message);
-      setSending(false);
-      return;
-    }
+        setScheduledBroadcasts((prev) => [data as ScheduledBroadcast, ...prev]);
+        resetForm();
 
-    await supabase.from("admin_logs").insert([
-      {
-        admin_id: currentUser.id,
-        action: "schedule_broadcast",
-        target_type: "scheduled_broadcast",
-        target_id: String(data.id),
-        details: `${getTypeLabel(messageType)}：${valid.cleanTitle}`,
+        setSending(false);
+        showMessage("信件已加入待发列表。");
       },
-    ]);
-
-    setScheduledBroadcasts((prev) => [data as ScheduledBroadcast, ...prev]);
-    resetForm();
-
-    setSending(false);
-    alert("信件已加入待发列表。");
+    });
   }
 
-  async function cancelScheduledBroadcast(item: ScheduledBroadcast) {
-    const ok = confirm(`确定取消待发信件「${item.title}」吗？`);
-    if (!ok) return;
+  function cancelScheduledBroadcast(item: ScheduledBroadcast) {
+    openConfirm({
+      title: "取消待发信件？",
+      description: `确定取消待发信件「${item.title}」吗？取消后不会自动发送。`,
+      confirmText: "取消待发",
+      danger: true,
+      action: async () => {
+        setCancellingId(item.id);
 
-    setCancellingId(item.id);
+        const { error } = await supabase
+          .from("scheduled_broadcasts")
+          .update({
+            status: "cancelled",
+          })
+          .eq("id", item.id)
+          .eq("status", "scheduled");
 
-    const { error } = await supabase
-      .from("scheduled_broadcasts")
-      .update({
-        status: "cancelled",
-      })
-      .eq("id", item.id)
-      .eq("status", "scheduled");
+        if (error) {
+          showMessage(error.message);
+          setCancellingId(null);
+          return;
+        }
 
-    if (error) {
-      alert(error.message);
-      setCancellingId(null);
-      return;
-    }
+        await supabase.from("admin_logs").insert([
+          {
+            admin_id: currentUser?.id,
+            action: "cancel_scheduled_broadcast",
+            target_type: "scheduled_broadcast",
+            target_id: String(item.id),
+            details: `取消待发信件：${item.title}`,
+          },
+        ]);
 
-    await supabase.from("admin_logs").insert([
-      {
-        admin_id: currentUser?.id,
-        action: "cancel_scheduled_broadcast",
-        target_type: "scheduled_broadcast",
-        target_id: String(item.id),
-        details: `取消待发信件：${item.title}`,
+        setScheduledBroadcasts((prev) =>
+          prev.filter((broadcast) => broadcast.id !== item.id)
+        );
+
+        setCancellingId(null);
+        showMessage("待发信件已取消。");
       },
-    ]);
-
-    setScheduledBroadcasts((prev) =>
-      prev.filter((broadcast) => broadcast.id !== item.id)
-    );
-
-    setCancellingId(null);
+    });
   }
 
   function resetForm() {
@@ -463,6 +536,7 @@ export default function AdminBroadcastPage() {
         />
 
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={sending}
           className="rounded-full bg-white px-8 py-4 text-sm font-bold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
@@ -470,12 +544,12 @@ export default function AdminBroadcastPage() {
           {sending
             ? "处理中..."
             : sendMode === "scheduled"
-              ? "加入待发列表"
-              : targetMode === "self"
-                ? "发送测试信"
-                : targetMode === "single"
-                  ? "发送给指定居民"
-                  : "发送给所有居民"}
+            ? "加入待发列表"
+            : targetMode === "self"
+            ? "发送测试信"
+            : targetMode === "single"
+            ? "发送给指定居民"
+            : "发送给所有居民"}
         </button>
       </div>
 
@@ -484,6 +558,24 @@ export default function AdminBroadcastPage() {
         loading={scheduledLoading}
         cancellingId={cancellingId}
         onCancel={cancelScheduledBroadcast}
+      />
+
+      {message && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        cancelText="取消"
+        danger={confirmConfig.danger}
+        loading={confirmLoading}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
       />
     </div>
   );

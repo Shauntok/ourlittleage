@@ -76,6 +76,15 @@ export default function NotificationsPage() {
   const [tab, setTab] = useState<TabKey>("unread");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4000);
+  }
 
   const unreadCount = notifications.filter(
     (item) => !item.is_read && !item.deleted_at
@@ -124,7 +133,7 @@ export default function NotificationsPage() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       setLoading(false);
       return;
     }
@@ -158,7 +167,7 @@ export default function NotificationsPage() {
       .eq("user_id", userId);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       await fetchNotifications();
       return;
     }
@@ -186,7 +195,7 @@ export default function NotificationsPage() {
       .eq("user_id", userId);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       await fetchNotifications();
       return;
     }
@@ -212,7 +221,7 @@ export default function NotificationsPage() {
       .eq("user_id", userId);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       await fetchNotifications();
       return;
     }
@@ -238,7 +247,7 @@ export default function NotificationsPage() {
       .eq("user_id", userId);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       await fetchNotifications();
       return;
     }
@@ -264,7 +273,7 @@ export default function NotificationsPage() {
       .eq("user_id", userId);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       await fetchNotifications();
       return;
     }
@@ -286,6 +295,14 @@ export default function NotificationsPage() {
   return (
     <main className="relative z-10 min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
       <MouseGlow />
+
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[999] -translate-x-1/2">
+          <div className="rounded-2xl border border-white/10 bg-black/85 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-2xl">
+            {message}
+          </div>
+        </div>
+      )}
 
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[560px] md:w-[560px]" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +11,8 @@ export default function SiteShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  const [message, setMessage] = useState("");
 
   const isAdminPage = pathname.startsWith("/admin");
   const isLandingPage = pathname === "/";
@@ -30,11 +32,12 @@ export default function SiteShell({
         .single();
 
       if (profile?.status === "banned") {
-        alert("你的账号已被封禁。");
+        setMessage("你的账号已被封禁。");
 
-        await supabase.auth.signOut();
-
-        window.location.href = "/";
+        window.setTimeout(async () => {
+          await supabase.auth.signOut();
+          window.location.href = "/";
+        }, 900);
       }
     }
 
@@ -43,6 +46,12 @@ export default function SiteShell({
 
   return (
     <>
+      {message && (
+        <div className="fixed left-1/2 top-6 z-[9999] -translate-x-1/2 rounded-2xl border border-red-500/20 bg-zinc-950/95 px-5 py-3 text-center text-sm text-red-100 shadow-2xl backdrop-blur-xl">
+          {message}
+        </div>
+      )}
+
       {!isAdminPage && !isLandingPage && <Navbar />}
 
       {children}

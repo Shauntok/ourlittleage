@@ -84,6 +84,7 @@ export default function DiaryDetailPage() {
         .select("*")
         .eq("id", id)
         .eq("type", "diary")
+        .is("deleted_at", null)
         .single();
 
       if (error || !data) {

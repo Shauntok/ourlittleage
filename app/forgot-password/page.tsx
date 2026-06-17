@@ -8,12 +8,21 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [message, setMessage] = useState("");
+
+  function showToast(text: string) {
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+    }, 4200);
+  }
 
   async function sendResetEmail() {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail) {
-      alert("请输入你的邮箱。");
+      showToast("请输入你的邮箱。");
       return;
     }
 
@@ -26,19 +35,27 @@ export default function ForgotPasswordPage() {
     setSending(false);
 
     if (error) {
-      alert(error.message);
+      showToast(error.message);
       return;
     }
 
     setSent(true);
+    showToast("重设密码邮件已经寄出。");
   }
 
   return (
     <main className="min-h-screen bg-black px-5 py-20 text-white">
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
+
       <div className="fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
 
       <section className="mx-auto max-w-xl rounded-[2rem] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-2xl md:p-9">
+        {message && (
+          <div className="mb-6 rounded-2xl border border-violet-500/20 bg-violet-500/[0.08] px-5 py-4 text-sm leading-7 text-violet-100/80">
+            {message}
+          </div>
+        )}
+
         <p className="text-xs tracking-[0.35em] text-white/30">
           PASSWORD RECOVERY
         </p>
