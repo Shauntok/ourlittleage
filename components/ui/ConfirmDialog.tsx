@@ -1,5 +1,8 @@
 "use client";
 
+import { ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+
 type ConfirmDialogProps = {
   open: boolean;
   title: string;
@@ -9,47 +12,73 @@ type ConfirmDialogProps = {
   danger?: boolean;
   loading?: boolean;
   onConfirm: () => void;
-  onClose: () => void;
+  onCancel: () => void;
+  children?: ReactNode;
 };
 
 export default function ConfirmDialog({
   open,
   title,
   description,
-  confirmText = "确定",
-  cancelText = "再看看",
+  confirmText = "确认",
+  cancelText = "取消",
   danger = false,
   loading = false,
   onConfirm,
-  onClose,
+  onCancel,
+  children,
 }: ConfirmDialogProps) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/75 px-4 py-6 backdrop-blur-md">
-      <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950 shadow-[0_0_90px_rgba(168,85,247,0.2)]">
-        <div className="border-b border-white/10 px-6 py-6">
-          <p className="text-xs tracking-[0.35em] text-white/25">
-            CONFIRM
-          </p>
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-          <h2 className="mt-3 text-2xl font-light text-white">
-            {title}
-          </h2>
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onCancel();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onCancel]);
+
+  if (!mounted || !open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-5">
+      <button
+        type="button"
+        aria-label="关闭确认窗口"
+        className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+        onClick={onCancel}
+      />
+
+      <section className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950/95 text-white shadow-[0_0_80px_rgba(255,255,255,0.08)]">
+        <div className="p-6 md:p-7">
+          <p className="text-xs tracking-[0.35em] text-white/25">CONFIRM</p>
+
+          <h2 className="mt-4 text-2xl font-light text-white">{title}</h2>
 
           {description && (
-            <p className="mt-3 text-sm leading-7 text-white/45">
+            <p className="mt-4 text-sm leading-7 text-white/45">
               {description}
             </p>
           )}
+
+          {children && <div className="mt-5">{children}</div>}
         </div>
 
-        <div className="flex flex-col-reverse gap-3 px-6 py-5 sm:flex-row sm:justify-end">
+        <div className="flex justify-end gap-3 border-t border-white/10 p-5">
           <button
             type="button"
-            onClick={onClose}
+            onClick={onCancel}
             disabled={loading}
-            className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/60 transition hover:border-white/25 hover:text-white disabled:opacity-40"
+            className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm text-white/60 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelText}
           </button>
@@ -58,16 +87,17 @@ export default function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`rounded-full px-6 py-3 text-sm font-semibold transition disabled:opacity-40 ${
+            className={
               danger
-                ? "border border-red-500/30 bg-red-500/15 text-red-100 hover:bg-red-500/25"
-                : "bg-white text-black hover:bg-white/90"
-            }`}
+                ? "rounded-full border border-red-400/30 bg-red-500/15 px-5 py-2.5 text-sm font-semibold text-red-100 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                : "rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+            }
           >
             {loading ? "处理中..." : confirmText}
           </button>
         </div>
-      </div>
-    </div>
+      </section>
+    </div>,
+    document.body
   );
 }
