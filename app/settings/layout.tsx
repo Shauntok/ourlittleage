@@ -7,6 +7,7 @@ const navItems = [
   { href: "/settings/profile", icon: "🏠", label: "房间" },
   { href: "/settings/privacy", icon: "🌙", label: "隐私" },
   { href: "/settings/account", icon: "🔐", label: "安全" },
+  { href: "/settings/about", icon: "🌌", label: "关于网站" }
 ];
 
 export default function SettingsLayout({
@@ -35,7 +36,7 @@ export default function SettingsLayout({
               SETTINGS
             </h2>
 
-            <nav className="grid grid-cols-3 gap-2 lg:block lg:space-y-3">
+            <nav className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:block lg:space-y-3">
               {navItems.map((item) => {
                 const active = pathname === item.href;
 
