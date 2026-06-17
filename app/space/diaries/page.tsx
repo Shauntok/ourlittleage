@@ -17,6 +17,7 @@ async function fetchDiaryPosts(): Promise<DiaryPost[]> {
     .eq("type", "diary")
     .eq("visibility", "public")
     .eq("status", "published")
+    .is("deleted_at", null)
     .order("published_at", {
       ascending: false,
     });
@@ -24,7 +25,7 @@ async function fetchDiaryPosts(): Promise<DiaryPost[]> {
   if (error || !data) return [];
 
   const authorIds = Array.from(
-    new Set(data.map((post) => post.author_id).filter(Boolean))
+    new Set(data.map((post: any) => post.author_id).filter(Boolean))
   );
 
   const { data: profiles } =
@@ -45,7 +46,7 @@ async function fetchDiaryPosts(): Promise<DiaryPost[]> {
     ])
   );
 
-  const postIds = data.map((post) => post.id);
+  const postIds = data.map((post: any) => post.id);
 
   const { data: likesData } =
     postIds.length > 0

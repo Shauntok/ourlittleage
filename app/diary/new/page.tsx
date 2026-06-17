@@ -127,8 +127,9 @@ export default function NewDiaryPage() {
   const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [remainingCount, setRemainingCount] = useState<number | null>(null);
 
-  const contentLength = content.trim().length;
   const [editorMessage, setEditorMessage] = useState("");
+
+  const contentLength = content.trim().length;
 
   useEffect(() => {
     async function fetchUser() {
@@ -158,6 +159,7 @@ export default function NewDiaryPage() {
         .eq("author_id", user.id)
         .eq("type", "diary")
         .eq("status", "published")
+        .is("deleted_at", null)
         .gte("published_at", todayStart.toISOString())
         .lt("published_at", todayEnd.toISOString());
 
@@ -171,6 +173,7 @@ export default function NewDiaryPage() {
     const message = getWritingBlockMessage(currentProfile?.status, action);
 
     if (message) {
+      setEditorMessage(message);
       router.push("/home");
       return true;
     }
@@ -193,13 +196,14 @@ export default function NewDiaryPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setEditorMessage("");
     setUploading(true);
 
     try {
       const publicUrl = await uploadEditorImage(file);
       insertTextAtCursor(`\n\n![](${publicUrl})\n\n`);
     } catch (error: any) {
-      alert(error.message);
+      setEditorMessage(error.message || "图片上传失败，请稍后再试。");
     } finally {
       setUploading(false);
     }
@@ -208,6 +212,8 @@ export default function NewDiaryPage() {
   async function saveDraft() {
     if (guardWriting("draft")) return;
     if (!currentUser) return;
+
+    setEditorMessage("");
 
     if (!content.trim()) {
       setEditorMessage("先写几句话，我帮你放进草稿箱。");
@@ -233,7 +239,7 @@ export default function NewDiaryPage() {
     setDraftSaving(false);
 
     if (error) {
-      alert(error.message);
+      setEditorMessage(error.message);
       return;
     }
 
@@ -243,6 +249,8 @@ export default function NewDiaryPage() {
 
   async function publishDiary() {
     if (guardWriting("publish")) return;
+
+    setEditorMessage("");
 
     if (contentLength < MIN_DIARY_LENGTH) {
       setEditorMessage(
@@ -270,7 +278,7 @@ export default function NewDiaryPage() {
       .lt("published_at", todayEnd.toISOString());
 
     if (countError) {
-      alert(countError.message);
+      setEditorMessage(countError.message);
       setPublishing(false);
       return;
     }
@@ -340,6 +348,7 @@ export default function NewDiaryPage() {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-[minmax(680px,1.5fr)_minmax(360px,0.75fr)]">
         <section className="space-y-6">
           <button
+            type="button"
             onClick={() => router.push("/diary")}
             className="text-sm text-white/35 transition hover:text-white/70"
           >

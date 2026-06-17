@@ -117,6 +117,7 @@ export default function HomePage() {
         .eq("type", "diary")
         .eq("visibility", "public")
         .eq("status", "published")
+        .is("deleted_at", null)
         .order("published_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -132,6 +133,7 @@ export default function HomePage() {
         .eq("type", "article")
         .eq("visibility", "public")
         .eq("status", "published")
+        .is("deleted_at", null)
         .order("published_at", { ascending: false })
         .limit(1)
         .maybeSingle();

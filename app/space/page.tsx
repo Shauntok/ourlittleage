@@ -15,20 +15,23 @@ type ProfileInfo = {
 async function fetchSpacePosts(type: "article" | "diary") {
   const { data, error } = await supabase
     .from("posts")
-    .select("id, title, slug, content, type, published_at, created_at, author_id")
+    .select(
+      "id, title, slug, content, type, published_at, created_at, author_id"
+    )
     .eq("type", type)
     .eq("status", "published")
     .eq("visibility", "public")
+    .is("deleted_at", null)
     .order("published_at", { ascending: false })
     .limit(6);
 
   if (error || !data) return [];
 
   const authorIds = Array.from(
-    new Set(data.map((post) => post.author_id).filter(Boolean))
+    new Set(data.map((post: any) => post.author_id).filter(Boolean))
   );
 
-  const postIds = data.map((post) => post.id);
+  const postIds = data.map((post: any) => post.id);
 
   const [profilesResult, likesResult, commentsResult] = await Promise.all([
     authorIds.length > 0
