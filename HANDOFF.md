@@ -1,14 +1,45 @@
 # HANDOFF
 
-更新时间：2026-09-01
+更新时间：2026-09-08
+
+## 2026-09-08 Relationship System V1 Phase 1
+
+本地已完成、尚未提交/推送/部署的范围：Follow Core、Supabase 数据层、Server Actions，以及 `/admin/users/[id]` 中仅 Owner/Admin 可读取的 Relationship 区域。居民端 Follow UI、通知、Mention、Friend System 与「文案」均未开发。
+
+### 数据与规则
+
+* 新 migration：`20260908024825_relationship_follow_core.sql`，为 `profiles` 增加 `follow_mode`，并新增统一关系表 `user_follows`。
+* Follow 为单向关系；状态仅有 `pending` 与 `accepted`；同一方向唯一且禁止关注自己。
+* `open` 立即 accepted，`approval_required` 建立 pending；修改隐私模式不重算既有关系。
+* Mutual 由双方 accepted 动态计算，不保存 `is_mutual`，也没有 mutual table 或计数缓存。
+* 当前使用物理删除；unfollow、取消发出的 pending、拒绝收到的 pending、移除关注者彼此独立，不影响反方向关系。
+* `active` / `warned` 可新增关注与接受申请；`muted` / `banned` / 未知状态禁止增加关系，但仍可减少既有关系。
+* Block System 当前不存在，因此尚未连接；核心服务保留集中入口，未来接入时必须在新增关系前执行 Block 检查。
+
+### 权限与后台
+
+* 浏览器不能直接写入 `user_follows`，也不能直接调用关系状态转换 RPC；所有写操作由服务端从登录 Session 取得 actor id 后执行。
+* RLS 只允许关系双方和 Owner/Admin 读取相关行；所有 `SECURITY DEFINER` RPC 固定空 `search_path`，并只授权 `service_role`。
+* `/admin/users/[id]` 原有 Moderator 页面权限不变，但新的 Relationship API 与 Section 仅 Owner/Admin 可用，服务端会再次校验角色。
+* 后台显示 Following、Followers、Mutual、Pending Received、Pending Sent 与 Follow Mode；明细按需读取并固定 20 条/页，显示头像、用户名、Resident UUID、状态与时间。
+* Relationship 读取失败不会拖垮居民管理房间，会显示独立的错误与重新加载入口。
+
+### 验证与部署边界
+
+* 隔离 PostgreSQL 已验证 migration、约束、索引、RLS、状态转换、账号状态、动态 Mutual、管理员权限，以及并发 Follow 和 Accept/Cancel。
+* Vitest：53 个测试文件、466 项测试通过；TypeScript、关系改动 focused ESLint、production build、`git diff --check` 通过。
+* 全仓库 ESLint 仍有此前遗留的 185 errors / 49 warnings；本阶段没有扩大范围处理。
+* migration **尚未应用到 Production Supabase**，生产数据未用于破坏性测试。部署前必须先应用 migration，再部署依赖这些 RPC/API 的应用版本。
 
 ## 2026-09-01 近期交接总览
 
 ### 仓库与部署状态
 
 * 当前分支：`main`。
-* 本地 `main` 与 `origin/main` 已同步；截至提交 `c74623a` 的功能均已推送。
-* 当前工作区另有一项尚未提交、尚未推送的功能：居民后台详情的「作品累计有效阅读」，详见下方独立小节。
+* 本地 `main` 与 `origin/main` 已同步；当前 HEAD 为 `d0a1c7b`，该提交及之前版本均已推送。
+* 居民后台详情的「作品累计有效阅读」已在提交 `a1d64d1` 中完成并推送，不再属于未提交工作区。
+* 当前尚未提交、尚未推送的重要本地功能为 Relationship System V1 Phase 1：本地完成，未 commit、未 push、未 deploy，Production Supabase migration 尚未应用。
+* 除 Relationship Phase 1 与本次 `HANDOFF.md` 状态同步外，当前没有其他重要的未提交功能。
 * 正式域名：`https://www.ourlittleage.com`。
 
 ### 手机端、图标与内容操作修复
@@ -71,7 +102,7 @@
 * Search Console 曾显示大量「已发现 - 尚未编入索引」，属于抓取/索引状态，不代表 sitemap 失败；需继续观察 Google 后续抓取。
 * UptimeRobot 已建立 `https://www.ourlittleage.com` 的 HTTP 网站监测，免费方案采用 5 分钟间隔；当前状态为绿色正常。
 
-### 当前未提交：居民作品累计有效阅读
+### 已提交并推送：居民作品累计有效阅读
 
 目标页面：`/admin/users/[id]` 的「完整资料」。
 
@@ -84,7 +115,7 @@
 * 仅 Owner/Admin 可以通过 `GET /api/admin/users/[id]/view-count` 读取。
 * 没有新增数据库表或 migration，复用现有有效阅读统计 RPC，并支持大量作品分页与每批 200 个 ID 的查询上限。
 * 当前验证：完整测试 48 个文件、438/438 tests 通过；TypeScript、focused ESLint、`git diff --check` 与 production build 通过。
-* 状态：尚未 commit，尚未 push，尚未部署。
+* 状态：已在提交 `a1d64d1` 中 commit 并 push；是否已部署需以部署平台记录为准。
 
 ### VIP 功能讨论边界
 
@@ -220,6 +251,12 @@ Our Little Age（小时代）
 5. 点赞系统
 
 6. 关注系统
+
+   * Phase 1：Follow Core + Supabase + Admin Relationship View 已完成（本地）
+   * Phase 2：居民端 Follow UI + Follow Notifications 待开发
+   * Mention System：后续独立阶段
+   * Friend System：未来阶段
+   * 原则：Follow ≠ Friend；Mutual Follow ≠ Friend
 
 长期：
 
