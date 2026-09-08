@@ -4,7 +4,7 @@
 
 ## 2026-09-08 Relationship System V1 Phase 1
 
-本地已完成、尚未提交/推送/部署的范围：Follow Core、Supabase 数据层、Server Actions，以及 `/admin/users/[id]` 中仅 Owner/Admin 可读取的 Relationship 区域。居民端 Follow UI、通知、Mention、Friend System 与「文案」均未开发。
+已完成并上线的范围：Follow Core、Supabase 数据层、Server Actions，以及 `/admin/users/[id]` 中仅 Owner/Admin 可读取的 Relationship 区域。居民端 Follow UI、通知、Mention、Friend System 与「文案」均未开发。
 
 ### 数据与规则
 
@@ -29,17 +29,20 @@
 * 隔离 PostgreSQL 已验证 migration、约束、索引、RLS、状态转换、账号状态、动态 Mutual、管理员权限，以及并发 Follow 和 Accept/Cancel。
 * Vitest：53 个测试文件、466 项测试通过；TypeScript、关系改动 focused ESLint、production build、`git diff --check` 通过。
 * 全仓库 ESLint 仍有此前遗留的 185 errors / 49 warnings；本阶段没有扩大范围处理。
-* migration **尚未应用到 Production Supabase**，生产数据未用于破坏性测试。部署前必须先应用 migration，再部署依赖这些 RPC/API 的应用版本。
+* migration 已于 2026-09-08 应用到 Production Supabase；远端记录为 `20260908105046_relationship_follow_core`，对应仓库文件 `20260908024825_relationship_follow_core.sql`。
+* Vercel production 已自动部署提交 `6381ea7`，部署 `dpl_4nZcezVaVtC6puBNvd2FVkwCo8gx` 状态为 READY。
+* 生产只读 smoke test 通过：主页与登入页返回 200，未登录访问 Relationship Admin API 返回 401，后台汇总与五种分页查询可正常读取，最近一小时未发现 Vercel runtime error。
+* 生产环境没有写入测试关系或进行破坏性测试；migration 应用后 `user_follows` 为 0 行。
 
 ## 2026-09-01 近期交接总览
 
 ### 仓库与部署状态
 
 * 当前分支：`main`。
-* 本地 `main` 与 `origin/main` 已同步；当前 HEAD 为 `d0a1c7b`，该提交及之前版本均已推送。
+* 本地 `main` 与 `origin/main` 已同步；Relationship Phase 1 功能提交为 `aa6beac`，交接同步提交为 `6381ea7`，当前生产部署对应 `6381ea7`。
 * 居民后台详情的「作品累计有效阅读」已在提交 `a1d64d1` 中完成并推送，不再属于未提交工作区。
-* 当前尚未提交、尚未推送的重要本地功能为 Relationship System V1 Phase 1：本地完成，未 commit、未 push、未 deploy，Production Supabase migration 尚未应用。
-* 除 Relationship Phase 1 与本次 `HANDOFF.md` 状态同步外，当前没有其他重要的未提交功能。
+* Relationship System V1 Phase 1 已 commit、push、deploy，Production Supabase migration 已应用。
+* 当前仅本次 `HANDOFF.md` 上线状态同步尚未提交；没有其他重要的未提交功能。
 * 正式域名：`https://www.ourlittleage.com`。
 
 ### 手机端、图标与内容操作修复
@@ -115,7 +118,7 @@
 * 仅 Owner/Admin 可以通过 `GET /api/admin/users/[id]/view-count` 读取。
 * 没有新增数据库表或 migration，复用现有有效阅读统计 RPC，并支持大量作品分页与每批 200 个 ID 的查询上限。
 * 当前验证：完整测试 48 个文件、438/438 tests 通过；TypeScript、focused ESLint、`git diff --check` 与 production build 通过。
-* 状态：已在提交 `a1d64d1` 中 commit 并 push；是否已部署需以部署平台记录为准。
+* 状态：已在提交 `a1d64d1` 中 commit、push 并部署；Vercel production 历史已确认该提交为 READY。
 
 ### VIP 功能讨论边界
 
@@ -252,7 +255,7 @@ Our Little Age（小时代）
 
 6. 关注系统
 
-   * Phase 1：Follow Core + Supabase + Admin Relationship View 已完成（本地）
+   * Phase 1：Follow Core + Supabase + Admin Relationship View 已完成并上线
    * Phase 2：居民端 Follow UI + Follow Notifications 待开发
    * Mention System：后续独立阶段
    * Friend System：未来阶段
