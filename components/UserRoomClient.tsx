@@ -5,6 +5,7 @@ import Link from "next/link";
 import TranslatedText from "@/components/TranslatedText";
 import RoomStatusButton from "@/components/RoomStatusButton";
 import RoomAvatarEditor from "@/components/RoomAvatarEditor";
+import ResidentRelationshipControls from "@/components/relationships/ResidentRelationshipControls";
 
 function getImages(content: string) {
   return Array.from(content.matchAll(/!\[[^\]]*\]\((.*?)\)/g))
@@ -182,6 +183,11 @@ export default function UserRoomClient({
               <p className="safe-pre line-clamp-3 max-w-2xl text-sm leading-7 text-white/55 md:line-clamp-none md:text-base md:leading-8">
                 {profile.bio || "这个房间暂时还很安静。"}
               </p>
+
+              <ResidentRelationshipControls
+                residentId={profile.id}
+                username={profile.username}
+              />
 
               <div className="flex flex-wrap gap-2 md:gap-3">
                 {profile.show_level && (
