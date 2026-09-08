@@ -7,6 +7,10 @@ export type MailboxFilter =
   | "trash";
 export type InteractionKind = "like" | "comment" | "reply";
 export type InteractionFilter = "all" | InteractionKind;
+export type RelationshipNotificationType =
+  | "follow"
+  | "follow_request"
+  | "follow_accepted";
 
 export type NotificationProfile = {
   id: string;
@@ -26,6 +30,14 @@ export type NotificationComment = {
   content: string;
 };
 
+export type NotificationRelationship = {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  status: string;
+  accepted_at: string | null;
+};
+
 export type NotificationRecord = {
   id: string;
   user_id: string;
@@ -40,13 +52,49 @@ export type NotificationRecord = {
   actor_id: string | null;
   post_id: number | null;
   comment_id: string | null;
+  relationship_id?: string | null;
   actor_count: number | null;
   recent_actor_ids: string[] | null;
   last_activity_at: string | null;
   actor?: NotificationProfile | NotificationProfile[] | null;
   post?: NotificationPost | NotificationPost[] | null;
   comment?: NotificationComment | NotificationComment[] | null;
+  relationship?:
+    | NotificationRelationship
+    | NotificationRelationship[]
+    | null;
 };
+
+const relationshipNotificationTypes: RelationshipNotificationType[] = [
+  "follow",
+  "follow_request",
+  "follow_accepted",
+];
+
+export function getRelationshipNotificationType(
+  notification: Pick<NotificationRecord, "type">
+): RelationshipNotificationType | null {
+  return relationshipNotificationTypes.includes(
+    notification.type as RelationshipNotificationType
+  )
+    ? (notification.type as RelationshipNotificationType)
+    : null;
+}
+
+export function isRelationshipNotification(
+  notification: Pick<NotificationRecord, "type">
+) {
+  return getRelationshipNotificationType(notification) !== null;
+}
+
+export function getNotificationRelationship(
+  notification: Pick<NotificationRecord, "relationship">
+): NotificationRelationship | null {
+  const relationship = notification.relationship;
+  return Array.isArray(relationship)
+    ? relationship[0] ?? null
+    : relationship ?? null;
+}
 
 const legacyLikeTitles = [
   "有人喜欢了你的内容",

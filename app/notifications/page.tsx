@@ -8,9 +8,15 @@ import InteractionNotificationCard from "@/components/notifications/InteractionN
 import MailboxFilterTabs from "@/components/notifications/MailboxFilterTabs";
 import MailboxNotificationActions from "@/components/notifications/MailboxNotificationActions";
 import NotificationSectionTabs from "@/components/notifications/NotificationSectionTabs";
+import RelationshipNotificationCard from "@/components/notifications/RelationshipNotificationCard";
+import {
+  acceptFollowRequest,
+  rejectFollowRequest,
+} from "@/app/actions/relationships";
 import {
   filterInteractionNotifications,
   filterMailboxNotifications,
+  isRelationshipNotification,
   type InteractionFilter,
   type MailboxFilter,
   type NotificationProfile,
@@ -126,7 +132,34 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    let active = true;
+    let notificationChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    void fetchNotifications();
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active || !data.user) return;
+
+      notificationChannel = supabase
+        .channel(`resident-notifications:${data.user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${data.user.id}`,
+          },
+          () => void fetchNotifications()
+        )
+        .subscribe();
+    });
+
+    return () => {
+      active = false;
+      if (notificationChannel) {
+        void supabase.removeChannel(notificationChannel);
+      }
+    };
     // fetchNotifications is intentionally run once for the signed-in resident.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -167,7 +200,7 @@ export default function NotificationsPage() {
     const { data, error } = await supabase
       .from("notifications")
       .select(
-        "*, post:posts!notifications_post_id_fkey(id,title,type,slug), comment:comments!notifications_comment_id_fkey(id,content)"
+        "*, post:posts!notifications_post_id_fkey(id,title,type,slug), comment:comments!notifications_comment_id_fkey(id,content), relationship:user_follows!notifications_relationship_id_fkey(id,follower_id,following_id,status,accepted_at)"
       )
       .eq("user_id", user.id)
       .order("last_activity_at", { ascending: false });
@@ -208,6 +241,21 @@ export default function NotificationsPage() {
 
     setNotifications(nextNotifications);
     setLoading(false);
+  }
+
+  async function refreshNotifications() {
+    await fetchNotifications();
+    notifyNavbar();
+  }
+
+  async function handleAcceptFollowRequest(requestId: string) {
+    const result = await acceptFollowRequest(requestId);
+
+    if (result.ok && tab === "unread") {
+      setTab("read");
+    }
+
+    return result;
   }
 
   async function getCurrentUserId() {
@@ -494,77 +542,99 @@ export default function NotificationsPage() {
         {section === "mailbox" && (
           <div className="space-y-4 md:space-y-5">
             {filteredNotifications.map((item) => {
-            const isUnread = !item.is_read && !item.deleted_at;
+              if (isRelationshipNotification(item)) {
+                return (
+                  <RelationshipNotificationCard
+                    key={item.id}
+                    notification={item}
+                    actor={
+                      item.actor_id ? actorsById[item.actor_id] || null : null
+                    }
+                    onAccept={handleAcceptFollowRequest}
+                    onReject={rejectFollowRequest}
+                    onRefresh={refreshNotifications}
+                    onStar={() => toggleStarred(item.id, item.is_starred)}
+                    onImportant={() =>
+                      toggleImportant(item.id, item.is_important)
+                    }
+                    onMarkRead={() => markAsRead(item.id)}
+                    onDelete={() => moveToTrash(item.id)}
+                    onRestore={() => restoreNotification(item.id)}
+                  />
+                );
+              }
 
-            return (
-              <article
-                key={item.id}
-                className={
-                  isUnread
-                    ? "rounded-[2rem] border border-yellow-400/20 bg-yellow-400/[0.055] p-5 shadow-[0_0_70px_rgba(250,204,21,0.05)] backdrop-blur-2xl md:rounded-[2.4rem] md:p-7"
-                    : "rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 opacity-80 backdrop-blur-2xl md:rounded-[2.4rem] md:p-7"
-                }
-              >
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                      {isUnread && (
-                        <span className="h-2.5 w-2.5 rounded-full bg-yellow-300 shadow-[0_0_14px_rgba(250,204,21,0.9)]" />
-                      )}
+              const isUnread = !item.is_read && !item.deleted_at;
 
-                      <span className="text-xl md:text-2xl">
-                        {getTypeIcon(item.type)}
-                      </span>
+              return (
+                <article
+                  key={item.id}
+                  className={
+                    isUnread
+                      ? "rounded-[2rem] border border-yellow-400/20 bg-yellow-400/[0.055] p-5 shadow-[0_0_70px_rgba(250,204,21,0.05)] backdrop-blur-2xl md:rounded-[2.4rem] md:p-7"
+                      : "rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 opacity-80 backdrop-blur-2xl md:rounded-[2.4rem] md:p-7"
+                  }
+                >
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                        {isUnread && (
+                          <span className="h-2.5 w-2.5 rounded-full bg-yellow-300 shadow-[0_0_14px_rgba(250,204,21,0.9)]" />
+                        )}
 
-                      <p className="text-xs uppercase tracking-[0.25em] text-white/30 md:tracking-[0.28em]">
-                        {getTypeLabel(item.type)}
+                        <span className="text-xl md:text-2xl">
+                          {getTypeIcon(item.type)}
+                        </span>
+
+                        <p className="text-xs uppercase tracking-[0.25em] text-white/30 md:tracking-[0.28em]">
+                          {getTypeLabel(item.type)}
+                        </p>
+
+                        {item.is_important && (
+                          <span className="rounded-full border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs text-red-200/80">
+                            重要
+                          </span>
+                        )}
+
+                        {item.is_starred && (
+                          <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-xs text-yellow-100/80">
+                            星标
+                          </span>
+                        )}
+                      </div>
+
+                      <h2 className="safe-text mt-4 text-xl font-light text-white/90 md:text-2xl">
+                        {item.title}
+                      </h2>
+
+                      <p className="safe-pre mt-3 whitespace-pre-wrap text-sm leading-7 text-white/55 md:leading-8">
+                        {item.content}
                       </p>
 
-                      {item.is_important && (
-                        <span className="rounded-full border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs text-red-200/80">
-                          重要
-                        </span>
-                      )}
-
-                      {item.is_starred && (
-                        <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-xs text-yellow-100/80">
-                          星标
-                        </span>
-                      )}
+                      <p className="mt-4 text-xs text-white/25">
+                        {new Date(item.created_at).toLocaleString("zh-CN")}
+                      </p>
                     </div>
 
-                    <h2 className="safe-text mt-4 text-xl font-light text-white/90 md:text-2xl">
-                      {item.title}
-                    </h2>
-
-                    <p className="safe-pre mt-3 whitespace-pre-wrap text-sm leading-7 text-white/55 md:leading-8">
-                      {item.content}
-                    </p>
-
-                    <p className="mt-4 text-xs text-white/25">
-                      {new Date(item.created_at).toLocaleString("zh-CN")}
-                    </p>
+                    <div className="flex shrink-0 flex-wrap gap-2 lg:justify-end">
+                      <MailboxNotificationActions
+                        notificationId={item.id}
+                        isRead={item.is_read}
+                        isStarred={item.is_starred}
+                        isImportant={item.is_important}
+                        isDeleted={Boolean(item.deleted_at)}
+                        onStar={() => toggleStarred(item.id, item.is_starred)}
+                        onImportant={() =>
+                          toggleImportant(item.id, item.is_important)
+                        }
+                        onRead={() => markAsRead(item.id)}
+                        onDelete={() => moveToTrash(item.id)}
+                        onRestore={() => restoreNotification(item.id)}
+                      />
+                    </div>
                   </div>
-
-                  <div className="flex shrink-0 flex-wrap gap-2 lg:justify-end">
-                    <MailboxNotificationActions
-                      notificationId={item.id}
-                      isRead={item.is_read}
-                      isStarred={item.is_starred}
-                      isImportant={item.is_important}
-                      isDeleted={Boolean(item.deleted_at)}
-                      onStar={() => toggleStarred(item.id, item.is_starred)}
-                      onImportant={() =>
-                        toggleImportant(item.id, item.is_important)
-                      }
-                      onRead={() => markAsRead(item.id)}
-                      onDelete={() => moveToTrash(item.id)}
-                      onRestore={() => restoreNotification(item.id)}
-                    />
-                  </div>
-                </div>
-              </article>
-            );
+                </article>
+              );
             })}
           </div>
         )}

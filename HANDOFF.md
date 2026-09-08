@@ -1,6 +1,52 @@
 # HANDOFF
 
-更新时间：2026-09-08
+更新时间：2026-09-09
+
+## 2026-09-09 Relationship System V1 Phase 2
+
+当前状态：**本地完成，尚未合并、尚未 push、尚未 deploy。** Production 目前仍是 Phase 1；新 migration `20260908125032_relationship_follow_notifications.sql` **尚未应用到 Production Supabase**。
+
+### 居民房间
+
+* `/u/[username]` 显示公开的关注中与关注者数量，只统计 `accepted`，pending 不公开。
+* 访客可关注、取消申请或取消关注；状态会区分关注、等待回应、已关注与互相关注。Mutual 仍由双向 accepted 动态计算，不保存额外字段或表。
+* 未登录居民点击关注会先登录，成功后安全返回原房间；外部与异常 `returnTo` 会回退首页。
+* 关注中与关注者名单在房间内分页显示，每页固定 20 条；房主可以取消关注或移除关注者，访客只能查看。
+* 名单弹窗支持键盘焦点限制、Esc/背景关闭、关闭后焦点恢复与页面滚动锁定；加载、空资料与读取失败均有独立状态。
+
+### 隐私与通知
+
+* `/settings/privacy` 新增“任何居民可关注”与“关注需要批准”二选一；`follow_mode` 只通过现有 Server Action 保存，浏览器不直接更新该字段。
+* 隐私保存任一路径失败或中断时，会重新读取服务器真实状态，不显示错误的成功结果；旧值或空值读取时安全回退为 `open`，不会自动写库。
+* 新 migration 将 `notifications.relationship_id` 安全连接到 `user_follows`，删除关系后历史通知保留并把外键设为 null。
+* open 关注、pending 申请、接受申请分别建立 `follow`、`follow_request`、`follow_accepted`；关系变化与通知处于同一数据库事务，重复请求不会生成重复通知。
+* 关注通知继续进入现有“信箱”，不进入“互动回声”。申请卡可接受或拒绝，操作期间防止重复提交，完成后重新读取服务器状态。
+* 接受申请后会进入“已读”并显示“已接受”；取消、拒绝或关系已不存在时不再提供操作按钮。取消关注、移除关注者、取消申请与拒绝申请不会额外发通知。
+* 通知继续保留星标、重要、已读、删除与恢复能力；实时订阅只监听当前登录居民自己的通知。
+
+### 数据与权限
+
+* `user_follows` 仍是唯一关系来源，不新增 Mutual、Friend 或 Mention 表，也没有关系计数缓存。
+* 新增 accepted-only 的公开汇总与分页读取 RPC；服务层校验 UUID、名单类型、页码与页长，公开响应只包含房间所需资料。
+* 所有关系写操作仍由 Server Action 从登录 Session 取得 actor id，再调用仅授权 `service_role` 的状态转换 RPC；前端不能代表其他居民操作。
+* `active` / `warned` 与减少关系的既有 Phase 1 规则保持不变；没有新增 Block、Friend、Mention、内容权限或「文案」行为。
+
+### 本地验证与上线边界
+
+* PGlite PostgreSQL 17 兼容隔离环境通过 Phase 1 核心回归与 Phase 2 通知事务测试；因本机没有 Docker/native PostgreSQL，上 Production 前仍必须在完整 disposable Supabase/PostgreSQL 环境再跑一次。
+* Vitest：60 个测试文件、542 项测试全部通过；TypeScript、Phase 2 改动范围 ESLint、production build 与 `git diff --check` 通过。
+* 全仓库 ESLint 仍有历史问题：本分支 183 errors / 50 warnings；对比基线 185 errors / 49 warnings，本阶段没有新增错误，新增警告为沿用现有运行时头像 `<img>` 方式。
+* 浏览器只读检查：居民房间在 1280px 视口无横向溢出，关系读取失败状态不会拖垮房间。由于 Production 尚无 Phase 2 RPC/migration，尚未在真实账号执行关注、申请、隐私保存或通知处理写入测试。
+* Phase 2 分支：`codex/relationship-phase-2`；提交范围 `ba7ccef` 至 `b2fe365`。当前没有 push、PR、merge、deploy 或 Production 数据库写入。
+
+### 后续
+
+1. 在完整的隔离 Supabase/PostgreSQL 环境重跑两组关系 SQL 测试。
+2. 应用前先校准 migration history：Production 记录的 Phase 1 编号是 `20260908105046`，仓库文件编号是 `20260908024825`。当前仓库未连接 Supabase CLI，不能直接假设两者已自动对应；禁止盲目执行 `db push`，应先在受控环境确认远端历史不会重复执行 Phase 1。
+3. 复核并合并 `codex/relationship-phase-2`。
+4. 明确批准后先应用 Phase 2 migration，再部署相依的前端代码。
+5. 用测试账号完成 open、approval、accept、reject、cancel、unfollow、remove follower、隐私保存与通知实时更新 smoke test。
+6. Mention 与 Friend System 继续作为独立后续阶段；Follow ≠ Friend，Mutual Follow ≠ Friend。
 
 ## 2026-09-08 Relationship System V1 Phase 1
 
@@ -256,7 +302,7 @@ Our Little Age（小时代）
 6. 关注系统
 
    * Phase 1：Follow Core + Supabase + Admin Relationship View 已完成并上线
-   * Phase 2：居民端 Follow UI + Follow Notifications 待开发
+   * Phase 2：居民端 Follow UI + Follow Notifications 已完成（本地），尚未合并、push、deploy，Production migration 尚未应用
    * Mention System：后续独立阶段
    * Friend System：未来阶段
    * 原则：Follow ≠ Friend；Mutual Follow ≠ Friend

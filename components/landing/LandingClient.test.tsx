@@ -1,10 +1,27 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import LandingClient from "./LandingClient";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("@/lib/supabase", () => ({ supabase: {} }));
+const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
+  signInWithPassword: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mocks.push }),
+}));
+vi.mock("@/lib/supabase", () => ({
+  supabase: {
+    auth: { signInWithPassword: mocks.signInWithPassword },
+  },
+}));
 
 function resize(width: number, height: number) {
   Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
@@ -22,7 +39,9 @@ function loginInput(placeholder: string) {
 
 describe("mobile login viewport", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    mocks.signInWithPassword.mockResolvedValue({ error: null });
     resize(400, 858);
   });
 
@@ -95,5 +114,55 @@ describe("mobile login viewport", () => {
     unmount();
     resize(740, 360);
     expect(main.style.getPropertyValue("--landing-height")).toBe("858px");
+  });
+
+  it("returns to a supplied resident room after successful login", async () => {
+    render(<LandingClient returnTo="/u/resident-name?tab=stories#latest" />);
+    fireEvent.change(loginInput("邮箱"), {
+      target: { value: "resident@example.com" },
+    });
+    fireEvent.change(loginInput("密码"), {
+      target: { value: "example-only" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "进入小时代" }));
+
+    await waitFor(() => {
+      expect(mocks.push).toHaveBeenCalledWith(
+        "/u/resident-name?tab=stories#latest"
+      );
+    });
+  });
+
+  it("falls back to home when no safe return path was supplied", async () => {
+    render(<LandingClient returnTo={null} />);
+    fireEvent.change(loginInput("邮箱"), {
+      target: { value: "resident@example.com" },
+    });
+    fireEvent.change(loginInput("密码"), {
+      target: { value: "example-only" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "进入小时代" }));
+
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith("/home"));
+  });
+
+  it("keeps the existing login error flow and does not navigate", async () => {
+    mocks.signInWithPassword.mockResolvedValue({
+      error: { message: "Invalid login credentials" },
+    });
+    render(<LandingClient returnTo="/u/resident-name" />);
+    fireEvent.change(loginInput("邮箱"), {
+      target: { value: "resident@example.com" },
+    });
+    fireEvent.change(loginInput("密码"), {
+      target: { value: "wrong-password" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "进入小时代" }));
+
+    expect(await screen.findByText("登录失败，请检查邮箱或密码。")).toBeVisible();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "还没有房间？创建居民账号" })
+    ).toBeInTheDocument();
   });
 });

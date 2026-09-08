@@ -7,9 +7,13 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 const uuidSchema = z.uuid();
 const followModeSchema = z.enum(["open", "approval_required"]);
 const relationshipStatusSchema = z.enum(["pending", "accepted"]);
+const publicRelationshipKindSchema = z.enum(["followers", "following"]);
 
 export type FollowMode = z.infer<typeof followModeSchema>;
 export type RelationshipStatus = z.infer<typeof relationshipStatusSchema>;
+export type PublicRelationshipKind = z.infer<
+  typeof publicRelationshipKindSchema
+>;
 export type RelationshipListKind =
   | "followers"
   | "following"
@@ -52,6 +56,25 @@ export type AdminRelationshipPage = {
   pageSize: number;
 };
 
+export type PublicRelationshipSummary = {
+  followersCount: number;
+  followingCount: number;
+};
+
+export type PublicRelationshipItem = {
+  residentId: string;
+  username: string;
+  avatarUrl: string | null;
+  relationshipAt: string;
+};
+
+export type PublicRelationshipPage = {
+  items: PublicRelationshipItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
 const followRelationshipSchema = z.object({
   id: uuidSchema,
   follower_id: uuidSchema,
@@ -84,6 +107,19 @@ const listRowSchema = z.object({
   username: z.string().nullable(),
   avatar_url: z.string().nullable(),
   relationship_status: relationshipStatusSchema,
+  relationship_at: z.string(),
+  total_count: z.number().int().nonnegative(),
+});
+
+const publicSummarySchema = z.object({
+  followers_count: z.number().int().nonnegative(),
+  following_count: z.number().int().nonnegative(),
+});
+
+const publicListRowSchema = z.object({
+  resident_id: uuidSchema,
+  username: z.string(),
+  avatar_url: z.string().nullable(),
   relationship_at: z.string(),
   total_count: z.number().int().nonnegative(),
 });
@@ -145,6 +181,61 @@ export async function getRelationshipState(actorId: string, targetId: string) {
     inboundStatus: row.inbound_status,
     isFollowing: row.is_following,
     isMutual: row.is_mutual,
+  };
+}
+
+export async function getPublicRelationshipSummary(
+  residentId: string
+): Promise<PublicRelationshipSummary> {
+  const { data, error } = await supabaseAdmin.rpc(
+    "relationship_get_public_summary",
+    { p_resident_id: validUuid(residentId) }
+  );
+  if (error) throw operationError();
+  const row = publicSummarySchema.parse(first(data));
+  return {
+    followersCount: row.followers_count,
+    followingCount: row.following_count,
+  };
+}
+
+export async function getPublicRelationships(
+  residentId: string,
+  kind: PublicRelationshipKind,
+  page = 1,
+  pageSize = 20
+): Promise<PublicRelationshipPage> {
+  if (
+    !Number.isInteger(page) ||
+    page < 1 ||
+    !Number.isInteger(pageSize) ||
+    pageSize < 1 ||
+    pageSize > 100
+  ) {
+    throw new Error("Invalid relationship request");
+  }
+
+  const validResidentId = validUuid(residentId);
+  const validKind = validPublicRelationshipKind(kind);
+  const { data, error } = await supabaseAdmin.rpc("relationship_list_public", {
+    p_resident_id: validResidentId,
+    p_kind: validKind,
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
+  });
+  if (error) throw operationError();
+  const rows = z.array(publicListRowSchema).parse(data || []);
+
+  return {
+    items: rows.map((row) => ({
+      residentId: row.resident_id,
+      username: row.username,
+      avatarUrl: row.avatar_url,
+      relationshipAt: row.relationship_at,
+    })),
+    total: rows[0]?.total_count || 0,
+    page,
+    pageSize,
   };
 }
 
@@ -283,6 +374,12 @@ async function booleanRpc(name: string, args: Record<string, string>) {
 
 function validUuid(value: string) {
   const parsed = uuidSchema.safeParse(value);
+  if (!parsed.success) throw new Error("Invalid relationship request");
+  return parsed.data;
+}
+
+function validPublicRelationshipKind(value: PublicRelationshipKind) {
+  const parsed = publicRelationshipKindSchema.safeParse(value);
   if (!parsed.success) throw new Error("Invalid relationship request");
   return parsed.data;
 }

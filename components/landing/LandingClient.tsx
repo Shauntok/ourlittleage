@@ -56,7 +56,11 @@ const stars = [
   "left-[7%] top-[78%] h-[2px] w-[2px] bg-white/25",
 ];
 
-export default function LandingClient() {
+type LandingClientProps = {
+  returnTo?: string | null;
+};
+
+export default function LandingClient({ returnTo = null }: LandingClientProps) {
   const router = useRouter();
   const landingRef = useRef<HTMLElement>(null);
 
@@ -123,7 +127,7 @@ export default function LandingClient() {
       return;
     }
 
-    router.push("/home");
+    router.push(returnTo || "/home");
   }
 
   async function handleRegister() {
@@ -281,7 +285,6 @@ export default function LandingClient() {
     }
 
     window.scrollTo(0, 0);
-    setShowLoginDock(true);
   }, []);
 
   useEffect(() => {

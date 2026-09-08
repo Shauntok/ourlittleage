@@ -4,6 +4,9 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   followUser: vi.fn(),
   cancelFollowRequest: vi.fn(),
+  getPublicRelationshipSummary: vi.fn(),
+  getPublicRelationships: vi.fn(),
+  getRelationshipState: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase-server", () => ({
@@ -20,9 +23,18 @@ vi.mock("@/lib/relationships/service", () => ({
   rejectFollowRequest: vi.fn(),
   removeFollower: vi.fn(),
   setFollowMode: vi.fn(),
+  getPublicRelationshipSummary: mocks.getPublicRelationshipSummary,
+  getPublicRelationships: mocks.getPublicRelationships,
+  getRelationshipState: mocks.getRelationshipState,
 }));
 
-import { cancelFollowRequest, followUser } from "./relationships";
+import {
+  cancelFollowRequest,
+  followUser,
+  getPublicRelationships,
+  getPublicRelationshipSummary,
+  getResidentRelationshipState,
+} from "./relationships";
 
 const actorId = "11111111-1111-4111-8111-111111111111";
 const targetId = "22222222-2222-4222-8222-222222222222";
@@ -64,5 +76,70 @@ describe("relationship server actions", () => {
       changed: true,
     });
     expect(mocks.cancelFollowRequest).toHaveBeenCalledWith(actorId, targetId);
+  });
+
+  it("reads public relationship counts without requiring a session", async () => {
+    mocks.getPublicRelationshipSummary.mockResolvedValue({
+      followersCount: 4,
+      followingCount: 2,
+    });
+
+    await expect(getPublicRelationshipSummary(targetId)).resolves.toEqual({
+      ok: true,
+      summary: { followersCount: 4, followingCount: 2 },
+    });
+    expect(mocks.getPublicRelationshipSummary).toHaveBeenCalledWith(targetId);
+    expect(mocks.getUser).not.toHaveBeenCalled();
+  });
+
+  it("uses a fixed public page size and exposes no actor input", async () => {
+    mocks.getPublicRelationships.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 3,
+      pageSize: 20,
+    });
+
+    await expect(
+      getPublicRelationships(targetId, "following", 3)
+    ).resolves.toMatchObject({ ok: true, page: { pageSize: 20 } });
+    expect(mocks.getPublicRelationships).toHaveBeenCalledWith(
+      targetId,
+      "following",
+      3,
+      20
+    );
+    expect(mocks.getUser).not.toHaveBeenCalled();
+  });
+
+  it("derives relationship state actor identity from the authenticated session", async () => {
+    mocks.getRelationshipState.mockResolvedValue({
+      outboundStatus: "pending",
+      inboundStatus: null,
+      isFollowing: false,
+      isMutual: false,
+    });
+
+    await expect(getResidentRelationshipState(targetId)).resolves.toEqual({
+      ok: true,
+      state: {
+        outboundStatus: "pending",
+        inboundStatus: null,
+        isFollowing: false,
+        isMutual: false,
+      },
+    });
+    expect(mocks.getRelationshipState).toHaveBeenCalledWith(actorId, targetId);
+  });
+
+  it("returns stable user-safe public read errors", async () => {
+    mocks.getPublicRelationshipSummary.mockRejectedValue(
+      new Error("private database details")
+    );
+
+    await expect(getPublicRelationshipSummary(targetId)).resolves.toEqual({
+      ok: false,
+      error: "关系资料暂时无法读取。",
+    });
   });
 });

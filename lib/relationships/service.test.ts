@@ -8,6 +8,8 @@ vi.mock("@/lib/supabase-admin", () => ({
 
 import {
   followUser,
+  getPublicRelationships,
+  getPublicRelationshipSummary,
   getRelationshipState,
   getResidentRelationshipSummary,
   listResidentRelationships,
@@ -62,6 +64,68 @@ describe("relationship server service", () => {
       isFollowing: true,
       isMutual: true,
     });
+  });
+
+  it("maps the public accepted relationship counts", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ followers_count: 41, following_count: 23 }],
+      error: null,
+    });
+
+    await expect(getPublicRelationshipSummary(targetId)).resolves.toEqual({
+      followersCount: 41,
+      followingCount: 23,
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith(
+      "relationship_get_public_summary",
+      { p_resident_id: targetId }
+    );
+  });
+
+  it("maps one bounded public relationship page", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{
+        resident_id: actorId,
+        username: "resident",
+        avatar_url: null,
+        relationship_at: "2026-09-08T00:00:00Z",
+        total_count: 21,
+      }],
+      error: null,
+    });
+
+    await expect(
+      getPublicRelationships(targetId, "followers", 2, 20)
+    ).resolves.toEqual({
+      items: [{
+        residentId: actorId,
+        username: "resident",
+        avatarUrl: null,
+        relationshipAt: "2026-09-08T00:00:00Z",
+      }],
+      total: 21,
+      page: 2,
+      pageSize: 20,
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith("relationship_list_public", {
+      p_resident_id: targetId,
+      p_kind: "followers",
+      p_limit: 20,
+      p_offset: 20,
+    });
+  });
+
+  it("rejects invalid public list input before reaching the database", async () => {
+    await expect(
+      getPublicRelationships(targetId, "mutual" as "followers", 1, 20)
+    ).rejects.toThrow("Invalid relationship request");
+    await expect(
+      getPublicRelationships(targetId, "followers", 0, 20)
+    ).rejects.toThrow("Invalid relationship request");
+    await expect(
+      getPublicRelationships(targetId, "followers", 1, 101)
+    ).rejects.toThrow("Invalid relationship request");
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it("maps exact admin summary counts and follow mode", async () => {
