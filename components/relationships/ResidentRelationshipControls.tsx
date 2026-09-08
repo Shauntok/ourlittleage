@@ -13,7 +13,11 @@ import {
 } from "@/app/actions/relationships";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { supabase } from "@/lib/supabase";
-import type { RelationshipStatus } from "@/lib/relationships/service";
+import ResidentRelationshipDialog from "./ResidentRelationshipDialog";
+import type {
+  PublicRelationshipKind,
+  RelationshipStatus,
+} from "@/lib/relationships/service";
 
 type ResidentRelationshipControlsProps = {
   residentId: string;
@@ -81,6 +85,9 @@ export default function ResidentRelationshipControls({
   const [readError, setReadError] = useState("");
   const [mutationError, setMutationError] = useState("");
   const [pendingChange, setPendingChange] = useState<PendingChange>(null);
+  const [dialogKind, setDialogKind] = useState<PublicRelationshipKind | null>(
+    null
+  );
 
   const applyData = useCallback(({
     summaryResult,
@@ -124,6 +131,10 @@ export default function ResidentRelationshipControls({
     setReadError("");
     void readRelationshipData(residentId).then(applyData);
   }
+
+  const closeRelationshipDialog = useCallback(() => {
+    setDialogKind(null);
+  }, []);
 
   async function runMutation(
     operation: (targetId: string) => Promise<{ ok: boolean; error?: string }>
@@ -207,13 +218,29 @@ export default function ResidentRelationshipControls({
         </div>
       ) : (
         <div className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-3">
-          <div className="flex h-11 items-center gap-5 text-sm text-white/45">
-            <span className="min-w-[76px] whitespace-nowrap">
+          <div className="flex h-11 items-center gap-1 text-sm text-white/45">
+            <button
+              type="button"
+              aria-label={`打开${username}的关注中名单`}
+              aria-haspopup="dialog"
+              aria-expanded={dialogKind === "following"}
+              disabled={!summary}
+              onClick={() => setDialogKind("following")}
+              className="h-11 min-w-[88px] whitespace-nowrap rounded-lg px-2 text-left tabular-nums transition hover:bg-white/[0.045] hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:cursor-default"
+            >
               关注中 {summary?.followingCount ?? "--"}
-            </span>
-            <span className="min-w-[76px] whitespace-nowrap">
+            </button>
+            <button
+              type="button"
+              aria-label={`打开${username}的关注者名单`}
+              aria-haspopup="dialog"
+              aria-expanded={dialogKind === "followers"}
+              disabled={!summary}
+              onClick={() => setDialogKind("followers")}
+              className="h-11 min-w-[88px] whitespace-nowrap rounded-lg px-2 text-left tabular-nums transition hover:bg-white/[0.045] hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:cursor-default"
+            >
               关注者 {summary?.followersCount ?? "--"}
-            </span>
+            </button>
           </div>
 
           {readError ? (
@@ -273,6 +300,19 @@ export default function ResidentRelationshipControls({
         onConfirm={() => void runMutation(unfollowUser)}
         onCancel={() => setPendingChange(null)}
       />
+
+      {dialogKind && (
+        <ResidentRelationshipDialog
+          key={dialogKind}
+          open
+          kind={dialogKind}
+          residentId={residentId}
+          username={username}
+          isOwner={isOwner}
+          onClose={closeRelationshipDialog}
+          onChanged={refresh}
+        />
+      )}
     </div>
   );
 }

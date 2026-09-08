@@ -52,6 +52,20 @@ vi.mock("@/components/ui/ConfirmDialog", () => ({
   ) : null,
 }));
 
+vi.mock("./ResidentRelationshipDialog", () => ({
+  default: ({
+    open,
+    kind,
+    isOwner,
+  }: {
+    open: boolean;
+    kind: "followers" | "following";
+    isOwner: boolean;
+  }) => open ? (
+    <div role="dialog" aria-label={`${kind}:${isOwner ? "owner" : "visitor"}`} />
+  ) : null,
+}));
+
 import ResidentRelationshipControls from "./ResidentRelationshipControls";
 
 const residentId = "22222222-2222-4222-8222-222222222222";
@@ -113,6 +127,20 @@ describe("ResidentRelationshipControls", () => {
     expect(screen.getByText("关注者 41")).toBeVisible();
     expect(screen.queryByRole("button", { name: /关注夜雨/ })).toBeNull();
     expect(mocks.getState).not.toHaveBeenCalled();
+  });
+
+  it("opens either public list inside the room without navigating", async () => {
+    renderControls();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "打开夜雨的关注中名单" })
+    );
+    expect(screen.getByRole("dialog", { name: "following:visitor" })).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "打开夜雨的关注者名单" })
+    );
+    expect(screen.getByRole("dialog", { name: "followers:visitor" })).toBeVisible();
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it("shows a login follow action to anonymous visitors", async () => {
