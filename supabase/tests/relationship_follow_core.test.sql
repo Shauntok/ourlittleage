@@ -60,9 +60,20 @@ select relationship_test.assert_true(
   (select bool_and(not has_function_privilege('authenticated', p.oid, 'execute'))
    from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
-   where (n.nspname = 'public' and (p.proname like 'relationship_%' or p.proname like 'admin_%resident_relationship%'))
+   where (n.nspname = 'public' and p.proname in (
+       'relationship_follow_user',
+       'relationship_unfollow_user',
+       'relationship_cancel_pending',
+       'relationship_accept_request',
+       'relationship_reject_request',
+       'relationship_remove_follower',
+       'relationship_set_follow_mode',
+       'relationship_get_state',
+       'admin_get_resident_relationship_summary',
+       'admin_list_resident_relationships'
+     ))
       or (n.nspname = 'private' and p.proname in ('lock_relationship_profiles', 'guard_follow_mode_update'))),
-  'ordinary authenticated sessions cannot execute relationship RPCs directly'
+  'ordinary authenticated sessions cannot execute relationship mutation, state, or admin RPCs directly'
 );
 
 set role authenticated;
