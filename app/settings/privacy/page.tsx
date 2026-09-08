@@ -1,7 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { setFollowMode } from "@/app/actions/relationships";
 import { supabase } from "@/lib/supabase";
+import type { FollowMode } from "@/lib/relationships/service";
+
+type PrivacySettings = {
+  showLevel: boolean;
+  showExp: boolean;
+  showTrust: boolean;
+  showJoinedDays: boolean;
+  showBadges: boolean;
+  followMode: FollowMode;
+};
+
+function normalizeFollowMode(value: unknown): FollowMode {
+  return value === "approval_required" ? "approval_required" : "open";
+}
+
+async function readSettings(): Promise<PrivacySettings | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select(
+      `
+        show_level,
+        show_exp,
+        show_trust_score,
+        show_joined_days,
+        show_badges,
+        follow_mode
+      `
+    )
+    .eq("id", user.id)
+    .single();
+
+  if (!data) return null;
+  return {
+    showLevel: data.show_level ?? true,
+    showExp: data.show_exp ?? true,
+    showTrust: data.show_trust_score ?? true,
+    showJoinedDays: data.show_joined_days ?? true,
+    showBadges: data.show_badges ?? true,
+    followMode: normalizeFollowMode(data.follow_mode),
+  };
+}
 
 export default function PrivacySettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -12,12 +60,33 @@ export default function PrivacySettingsPage() {
   const [showTrust, setShowTrust] = useState(true);
   const [showJoinedDays, setShowJoinedDays] = useState(true);
   const [showBadges, setShowBadges] = useState(true);
+  const [followMode, setCurrentFollowMode] = useState<FollowMode>("open");
+  const [initialFollowMode, setInitialFollowMode] = useState<FollowMode>("open");
 
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    loadSettings();
+  const applySettings = useCallback((data: PrivacySettings | null) => {
+    if (data) {
+      setShowLevel(data.showLevel);
+      setShowExp(data.showExp);
+      setShowTrust(data.showTrust);
+      setShowJoinedDays(data.showJoinedDays);
+      setShowBadges(data.showBadges);
+      setCurrentFollowMode(data.followMode);
+      setInitialFollowMode(data.followMode);
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void readSettings().then((data) => {
+      if (active) applySettings(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, [applySettings]);
 
   function showToast(text: string) {
     setMessage(text);
@@ -25,41 +94,6 @@ export default function PrivacySettingsPage() {
     window.setTimeout(() => {
       setMessage("");
     }, 4200);
-  }
-
-  async function loadSettings() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const { data } = await supabase
-      .from("profiles")
-      .select(
-        `
-          show_level,
-          show_exp,
-          show_trust_score,
-          show_joined_days,
-          show_badges
-        `
-      )
-      .eq("id", user.id)
-      .single();
-
-    if (data) {
-      setShowLevel(data.show_level ?? true);
-      setShowExp(data.show_exp ?? true);
-      setShowTrust(data.show_trust_score ?? true);
-      setShowJoinedDays(data.show_joined_days ?? true);
-      setShowBadges(data.show_badges ?? true);
-    }
-
-    setLoading(false);
   }
 
   async function saveSettings() {
@@ -71,25 +105,37 @@ export default function PrivacySettingsPage() {
 
     setSaving(true);
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        show_level: showLevel,
-        show_exp: showExp,
-        show_trust_score: showTrust,
-        show_joined_days: showJoinedDays,
-        show_badges: showBadges,
-      })
-      .eq("id", user.id);
+    const [profileResult, followResult] = await Promise.allSettled([
+      supabase
+        .from("profiles")
+        .update({
+          show_level: showLevel,
+          show_exp: showExp,
+          show_trust_score: showTrust,
+          show_joined_days: showJoinedDays,
+          show_badges: showBadges,
+        })
+        .eq("id", user.id),
+      followMode === initialFollowMode
+        ? Promise.resolve({ ok: true as const })
+        : setFollowMode(followMode),
+    ]);
 
-    setSaving(false);
+    const profileFailed =
+      profileResult.status === "rejected" || Boolean(profileResult.value.error);
+    const followFailed =
+      followResult.status === "rejected" || !followResult.value.ok;
 
-    if (error) {
-      showToast(`保存失败：${error.message}`);
+    if (profileFailed || followFailed) {
+      applySettings(await readSettings());
+      setSaving(false);
+      showToast("部分设置未能保存，已重新读取当前状态。");
       return;
     }
 
-    showToast("隐私设置已保存 🌙");
+    setInitialFollowMode(followMode);
+    setSaving(false);
+    showToast("隐私设置已保存。");
   }
 
   if (loading) {
@@ -103,7 +149,10 @@ export default function PrivacySettingsPage() {
   return (
     <div className="mx-auto max-w-4xl">
       {message && (
-        <div className="mb-6 rounded-[1.5rem] border border-violet-500/20 bg-violet-500/[0.08] px-5 py-4 text-sm text-violet-100 backdrop-blur-2xl">
+        <div
+          role="status"
+          className="mb-6 rounded-[1.5rem] border border-violet-500/20 bg-violet-500/[0.08] px-5 py-4 text-sm text-violet-100 backdrop-blur-2xl"
+        >
           {message}
         </div>
       )}
@@ -156,6 +205,26 @@ export default function PrivacySettingsPage() {
         />
       </section>
 
+      <fieldset className="mt-6 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-2xl md:mt-8 md:rounded-[2.4rem] md:p-7">
+        <legend className="px-1 text-lg font-light text-white/90">
+          关注方式
+        </legend>
+        <div role="radiogroup" aria-label="关注方式" className="mt-4 grid gap-3 sm:grid-cols-2">
+          <FollowModeOption
+            title="任何居民可关注"
+            description="新的关注会立即生效。"
+            selected={followMode === "open"}
+            onSelect={() => setCurrentFollowMode("open")}
+          />
+          <FollowModeOption
+            title="关注需要批准"
+            description="新的关注会先等待你的同意。"
+            selected={followMode === "approval_required"}
+            onSelect={() => setCurrentFollowMode("approval_required")}
+          />
+        </div>
+      </fieldset>
+
       <button
         type="button"
         onClick={saveSettings}
@@ -207,21 +276,54 @@ function PrivacyItem({
 
       <button
         type="button"
+        aria-label={title}
         onClick={() => onChange(!checked)}
         className={`
-          relative h-8 w-14 shrink-0 rounded-full transition
-          md:w-16
+          relative h-11 w-16 shrink-0 rounded-full transition
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50
           ${checked ? "bg-violet-500" : "bg-zinc-700"}
         `}
         aria-pressed={checked}
       >
         <span
           className={`
-            absolute top-1 h-6 w-6 rounded-full bg-white transition
-            ${checked ? "left-7 md:left-9" : "left-1"}
+            absolute top-2 h-7 w-7 rounded-full bg-white transition
+            ${checked ? "left-7" : "left-2"}
           `}
         />
       </button>
     </div>
+  );
+}
+
+function FollowModeOption({
+  title,
+  description,
+  selected,
+  onSelect,
+}: {
+  title: string;
+  description: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      aria-label={title}
+      onClick={onSelect}
+      className={`min-h-[88px] rounded-lg border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
+        selected
+          ? "border-white/25 bg-white/[0.08]"
+          : "border-white/[0.08] bg-black/10 hover:border-white/15 hover:bg-white/[0.04]"
+      }`}
+    >
+      <span className="block text-sm font-medium text-white/85">{title}</span>
+      <span className="mt-1.5 block text-xs leading-5 text-white/35">
+        {description}
+      </span>
+    </button>
   );
 }
