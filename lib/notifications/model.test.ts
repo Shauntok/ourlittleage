@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   filterInteractionNotifications,
   filterMailboxNotifications,
+  getNotificationRelationship,
   getInteractionKind,
+  getRelationshipNotificationType,
   isInteractionNotification,
+  isRelationshipNotification,
   type NotificationRecord,
 } from "./model";
 
@@ -102,5 +105,51 @@ describe("notification section filters", () => {
       filterInteractionNotifications(rows, "comment").map((item) => item.id)
     ).toEqual(["legacy-comment"]);
     expect(filterInteractionNotifications(rows, "reply")).toEqual([]);
+  });
+});
+
+describe("relationship notification classification", () => {
+  it.each(["follow", "follow_request", "follow_accepted"] as const)(
+    "keeps %s in the mailbox and out of interactions",
+    (type) => {
+      const item = notification({ id: type, type });
+
+      expect(getRelationshipNotificationType(item)).toBe(type);
+      expect(isRelationshipNotification(item)).toBe(true);
+      expect(filterMailboxNotifications([item])).toEqual([item]);
+      expect(filterInteractionNotifications([item], "all")).toEqual([]);
+    }
+  );
+
+  it("normalizes a joined relationship returned as an object or array", () => {
+    const relationship = {
+      id: "relationship-1",
+      follower_id: "rain",
+      following_id: "resident-1",
+      status: "pending",
+      accepted_at: null,
+    };
+
+    expect(
+      getNotificationRelationship(notification({ relationship }))
+    ).toEqual(relationship);
+    expect(
+      getNotificationRelationship(notification({ relationship: [relationship] }))
+    ).toEqual(relationship);
+  });
+
+  it("returns null for a missing or empty relationship join", () => {
+    expect(getNotificationRelationship(notification())).toBeNull();
+    expect(
+      getNotificationRelationship(notification({ relationship: [] }))
+    ).toBeNull();
+  });
+
+  it("keeps unknown types on the generic mailbox path", () => {
+    const item = notification({ type: "future_notice" });
+
+    expect(getRelationshipNotificationType(item)).toBeNull();
+    expect(isRelationshipNotification(item)).toBe(false);
+    expect(filterMailboxNotifications([item])).toEqual([item]);
   });
 });
