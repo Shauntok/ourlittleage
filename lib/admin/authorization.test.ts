@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
+  canViewRelationships,
   canManageFeedback,
   canManageSponsors,
   getAdminActor,
@@ -76,6 +77,18 @@ describe("canManageFeedback", () => {
     [null, false],
   ])("returns %s for role %s", (role, expected) => {
     expect(canManageFeedback(role)).toBe(expected);
+  });
+});
+
+describe("canViewRelationships", () => {
+  it.each([
+    ["owner", true],
+    ["admin", true],
+    ["moderator", false],
+    ["user", false],
+    [null, false],
+  ])("returns %s for role %s", (role, expected) => {
+    expect(canViewRelationships(role)).toBe(expected);
   });
 });
 

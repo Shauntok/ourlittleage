@@ -14,6 +14,7 @@ import UserProfileHeader from "@/components/admin/users/UserProfileHeader";
 import UserBioCard from "@/components/admin/users/UserBioCard";
 import UserJoinedCard from "@/components/admin/users/UserJoinedCard";
 import UserProfileInfoCard from "@/components/admin/users/UserProfileInfoCard";
+import UserRelationshipSection from "@/components/admin/users/UserRelationshipSection";
 import { fetchUserDetailData } from "@/components/admin/users/userDetailData";
 
 export default function AdminUserDetailPage() {
@@ -422,6 +423,10 @@ export default function AdminUserDetailPage() {
       />
 
       <UserProfileInfoCard profile={profile} />
+
+      {(currentRole === "owner" || currentRole === "admin") && (
+        <UserRelationshipSection key={id} userId={id} />
+      )}
 
       <UserGrowthActions
         currentRole={currentRole}

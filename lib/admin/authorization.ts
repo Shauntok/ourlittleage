@@ -14,6 +14,10 @@ export function canManageFeedback(role: unknown): boolean {
   return role === "owner" || role === "admin";
 }
 
+export function canViewRelationships(role: unknown): boolean {
+  return role === "owner" || role === "admin";
+}
+
 export async function getAdminActor(
   request?: Request
 ): Promise<AdminActor | null> {
