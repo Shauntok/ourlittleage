@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import AgeDistributionPanel from "@/components/admin/homepage/AgeDistributionPanel";
 
 export default function AdminHomePage() {
   const [loading, setLoading] = useState(true);
@@ -199,6 +200,8 @@ export default function AdminHomePage() {
         <StatCard title="禁言用户" value={stats.muted} icon="🔇" />
         <StatCard title="封禁用户" value={stats.banned} icon="🚫" danger />
       </div>
+
+      <AgeDistributionPanel />
 
       {(stats.reports > 0 || stats.banned > 0 || stats.muted > 0) && (
         <section className="rounded-3xl border border-red-500/20 bg-red-500/[0.06] p-5 md:p-6">
