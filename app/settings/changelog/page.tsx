@@ -1,6 +1,21 @@
 export default function SettingsChangelogPage() {
   const logs = [
     {
+      version: "Alpha 0.9.8",
+      date: "2026.09.09",
+      features: [
+        "后台控制中心新增居民年龄分布，可展开查看各年龄层人数",
+      ],
+      fixes: [
+        "修复部分环境中信箱内容与分类数量错误显示为零的问题",
+      ],
+      improvements: [
+        "居民房间在关系资料暂时无法读取时继续保留关注中与关注者，并移除容易造成误解的刷新按钮",
+        "年龄统计采用低调的深夜配色，并将没有生日记录或无法归类的居民分开显示",
+      ],
+    },
+
+    {
       version: "Alpha 0.9.7",
       date: "2026.09.09",
       features: [
