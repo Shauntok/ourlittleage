@@ -216,24 +216,39 @@ describe("ResidentRelationshipControls", () => {
     expect(screen.getByLabelText("正在读取关系资料")).toBeVisible();
   });
 
-  it("keeps the room usable and offers a quiet retry when reads fail", async () => {
-    mocks.getSummary.mockResolvedValue({
-      ok: false,
-      error: "关系资料暂时无法读取。",
-    });
-    renderControls();
+  it.each([
+    ["room owner", residentId],
+    ["anonymous visitor", null],
+    ["signed-in visitor", viewerId],
+  ])(
+    "keeps only the two public counts visible for the %s when reads fail",
+    async (_view, userId) => {
+      mocks.getUser.mockResolvedValue({
+        data: { user: userId ? { id: userId } : null },
+        error: null,
+      });
+      mocks.getSummary.mockResolvedValue({
+        ok: false,
+        error: "关系资料暂时无法读取。",
+      });
+      renderControls();
 
-    expect(await screen.findByText("关系资料暂时无法读取。")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "重新读取关系资料" }));
-    await waitFor(() => expect(mocks.getSummary).toHaveBeenCalledTimes(2));
-  });
+      expect(await screen.findByText("关注中 --")).toBeVisible();
+      expect(screen.getByText("关注者 --")).toBeVisible();
+      expect(screen.queryByText("关系资料暂时无法读取。")).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "重新读取关系资料" })
+      ).toBeNull();
+    }
+  );
 
   it("contains an unexpected read rejection inside the relationship area", async () => {
     mocks.getSummary.mockRejectedValue(new Error("network details"));
     renderControls();
 
-    expect(await screen.findByText("关系资料暂时无法读取。")).toBeVisible();
-    expect(screen.getByRole("button", { name: "重新读取关系资料" })).toBeVisible();
+    expect(await screen.findByText("关注中 --")).toBeVisible();
+    expect(screen.getByText("关注者 --")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "重新读取关系资料" })).toBeNull();
   });
 
   it("disables repeated follow clicks and refreshes counts and state", async () => {

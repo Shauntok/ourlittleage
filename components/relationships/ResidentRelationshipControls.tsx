@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { LoaderCircle, RefreshCw, UserPlus } from "lucide-react";
+import { LoaderCircle, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -243,17 +243,7 @@ export default function ResidentRelationshipControls({
             </button>
           </div>
 
-          {readError ? (
-            <button
-              type="button"
-              aria-label="重新读取关系资料"
-              onClick={refresh}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 text-xs text-white/45 transition hover:border-white/20 hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-            >
-              <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" />
-              {readError}
-            </button>
-          ) : !isOwner ? (
+          {!readError && !isOwner ? (
             <button
               type="button"
               aria-label={buttonLabel}
