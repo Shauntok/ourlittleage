@@ -338,11 +338,20 @@ production test-account flow pending
 * 当前验证：完整测试 48 个文件、438/438 tests 通过；TypeScript、focused ESLint、`git diff --check` 与 production build 通过。
 * 状态：已在提交 `a1d64d1` 中 commit、push 并部署；Vercel production 历史已确认该提交为 READY。
 
-### VIP 功能讨论边界
+### VIP System V1 Phase 1
 
-* VIP 系统当前尚未设计、尚未开发，也没有数据库 migration。
-* 项目原规则将 VIP 列为暂停开发；负责人已于 2026-09-01 明确恢复方案讨论，但在方案正式确认前不得改动用户体系、角色权限、内容可见性、支付或数据库结构。
-* 后续方案应优先复用现有 `profiles`、`posts`、通知与后台权限体系，并明确订阅生命周期、支付来源、权益边界、退款/到期行为、隐私和管理员操作审计。
+当前状态：**implementation complete、local verification complete、已 commit（`eb2fc6f`）并随本次 HANDOFF 同步 push 到 `main`。Vercel deployment verification pending；Production Supabase migration 尚未应用。**
+
+* 新 migration：`20260909131821_vip_foundation.sql`。只建立 VIP Foundation，不修改 `profiles.role`，VIP 与 `owner/admin/moderator/user` 身份保持正交。
+* `vip_feature_flags` 是服务端单例开关；`vip_entitlement_enabled`、`vip_public_ui_enabled`、`vip_purchase_enabled`、`vip_referral_reward_enabled`、`vip_public_badge_enabled` 全部默认并保持 `false`。缺行、异常或未知值按关闭处理。
+* `vip_memberships` 每位居民最多一行当前状态，状态仅为 `active / cancelled / revoked`。有效权益由数据库可信时间动态判断：总开关开启、账号状态允许、`status = active`、`started_at <= now()`、`expires_at > now()`。
+* `vip_membership_events` 保存只增不改的 `grant / extend / cancel / revoke` 事件。唯一 `request_id` 与事务锁保证重试不会重复改变状态或重复记账。
+* `lib/vip/service.ts` 是统一的 server-only 入口，提供 flags、membership、entitlement、`isVipActive` 以及 Owner-only 的 grant/extend/cancel/revoke 核心操作。Owner/Admin actor 必须来自现有 Cookie Server Session；Admin 仅可读取核心状态，Moderator 与普通居民无 VIP 管理权限。
+* RLS 已写入 migration；VIP 表和 RPC 不向 `anon/authenticated` 开放，写入只能走受控 service-role RPC，数据库内再次校验 Owner。事件表通过 trigger 阻止 UPDATE/DELETE。
+* Phase 1 的 `cancelVip` 是立即取消；`cancel_at_period_end` 仅保留数据结构，未来语义尚未开放。grant/extend 使用明确时间，不把“月”硬编码为 30 天。
+* 隔离 PGlite PostgreSQL 兼容环境已执行完整 migration，并在同一数据库连续两次通过 VIP SQL 回归；VIP Vitest 12/12、TypeScript、focused ESLint、production build 与 `git diff --check` 均通过。
+* 本阶段没有购买、支付、Referral、公开 `/vip` 页面、公开 VIP 徽章、Admin VIP UI、Resident Detail 控制、营销、Security Center 或风险评分。
+* Production 必须继续保持全部 VIP flags 为 OFF。应用 Production migration 与启用任一 VIP 能力都需要后续独立审批。
 
 ## 本次交接：公开内容分享
 
