@@ -2,9 +2,180 @@
 
 更新时间：2026-09-09
 
+## Product Rules / Long-term Architecture
+
+本章节记录已经确认、需要长期保留的产品与架构规则。除非项目负责人明确重新决策，否则未来开发不得把这些规则当作当前 TODO 自行改写，也不得因为相关功能尚未开发而忽略这些边界。
+
+### 1. Relationship 基础原则
+
+```text
+Follow ≠ Friend
+Mutual Follow ≠ Friend
+Friend ≠ Follow Subscription
+Mention ≠ Content Permission
+Block Priority > Follow / Mutual / Mention / Friend
+```
+
+* Mutual 永远由双向 `accepted` Follow 动态计算，不建立独立 Mutual relation、table 或持久化状态。
+* Friend System 未来必须使用独立 Friendship relation；互相关注不会自动成为朋友。
+* Friendship 也不等于订阅对方内容。
+
+### 2. Block System Future Rules
+
+Block System 尚未开发，但实现优先级必须高于 Mention 与 Friend。
+
+未来居民建立 Block 后：
+
+* 双向 Follow 解除。
+* Pending Follow Request 解除。
+* Mutual 随双向 Follow 解除而自动消失。
+* 禁止双方建立新的 Follow。
+* 禁止双方建立新的 Mention。
+* 相关旧 Mention Identity Link 解除。
+* 作者原始内容中的文字不得因为 Block 被系统删除或修改。
+
+Unblock 后不得自动恢复 Follow、Mutual、Pending 或已经解除的 Mention Identity Link。居民必须重新主动建立关系。
+
+### 3. Mention System Future Rules
+
+Mention System 尚未开发。未来至少支持以下 Mention Privacy：
+
+```text
+everyone
+people_i_follow
+mutuals
+nobody
+```
+
+已经合法建立的历史 Mention：
+
+* 普通 Unfollow 不自动删除。
+* 失去 Mutual 不自动删除。
+* 修改 Mention Privacy 默认不影响历史 Mention。
+* 只有 Block、被 Mention 居民主动作解除身份关联、账号删除或必要的 Moderation Action，才可以强制解除 Identity Relation。
+* 被 Mention 的居民可以解除自己的身份关联，但不能删除或修改作者内容中的文字。
+
+Draft 中的 Mention 不通知。Publish 时必须按当时权限重新验证。
+
+已发布内容普通编辑时，必须区分 Existing Mention 与 New Mention。旧的合法 Mention 不因后来 Follow Relationship 改变而重新失效。
+
+同一 `content + target_user` 生命周期最多产生一次 Mention Notification，防止重复编辑造成通知骚扰。Mention 永远不能绕过 Content Visibility。
+
+### 4. Friend System Future Rules
+
+Friend System 尚未开发。
+
+* Friendship 与 Follow 必须完全独立。
+* Mutual Follow 不等于 Friend。
+* Future Friendship 不默认强制双方 Follow。
+* Friend Request、Friendship Privacy 和解除规则以后单独设计。
+
+### 5. Future Content Type: 文案
+
+「文案」尚未开发。已经确认：
+
+* 是居民发布的独立 Content Type。
+* 与 Article、Diary 并列。
+* 玩法规则不同。
+* 发布以后不能编辑。
+
+当前不得实现文案，但未来 shared content architecture 不应永久假定只有 `article | diary`。Admin Resident Room、通知、广场等系统未来需要能够扩展支持文案。
+
+### 6. Admin Resident Management Room 长期方向
+
+`/admin/users/[id]` 长期作为 Resident 360° View，未来逐步汇集居民的大多数运营数据：
+
+```text
+Profile
+Account Status
+Role
+EXP / Growth
+Trust
+Level
+Badges
+Articles
+Diaries
+Future 文案
+Follow
+Future Mention
+Future Friend
+Reports
+Moderation
+Admin Logs
+```
+
+不得展示任何认证秘密：
+
+```text
+Password
+Password Hash
+Access Token
+Refresh Token
+Session Token
+Service Role Key
+JWT Secret
+API Secret
+```
+
+### 7. Future Security Center
+
+以下方向已规划，但目前不开发：
+
+```text
+Admin
+-> Security Center
+-> IP Blocking
+-> CIDR
+-> Firewall Rules
+-> Rate Limit
+-> Security Logs
+```
+
+* 未来优先考虑连接 Vercel Firewall，而不是只实现应用层 IP Block。
+* 所有 Firewall 管理操作必须写入 Audit Log。
+* `Ban Resident ≠ Block IP`。
+* 不得因为居民被 banned 就自动封锁其 IP。
+
+### 8. Historical TODO Verification
+
+以下事项历史上曾被规划或记录为问题，当前统一标记为 `Needs verification`。未来进入相关模块时，必须先检查当前代码与 Production 状态，再决定是否仍是 TODO；本轮不开发：
+
+* Deleted Diary/Post Recycle Bin 与每日额度、今日状态的一致性。
+* Scheduled Announcement Cron。
+* Scheduled Broadcast。
+* 简体/繁体 UI Switch。
+* Profile Privacy。
+* Badge / Title 后续扩展。
+* muted / banned 居民友好提示。
+
+### 9. Deployment State Terminology
+
+以后 HANDOFF 必须分别记录以下状态，不得因为代码已经 push 就写成“已上线”：
+
+```text
+implemented
+committed
+pushed
+migration applied
+deployed
+production verified
+```
+
+当前 Relationship Phase 2 状态：
+
+```text
+implementation complete
+committed
+merged to main
+pushed
+Production migration pending
+latest Vercel deployment verification pending
+production test-account flow pending
+```
+
 ## 2026-09-09 Relationship System V1 Phase 2
 
-当前状态：**本地完成，尚未合并、尚未 push、尚未 deploy。** Production 目前仍是 Phase 1；新 migration `20260908125032_relationship_follow_notifications.sql` **尚未应用到 Production Supabase**。
+当前状态：**implementation complete、committed、已合并到 `main`、已 push。** Production migration、最新 Vercel deployment verification 与 production test-account flow 仍待完成。新 migration `20260908125032_relationship_follow_notifications.sql` **尚未应用到 Production Supabase**，不得把 push 视为已经上线。
 
 ### 居民房间
 
@@ -37,16 +208,16 @@
 * Vitest：60 个测试文件、542 项测试全部通过；TypeScript、Phase 2 改动范围 ESLint、production build 与 `git diff --check` 通过。
 * 全仓库 ESLint 仍有历史问题：本分支 183 errors / 50 warnings；对比基线 185 errors / 49 warnings，本阶段没有新增错误，新增警告为沿用现有运行时头像 `<img>` 方式。
 * 浏览器只读检查：居民房间在 1280px 视口无横向溢出，关系读取失败状态不会拖垮房间。由于 Production 尚无 Phase 2 RPC/migration，尚未在真实账号执行关注、申请、隐私保存或通知处理写入测试。
-* Phase 2 分支：`codex/relationship-phase-2`；提交范围 `ba7ccef` 至 `b2fe365`。当前没有 push、PR、merge、deploy 或 Production 数据库写入。
+* Phase 2 原开发分支：`codex/relationship-phase-2`；提交范围 `ba7ccef` 至 `b2fe365`，已通过提交 `2cece34` 合并到 `main` 并 push。Production migration 尚未应用；是否已由 Vercel 部署仍需单独核实。
 
 ### 后续
 
 1. 在完整的隔离 Supabase/PostgreSQL 环境重跑两组关系 SQL 测试。
 2. 应用前先校准 migration history：Production 记录的 Phase 1 编号是 `20260908105046`，仓库文件编号是 `20260908024825`。当前仓库未连接 Supabase CLI，不能直接假设两者已自动对应；禁止盲目执行 `db push`，应先在受控环境确认远端历史不会重复执行 Phase 1。
-3. 复核并合并 `codex/relationship-phase-2`。
-4. 明确批准后先应用 Phase 2 migration，再部署相依的前端代码。
-5. 用测试账号完成 open、approval、accept、reject、cancel、unfollow、remove follower、隐私保存与通知实时更新 smoke test。
-6. Mention 与 Friend System 继续作为独立后续阶段；Follow ≠ Friend，Mutual Follow ≠ Friend。
+3. 核实最新 `main` 是否已经由 Vercel 成功部署，不以 push 结果代替 deployment verification。
+4. 明确批准并完成 migration history 校准后，才应用 Phase 2 migration；不得进行破坏性 Production 测试。
+5. 用测试账号完成 open、approval、accept、reject、cancel、unfollow、remove follower、隐私保存与通知实时更新 smoke test，并单独记录 production verified 状态。
+6. Block System 优先于 Mention 与 Friend；Mention 与 Friend 继续作为相互独立的后续阶段。
 
 ## 2026-09-08 Relationship System V1 Phase 1
 
@@ -85,10 +256,11 @@
 ### 仓库与部署状态
 
 * 当前分支：`main`。
-* 本地 `main` 与 `origin/main` 已同步；Relationship Phase 1 功能提交为 `aa6beac`，交接同步提交为 `6381ea7`，当前生产部署对应 `6381ea7`。
+* 截至 2026-09-09，本地 `main` 与 `origin/main` 已同步至 `5628cf1`。这只确认 Git pushed 状态，不代表最新 Vercel deployment 或 Production verification 已完成。
 * 居民后台详情的「作品累计有效阅读」已在提交 `a1d64d1` 中完成并推送，不再属于未提交工作区。
 * Relationship System V1 Phase 1 已 commit、push、deploy，Production Supabase migration 已应用。
-* 当前仅本次 `HANDOFF.md` 上线状态同步尚未提交；没有其他重要的未提交功能。
+* Relationship System V1 Phase 2 已 implementation complete、committed、合并并 push；Production migration、最新 Vercel deployment verification 与 production test-account flow 仍待完成。
+* Alpha 0.9.8 已记录后台居民年龄分布、居民房间关系读取失败状态简化，以及信箱旧数据库结构兼容修复。
 * 正式域名：`https://www.ourlittleage.com`。
 
 ### 手机端、图标与内容操作修复
@@ -283,7 +455,9 @@ Our Little Age（小时代）
 
 ---
 
-## 当前待办
+## 历史待办快照（Needs verification）
+
+以下列表来自早期开发阶段，不代表当前已经核实的待办。进入相关模块前必须先检查当前代码与 Production 状态；其中 Relationship 状态已按 2026-09-09 的实际 Git 状态同步。
 
 高优先级：
 
@@ -302,7 +476,7 @@ Our Little Age（小时代）
 6. 关注系统
 
    * Phase 1：Follow Core + Supabase + Admin Relationship View 已完成并上线
-   * Phase 2：居民端 Follow UI + Follow Notifications 已完成（本地），尚未合并、push、deploy，Production migration 尚未应用
+   * Phase 2：居民端 Follow UI + Follow Notifications 已完成、commit、合并并 push；Production migration、最新 Vercel deployment verification 与 production test-account flow 待完成
    * Mention System：后续独立阶段
    * Friend System：未来阶段
    * 原则：Follow ≠ Friend；Mutual Follow ≠ Friend
