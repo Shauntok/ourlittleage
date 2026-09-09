@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { updateSupabaseSession } from "@/lib/supabase-proxy";
 
 const CANONICAL_HOST = "www.ourlittleage.com";
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const hostname = request.headers.get("host")?.split(":")[0].toLowerCase();
 
   if (hostname === "ourlittleage.com") {
@@ -13,7 +14,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  const response = NextResponse.next();
+  const response = await updateSupabaseSession(request);
   const pathname = request.nextUrl.pathname;
   const privatePrefixes = [
     "/admin",
