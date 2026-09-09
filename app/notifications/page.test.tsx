@@ -132,6 +132,43 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("NotificationsPage relationship integration", () => {
+  it("falls back to legacy notifications when the relationship foreign key is not deployed", async () => {
+    const legacyRows = [
+      notification({
+        id: "badge-1",
+        type: "badge",
+        title: "你获得了新的徽章",
+        content: "你获得了「创世神」。",
+        actor_id: null,
+        recent_actor_ids: [],
+        relationship_id: null,
+        relationship: null,
+      }),
+    ];
+    mocks.notificationOrder
+      .mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: "PGRST200",
+          message:
+            "Could not find a relationship between 'notifications' and 'user_follows' in the schema cache",
+        },
+      })
+      .mockResolvedValueOnce({ data: legacyRows, error: null });
+
+    render(<NotificationsPage />);
+
+    expect(await screen.findByText("你获得了新的徽章")).toBeVisible();
+    expect(screen.getByRole("tab", { name: /信箱/ })).toHaveTextContent("1");
+    expect(mocks.notificationSelect).toHaveBeenCalledTimes(2);
+    expect(mocks.notificationSelect.mock.calls[0][0]).toContain(
+      "relationship:user_follows!notifications_relationship_id_fkey"
+    );
+    expect(mocks.notificationSelect.mock.calls[1][0]).not.toContain(
+      "relationship:user_follows"
+    );
+  });
+
   it("joins relationships and keeps follow notices in the mailbox", async () => {
     rows = [
       notification({ type: "follow", title: "有居民关注了你" }),

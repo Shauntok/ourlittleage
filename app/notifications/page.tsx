@@ -24,6 +24,10 @@ import {
   type NotificationSection,
 } from "@/lib/notifications/model";
 
+const LEGACY_NOTIFICATION_SELECT =
+  "*, post:posts!notifications_post_id_fkey(id,title,type,slug), comment:comments!notifications_comment_id_fkey(id,content)";
+const RELATIONSHIP_NOTIFICATION_SELECT = `${LEGACY_NOTIFICATION_SELECT}, relationship:user_follows!notifications_relationship_id_fkey(id,follower_id,following_id,status,accepted_at)`;
+
 function notifyNavbar() {
   window.dispatchEvent(new Event("notifications-updated"));
 
@@ -197,13 +201,21 @@ export default function NotificationsPage() {
       return;
     }
 
-    const { data, error } = await supabase
+    let result = await supabase
       .from("notifications")
-      .select(
-        "*, post:posts!notifications_post_id_fkey(id,title,type,slug), comment:comments!notifications_comment_id_fkey(id,content), relationship:user_follows!notifications_relationship_id_fkey(id,follower_id,following_id,status,accepted_at)"
-      )
+      .select(RELATIONSHIP_NOTIFICATION_SELECT)
       .eq("user_id", user.id)
       .order("last_activity_at", { ascending: false });
+
+    if (isMissingRelationshipJoin(result.error)) {
+      result = await supabase
+        .from("notifications")
+        .select(LEGACY_NOTIFICATION_SELECT)
+        .eq("user_id", user.id)
+        .order("last_activity_at", { ascending: false });
+    }
+
+    const { data, error } = result;
 
     if (error) {
       showToast(error.message);
@@ -640,5 +652,24 @@ export default function NotificationsPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function isMissingRelationshipJoin(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const candidate = error as {
+    code?: unknown;
+    message?: unknown;
+    details?: unknown;
+  };
+  const description = `${
+    typeof candidate.message === "string" ? candidate.message : ""
+  } ${typeof candidate.details === "string" ? candidate.details : ""}`;
+
+  return (
+    candidate.code === "PGRST200" &&
+    description.includes("notifications") &&
+    description.includes("user_follows")
   );
 }
