@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ClipboardList, Handshake } from "lucide-react";
+import { ClipboardList, FileClock, Handshake } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -129,6 +129,14 @@ export default function AdminSidebar() {
   const growthLinks: AdminLink[] = [
     { href: "/admin/badges", label: "徽章管理", icon: "🎖️" },
     { href: "/admin/growth", label: "成长记录", icon: "✨" },
+  ];
+
+  const internalLinks: AdminLink[] = [
+    {
+      href: "/admin/changelog",
+      label: "后台更新日志",
+      icon: <FileClock aria-hidden="true" className="h-4 w-4" />,
+    },
   ];
 
   const ownerLinks: AdminLink[] = [
@@ -275,6 +283,7 @@ export default function AdminSidebar() {
           {isModerator && renderSection("内容", contentLinks)}
           {isAdmin && renderSection("商业合作", sponsorLinks)}
           {isAdmin && renderSection("成长", growthLinks)}
+          {isAdmin && renderSection("内部", internalLinks)}
           {isOwner && renderSection("Owner", ownerLinks)}
           {renderSection("系统", systemLinks)}
         </nav>
@@ -298,6 +307,7 @@ export default function AdminSidebar() {
             {isModerator && renderSection("内容", contentLinks)}
             {isAdmin && renderSection("商业合作", sponsorLinks)}
             {isAdmin && renderSection("成长", growthLinks)}
+            {isAdmin && renderSection("内部", internalLinks)}
             {isOwner && renderSection("Owner", ownerLinks)}
             {renderSection("系统", systemLinks)}
           </nav>

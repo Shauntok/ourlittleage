@@ -1,7 +1,11 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AdminSidebar from "./AdminSidebar";
+
+const mocks = vi.hoisted(() => ({
+  role: "admin",
+}));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/feedback",
@@ -13,7 +17,9 @@ vi.mock("@/lib/supabase", () => {
     select: vi.fn(),
     neq: vi.fn(),
     eq: vi.fn(),
-    single: vi.fn().mockResolvedValue({ data: { role: "admin" } }),
+    single: vi.fn().mockImplementation(async () => ({
+      data: { role: mocks.role },
+    })),
     then: (resolve: (value: { count: number }) => unknown) =>
       Promise.resolve({ count: 0 }).then(resolve),
   };
@@ -34,6 +40,10 @@ vi.mock("@/lib/supabase", () => {
 
 afterEach(cleanup);
 
+beforeEach(() => {
+  mocks.role = "admin";
+});
+
 describe("AdminSidebar desktop layout", () => {
   it("stays compact and scrollable inside the viewport", () => {
     render(<AdminSidebar />);
@@ -52,5 +62,20 @@ describe("AdminSidebar desktop layout", () => {
     expect(await screen.findAllByText("业配中心")).not.toHaveLength(0);
     const links = await screen.findAllByRole("link", { name: /合作申请/ });
     expect(links[0]).toHaveAttribute("href", "/admin/sponsors/inquiries");
+  });
+
+  it("shows the protected admin changelog destination to admins", async () => {
+    render(<AdminSidebar />);
+
+    const links = await screen.findAllByRole("link", { name: /后台更新日志/ });
+    expect(links[0]).toHaveAttribute("href", "/admin/changelog");
+  });
+
+  it("does not show the protected admin changelog destination to moderators", async () => {
+    mocks.role = "moderator";
+    render(<AdminSidebar />);
+
+    expect(await screen.findAllByText("回首页")).not.toHaveLength(0);
+    expect(screen.queryByRole("link", { name: /后台更新日志/ })).not.toBeInTheDocument();
   });
 });

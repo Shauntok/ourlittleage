@@ -1,302 +1,64 @@
+import { publicChangelogEntries } from "@/lib/changelog/public";
+
 export default function SettingsChangelogPage() {
-  const logs = [
-    {
-      version: "Alpha 0.9.8",
-      date: "2026.09.09",
-      features: [
-        "后台控制中心新增居民年龄分布，可展开查看各年龄层人数",
-      ],
-      fixes: [
-        "修复部分环境中信箱内容与分类数量错误显示为零的问题",
-      ],
-      improvements: [
-        "居民房间在关系资料暂时无法读取时继续保留关注中与关注者，并移除容易造成误解的刷新按钮",
-        "年龄统计采用低调的深夜配色，并将没有生日记录或无法归类的居民分开显示",
-      ],
-    },
-
-    {
-      version: "Alpha 0.9.7",
-      date: "2026.09.09",
-      features: [
-        "居民房间新增关注、等待回应、已关注与互相关注状态",
-        "居民房间可以分页查看关注中与关注者名单",
-        "隐私设置新增任何居民可关注与关注需要批准两种方式",
-        "信箱新增关注、关注申请与申请已接受通知",
-      ],
-      fixes: [],
-      improvements: [
-        "未登录时发起关注，会在登录成功后安全回到原来的居民房间",
-        "房主可以取消关注或移除关注者，访客查看名单时保持只读",
-        "关注申请可以直接在信箱接受或拒绝，并会重新确认服务器上的最新状态",
-        "关注通知与喜欢、评论、回复分开归类，继续保留星标、重要、已读与垃圾桶操作",
-      ],
-    },
-
-    {
-      version: "Alpha 0.9.6",
-      date: "2026.09.04",
-      features: [],
-      fixes: [
-        "修复留言获赞通知误写成文章或日记获赞，造成作品归属误会的问题",
-      ],
-      improvements: [
-        "留言获赞现在会明确显示为居民喜欢了你在对应作品下留下的留言",
-      ],
-    },
-
-    {
-      version: "Alpha 0.9.5",
-      date: "2026.09.01",
-      features: [
-        "居民现在可以在自己的公开房间点击头像，直接选择并更换照片",
-      ],
-      fixes: [
-        "移除头像上常驻的相机图标，相机提示只会在鼠标靠近或键盘聚焦时出现",
-      ],
-      improvements: [
-        "头像快捷编辑只对房主开放，访客查看其他居民房间时仍是普通头像",
-        "头像上传加入 8MB 大小限制、上传状态与失败回退提示",
-      ],
-    },
-
-    {
-      version: "Alpha 0.9.4",
-      date: "2026.08.31",
-      features: [
-        "公开文章与日记新增有效阅读统计",
-        "内容后台可查看每篇作品的精确有效阅读次数",
-        "网站已接入 Google Analytics，帮助了解整体访问情况",
-      ],
-      fixes: [
-        "修复部分手机弹出软键盘时，登录输入框被推到页面顶部的问题",
-        "修复浏览器分页图标与现有 Apple 图标不一致的问题",
-        "修复阅读统计权限读取失败时可能显示错误数据的问题",
-      ],
-      improvements: [
-        "阅读页面实际显示并累计停留 10 秒后才会计入一次有效阅读",
-        "同一阅读者对同一作品采用 12 小时去重，作者阅读自己的作品不计数",
-        "阅读统计不保存 IP、设备信息或原始身份资料，公开页面默认不展示阅读数",
-        "加入搜索收录与网站在线状态监测，持续观察正式网站运行情况",
-      ],
-    },
-
-    {
-      version: "Alpha 0.9.3",
-      date: "2026.08.27",
-      features: [
-        "公开文章与日记新增分享面板，可复制链接或调用系统分享",
-        "新增包含故事开头的竖版 Story 分享图片，可保存后分享到其他平台",
-        "分享图片仅支持作者已公开、已发布且未删除的内容",
-      ],
-      fixes: [
-        "修复日记广场加载失败时误显示为没有日记的问题，并提供重新加载入口",
-        "修复手机端喜欢数量换行，导致喜欢、分享与举报按钮高度不一致的问题",
-      ],
-      improvements: [
-        "手机端自己的作品采用喜欢与分享各半，其他居民作品采用喜欢、分享与举报三等分",
-        "统一手机端操作按钮高度与间距，保持电脑版原有布局",
-        "喜欢数量较大时使用千、万、亿缩写，并为辅助阅读保留完整数量",
-        "窄屏下精简点赞文字，用爱心与颜色区分状态，减少按钮拥挤",
-      ],
-    },
-
-    {
-      version: "Alpha 0.9.2",
-      date: "2026.08.26",
-      features: [
-        "留言区新增楼中楼回复",
-        "回复现在会标出对象，并收在原留言下方",
-        "评论管理新增今日留言、异常字眼检测与自定义检测词库",
-        "软删除评论会在保留 30 天后自动永久清理",
-      ],
-      fixes: [
-        "修复留言喜欢、取消喜欢与重新喜欢无法更新的问题",
-        "修复文章喜欢提示撑高操作栏，导致编辑按钮变形的问题",
-        "修复居民房间切换文章与日记时仍显示全部作品的问题",
-        "修复较早文章可能被日记数量上限隐藏的问题",
-      ],
-      improvements: [
-        "留言与回复使用更紧凑的深夜回声排版",
-        "喜欢与回复操作加入更清楚的图示",
-        "优化手机端文章与日记的喜欢、举报和编辑按钮布局",
-        "自己的内容无法点赞时，会从导航栏下方显示柔和提示",
-      ],
-    },
-
-    {
-      version: "Alpha 0.9.1",
-      date: "2026.08.25",
-      features: [
-        "通知中心新增「信箱」与「互动」分区",
-        "喜欢、评论和回复现在会集中显示在互动页面",
-        "同一篇内容收到的多个喜欢会自动合并",
-        "意见反馈新增业配合作申请入口",
-      ],
-      fixes: [
-        "修复重复喜欢可能产生多条通知的问题",
-        "修复反馈状态更新后弹窗没有自动关闭的问题",
-        "修复后台部分开关状态显示不一致的问题",
-      ],
-      improvements: [
-        "优化通知筛选、未读数量与手机端显示",
-        "优化反馈处理流程与居民通知体验",
-        "后台操作日志加入中文名称与柔和分类色彩",
-        "优化业配排期、投放权重说明与输入防错",
-        "商业合作资料现在由独立后台页面安全处理",
-      ],
-    },
-
-    {
-      version: "Alpha 0.9.0",
-      date: "2026.08.24",
-      features: [
-        "新增业配管理中心",
-        "新增业配图片、链接、排期与广告位管理",
-        "新增今日、过去 7 天、过去 30 天与三个月记录筛选",
-      ],
-      fixes: [
-        "加强业配图片格式与上传安全检查",
-        "修复排期时间与马来西亚时间不一致的问题",
-      ],
-      improvements: [
-        "所有业配与广告位默认保持关闭",
-        "优化后台侧栏与手机版数据卡片的空间使用",
-        "业配统计只保留匿名汇总，不记录居民阅读历史",
-      ],
-    },
-
-    {
-      version: "Alpha 0.8.2",
-      date: "2026.06.18",
-      features: [
-        "新增「关于网站」页面",
-        "新增「更新日志」页面",
-      ],
-      fixes: [
-        "修复已删除内容仍显示在广场的问题",
-        "修复个人房间显示已删除文章的问题",
-        "修复手机端编辑器提示卡遮挡问题",
-        "修复多层弹窗层级异常",
-      ],
-      improvements: [
-        "手机端编辑器改为提示按钮模式",
-        "Alert 全面升级为 ConfirmDialog",
-        "优化编辑器移动端体验",
-      ],
-    },
-
-    {
-      version: "Alpha 0.8.1",
-      date: "2026.06.16",
-      features: [
-        "新增全站信件系统",
-        "新增通知信箱",
-        "新增世界公告",
-      ],
-      fixes: [
-        "修复点赞通知异常",
-        "修复成长记录写入问题",
-        "修复注册后资料创建异常",
-      ],
-      improvements: [
-        "优化管理后台布局",
-        "优化草稿编辑流程",
-      ],
-    },
-
-    {
-      version: "Alpha 0.8.0",
-      date: "2026.06.15",
-      features: [
-        "小时代 Alpha 正式开放测试",
-        "开放文章、日记、房间系统",
-        "开放居民成长与徽章系统",
-      ],
-      fixes: [],
-      improvements: [],
-    },
-  ];
-
   return (
     <main className="min-h-screen text-white">
       <section className="mx-auto max-w-4xl rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:p-10">
-        <p className="text-xs tracking-[0.4em] text-white/25">
-          CHANGELOG
-        </p>
+        <p className="text-xs tracking-[0.4em] text-white/25">CHANGELOG</p>
 
-        <h1 className="mt-4 text-4xl font-light">
-          更新日志
-        </h1>
+        <h1 className="mt-4 text-4xl font-light">更新日志</h1>
 
         <p className="mt-4 max-w-2xl text-sm leading-7 text-white/45">
-          小时代会慢慢成长。
-          这里记录每一次新增、修复与改变。
+          小时代会慢慢成长。这里记录每一次居民能够感受到的新增、修复与改变。
         </p>
 
         <div className="mt-10 space-y-8">
-          {logs.map((log) => (
+          {publicChangelogEntries.map((log) => (
             <article
               key={log.version}
               className="rounded-[1.8rem] border border-white/10 bg-black/25 p-6"
             >
               <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <h2 className="text-2xl font-light">
-                    {log.version}
-                  </h2>
-
-                  <p className="mt-2 text-sm text-white/35">
-                    {log.date}
-                  </p>
+                  <h2 className="text-2xl font-light">{log.version}</h2>
+                  <p className="mt-2 text-sm text-white/35">{log.date}</p>
                 </div>
               </div>
 
               {log.features.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium text-emerald-200">
-                    ✨ 新功能
-                  </h3>
-
-                  <ul className="mt-3 space-y-2 text-sm leading-7 text-white/60">
-                    {log.features.map((item) => (
-                      <li key={item}>• {item}</li>
-                    ))}
-                  </ul>
-                </div>
+                <LogSection title="新功能" tone="text-emerald-200" items={log.features} />
               )}
-
               {log.fixes.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium text-amber-200">
-                    🛠 修复
-                  </h3>
-
-                  <ul className="mt-3 space-y-2 text-sm leading-7 text-white/60">
-                    {log.fixes.map((item) => (
-                      <li key={item}>• {item}</li>
-                    ))}
-                  </ul>
-                </div>
+                <LogSection title="修复" tone="text-amber-200" items={log.fixes} />
               )}
-
               {log.improvements.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium text-sky-200">
-                    🎨 优化
-                  </h3>
-
-                  <ul className="mt-3 space-y-2 text-sm leading-7 text-white/60">
-                    {log.improvements.map((item) => (
-                      <li key={item}>• {item}</li>
-                    ))}
-                  </ul>
-                </div>
+                <LogSection title="优化" tone="text-sky-200" items={log.improvements} />
               )}
             </article>
           ))}
         </div>
       </section>
     </main>
+  );
+}
+
+function LogSection({
+  title,
+  tone,
+  items,
+}: {
+  title: string;
+  tone: string;
+  items: readonly string[];
+}) {
+  return (
+    <div className="mt-6">
+      <h3 className={`text-sm font-medium ${tone}`}>{title}</h3>
+      <ul className="mt-3 space-y-2 text-sm leading-7 text-white/60">
+        {items.map((item) => (
+          <li key={item}>• {item}</li>
+        ))}
+      </ul>
+    </div>
   );
 }

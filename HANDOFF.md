@@ -1,6 +1,6 @@
 # HANDOFF
 
-更新时间：2026-09-09
+更新时间：2026-09-10
 
 ## Product Rules / Long-term Architecture
 
@@ -168,14 +168,54 @@ implementation complete
 committed
 merged to main
 pushed
-Production migration pending
+Production migration applied
+Relationship Auth hotfix committed and pushed
 latest Vercel deployment verification pending
-production test-account flow pending
+production test-account flow paused pending hotfix verification
 ```
+
+### 10. CHANGELOG POLICY
+
+小时代长期区分三套记录：
+
+* `HANDOFF.md` 是完整的技术交接与项目状态来源，记录实现、migration、RLS、Auth、权限、风险、部署与内部 TODO。
+* Public Changelog 只记录普通居民能够看到或感受到的功能、体验与概括性修复，不得公开安全规则、权限实现、风控阈值或后台内部资料。
+* Admin Changelog 记录 Owner/Admin 需要知道的后台、运营、Auth、安全、RLS、权限、Moderation 与 Infrastructure 变化，但仍不得记录 secret、token、password、API key 或任何认证凭证。
+
+每一次实际产生代码、数据库或行为变化的任务，都必须执行以下判断并同步记录：
+
+```text
+Every implemented change must update HANDOFF.md.
+
+Resident-facing change:
+-> Public Changelog
+
+Admin/Internal change:
+-> Admin Changelog
+
+Security/Risk/Auth/RLS/Permission internals:
+-> Admin Changelog only
+
+Mixed feature:
+-> Split public and internal descriptions for each audience.
+```
+
+后续 Codex 完成实际开发任务时，最终报告必须包含 `CHANGELOG SYNC`，分别说明 HANDOFF、Public Changelog 与 Admin Changelog 是否更新以及分类原因。公开版本号继续按开发阶段累计，不因每个小修复频繁递增。
+
+## 2026-09-10 Admin Changelog Foundation
+
+当前状态：**implemented、随本次变更 commit / push；Production deployment pending。** 本次没有数据库变更，也不需要 Production migration。
+
+* 新增 `/admin/changelog`，复用现有后台布局与侧栏，显示日期、阶段、类别、影响范围、状态与简要说明。
+* Admin Changelog 数据位于 `server-only` 模块，不提供 Public API，也不会由 Public Changelog 页面引用。
+* 页面在服务器端再次读取可信登录身份；Owner/Admin 可查看，Moderator、普通居民与未登录访客不能读取内容。侧栏入口同样只对 Owner/Admin 显示，但权限不依赖前端隐藏。
+* Public Changelog 静态资料迁移到独立公开数据模块，并移除年龄统计、内容后台、留言审核工具、操作日志、业配后台等内部条目；居民可感知的功能与修复继续保留。
+* Admin Changelog 初始整理了近期后台年龄统计、Relationship Auth 修复、有效阅读后台统计、留言审核与商业合作后台记录。本次分流本身只记录于 Admin Changelog，不增加 Public 版本号。
+* 长期执行 `CHANGELOG POLICY`：任何实际项目变化必须更新 HANDOFF，再根据受众同步 Public、Admin 或两者分别描述。
 
 ## 2026-09-09 Relationship System V1 Phase 2
 
-当前状态：**implementation complete、committed、已合并到 `main`、已 push。** Production migration、最新 Vercel deployment verification 与 production test-account flow 仍待完成。新 migration `20260908125032_relationship_follow_notifications.sql` **尚未应用到 Production Supabase**，不得把 push 视为已经上线。
+当前状态：**implementation complete、committed、已合并到 `main`、已 push，Production migration 已应用。** Production smoke test 已发现并修复 Browser/Server Auth Session 不同步问题；Auth hotfix commit `1960e7038b47fa672cedbe3fceb6c8fc1381ad34` 已 push。最新 Vercel deployment verification 与完整 production test-account flow 仍待完成，不得只因为 push 就标记为 production verified。
 
 ### 居民房间
 
@@ -207,17 +247,15 @@ production test-account flow pending
 * PGlite PostgreSQL 17 兼容隔离环境通过 Phase 1 核心回归与 Phase 2 通知事务测试；因本机没有 Docker/native PostgreSQL，上 Production 前仍必须在完整 disposable Supabase/PostgreSQL 环境再跑一次。
 * Vitest：60 个测试文件、542 项测试全部通过；TypeScript、Phase 2 改动范围 ESLint、production build 与 `git diff --check` 通过。
 * 全仓库 ESLint 仍有历史问题：本分支 183 errors / 50 warnings；对比基线 185 errors / 49 warnings，本阶段没有新增错误，新增警告为沿用现有运行时头像 `<img>` 方式。
-* 浏览器只读检查：居民房间在 1280px 视口无横向溢出，关系读取失败状态不会拖垮房间。由于 Production 尚无 Phase 2 RPC/migration，尚未在真实账号执行关注、申请、隐私保存或通知处理写入测试。
-* Phase 2 原开发分支：`codex/relationship-phase-2`；提交范围 `ba7ccef` 至 `b2fe365`，已通过提交 `2cece34` 合并到 `main` 并 push。Production migration 尚未应用；是否已由 Vercel 部署仍需单独核实。
+* 本阶段最初的浏览器只读检查确认居民房间在 1280px 视口无横向溢出，关系读取失败状态不会拖垮房间；当时尚未进行 Production 写入测试。
+* Phase 2 原开发分支：`codex/relationship-phase-2`；提交范围 `ba7ccef` 至 `b2fe365`，已通过提交 `2cece34` 合并到 `main` 并 push。Production migration 后续已受控应用；Auth hotfix 已 push，最新 Vercel 部署与完整测试账号闭环仍需单独核实。
 
 ### 后续
 
-1. 在完整的隔离 Supabase/PostgreSQL 环境重跑两组关系 SQL 测试。
-2. 应用前先校准 migration history：Production 记录的 Phase 1 编号是 `20260908105046`，仓库文件编号是 `20260908024825`。当前仓库未连接 Supabase CLI，不能直接假设两者已自动对应；禁止盲目执行 `db push`，应先在受控环境确认远端历史不会重复执行 Phase 1。
-3. 核实最新 `main` 是否已经由 Vercel 成功部署，不以 push 结果代替 deployment verification。
-4. 明确批准并完成 migration history 校准后，才应用 Phase 2 migration；不得进行破坏性 Production 测试。
-5. 用测试账号完成 open、approval、accept、reject、cancel、unfollow、remove follower、隐私保存与通知实时更新 smoke test，并单独记录 production verified 状态。
-6. Block System 优先于 Mention 与 Friend；Mention 与 Friend 继续作为相互独立的后续阶段。
+1. 核实 Auth hotfix commit `1960e7038b47fa672cedbe3fceb6c8fc1381ad34` 已由 Vercel 成功部署，不以 push 结果代替 deployment verification。
+2. 用两个专用测试账号重新完成 login/refresh/session persistence，并继续 open、approval、accept、reject、cancel、unfollow、remove follower、隐私保存与通知实时更新 smoke test。
+3. 测试完成后清理两个测试账号之间的关系资料，并单独记录 production verified 状态。
+4. Block System 优先于 Mention 与 Friend；Mention 与 Friend 继续作为相互独立的后续阶段。
 
 ## 2026-09-08 Relationship System V1 Phase 1
 
@@ -259,7 +297,7 @@ production test-account flow pending
 * 截至 2026-09-09，本地 `main` 与 `origin/main` 已同步至 `5628cf1`。这只确认 Git pushed 状态，不代表最新 Vercel deployment 或 Production verification 已完成。
 * 居民后台详情的「作品累计有效阅读」已在提交 `a1d64d1` 中完成并推送，不再属于未提交工作区。
 * Relationship System V1 Phase 1 已 commit、push、deploy，Production Supabase migration 已应用。
-* Relationship System V1 Phase 2 已 implementation complete、committed、合并并 push；Production migration、最新 Vercel deployment verification 与 production test-account flow 仍待完成。
+* Relationship System V1 Phase 2 已 implementation complete、committed、合并并 push，Production migration 已应用；Auth hotfix `1960e7038b47fa672cedbe3fceb6c8fc1381ad34` 已 push，最新 Vercel deployment verification 与完整 production test-account flow 待完成。
 * Alpha 0.9.8 已记录后台居民年龄分布、居民房间关系读取失败状态简化，以及信箱旧数据库结构兼容修复。
 * 正式域名：`https://www.ourlittleage.com`。
 
@@ -485,7 +523,7 @@ Our Little Age（小时代）
 6. 关注系统
 
    * Phase 1：Follow Core + Supabase + Admin Relationship View 已完成并上线
-   * Phase 2：居民端 Follow UI + Follow Notifications 已完成、commit、合并并 push；Production migration、最新 Vercel deployment verification 与 production test-account flow 待完成
+   * Phase 2：居民端 Follow UI + Follow Notifications 已完成、commit、合并并 push，Production migration 已应用；Auth hotfix 的最新 Vercel deployment verification 与完整 production test-account flow 待完成
    * Mention System：后续独立阶段
    * Friend System：未来阶段
    * 原则：Follow ≠ Friend；Mutual Follow ≠ Friend
