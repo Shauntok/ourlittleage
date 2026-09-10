@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
+  canManageVipMembership,
+  canViewVipMembership,
   canViewAdminChangelog,
   canViewRelationships,
   canManageFeedback,
@@ -102,6 +104,28 @@ describe("canViewAdminChangelog", () => {
     [null, false],
   ])("returns %s for role %s", (role, expected) => {
     expect(canViewAdminChangelog(role)).toBe(expected);
+  });
+});
+
+describe("VIP admin permissions", () => {
+  it.each([
+    ["owner", true],
+    ["admin", true],
+    ["moderator", false],
+    ["user", false],
+    [null, false],
+  ])("allows VIP reads for role %s: %s", (role, expected) => {
+    expect(canViewVipMembership(role)).toBe(expected);
+  });
+
+  it.each([
+    ["owner", true],
+    ["admin", false],
+    ["moderator", false],
+    ["user", false],
+    [null, false],
+  ])("allows VIP writes for role %s: %s", (role, expected) => {
+    expect(canManageVipMembership(role)).toBe(expected);
   });
 });
 

@@ -54,6 +54,31 @@ export type VipMutationResult = {
   membership: VipMembership;
 };
 
+export type VipMembershipEvent = {
+  id: string;
+  eventType: VipMembershipEventType;
+  reason: string;
+  actorId: string;
+  actorUsername: string | null;
+  requestId: string;
+  createdAt: string;
+  previousState: VipMembership | null;
+  newState: VipMembership;
+};
+
+export type VipAdminOverview = {
+  databaseNow: string;
+  flags: VipFeatureFlags;
+  membership: VipMembership | null;
+  entitlement: VipEntitlement;
+  history: {
+    items: VipMembershipEvent[];
+    total: number;
+    page: number;
+    pageSize: number;
+  };
+};
+
 export class VipServiceError extends Error {
   constructor(
     public readonly kind: "invalid_input" | "forbidden" | "not_found" | "internal",
@@ -76,13 +101,8 @@ type MembershipMutationInput = {
   requestId: string;
 };
 
-type GrantVipInput = MembershipMutationInput & {
-  startedAt: string;
-  expiresAt: string;
-};
-
-type ExtendVipInput = MembershipMutationInput & {
-  expiresAt: string;
+type DurationVipInput = MembershipMutationInput & {
+  durationDays: number;
 };
 
 const uuidPattern =
@@ -144,6 +164,28 @@ export async function getVipMembershipForAdmin(
     { p_actor_id: actor.id, p_user_id: userId },
     client
   );
+}
+
+export async function getVipAdminOverview(
+  userId: string,
+  page = 1,
+  client: RpcClient = supabaseAdmin as unknown as RpcClient
+): Promise<VipAdminOverview> {
+  assertUuid(userId);
+  if (!Number.isSafeInteger(page) || page < 1 || page > 1_000_000) {
+    throw invalidInput();
+  }
+
+  const actor = await requireVipActor(["owner", "admin"]);
+  const { data, error } = await client.rpc("vip_admin_get_overview", {
+    p_actor_id: actor.id,
+    p_user_id: userId,
+    p_page: page,
+    p_page_size: 10,
+  });
+
+  if (error) throw mapDatabaseError(error);
+  return mapAdminOverview(data);
 }
 
 export async function getVipEntitlement(
@@ -210,41 +252,20 @@ export async function isVipActive(
 
 export async function grantVip(
   userId: string,
-  input: GrantVipInput,
+  input: DurationVipInput,
   client: RpcClient = supabaseAdmin as unknown as RpcClient
 ) {
-  const startedAt = parseTimestamp(input.startedAt);
-  const expiresAt = parseTimestamp(input.expiresAt);
-
-  if (expiresAt <= startedAt) {
-    throw invalidInput();
-  }
-
-  return mutateVip(
-    userId,
-    "grant",
-    input,
-    input.startedAt,
-    input.expiresAt,
-    client
-  );
+  assertDurationDays(input.durationDays);
+  return mutateVip(userId, "grant", input, input.durationDays, client);
 }
 
 export async function extendVip(
   userId: string,
-  input: ExtendVipInput,
+  input: DurationVipInput,
   client: RpcClient = supabaseAdmin as unknown as RpcClient
 ) {
-  parseTimestamp(input.expiresAt);
-
-  return mutateVip(
-    userId,
-    "extend",
-    input,
-    null,
-    input.expiresAt,
-    client
-  );
+  assertDurationDays(input.durationDays);
+  return mutateVip(userId, "extend", input, input.durationDays, client);
 }
 
 export async function cancelVip(
@@ -252,7 +273,7 @@ export async function cancelVip(
   input: MembershipMutationInput,
   client: RpcClient = supabaseAdmin as unknown as RpcClient
 ) {
-  return mutateVip(userId, "cancel", input, null, null, client);
+  return mutateVip(userId, "cancel", input, null, client);
 }
 
 export async function revokeVip(
@@ -260,15 +281,14 @@ export async function revokeVip(
   input: MembershipMutationInput,
   client: RpcClient = supabaseAdmin as unknown as RpcClient
 ) {
-  return mutateVip(userId, "revoke", input, null, null, client);
+  return mutateVip(userId, "revoke", input, null, client);
 }
 
 async function mutateVip(
   userId: string,
   eventType: VipMembershipEventType,
   input: MembershipMutationInput,
-  startedAt: string | null,
-  expiresAt: string | null,
+  durationDays: number | null,
   client: RpcClient
 ): Promise<VipMutationResult> {
   assertUuid(userId);
@@ -281,12 +301,11 @@ async function mutateVip(
 
   const actor = await requireVipActor(["owner"]);
 
-  const { data, error } = await client.rpc("vip_apply_membership_event", {
+  const { data, error } = await client.rpc("vip_admin_apply_membership_action", {
     p_actor_id: actor.id,
     p_user_id: userId,
     p_event_type: eventType,
-    p_started_at: startedAt,
-    p_expires_at: expiresAt,
+    p_duration_days: durationDays,
     p_reason: reason,
     p_request_id: input.requestId,
   });
@@ -296,6 +315,102 @@ async function mutateVip(
   }
 
   return mapMutationResult(data);
+}
+
+function mapAdminOverview(value: unknown): VipAdminOverview {
+  if (!isRecord(value) || !isRecord(value.history)) throw internalError();
+
+  const databaseNow = value.database_now;
+  const historyItems = value.history.items;
+  if (
+    typeof databaseNow !== "string" ||
+    !Number.isFinite(Date.parse(databaseNow)) ||
+    !Array.isArray(historyItems)
+  ) {
+    throw internalError();
+  }
+
+  return {
+    databaseNow,
+    flags: mapFeatureFlags(value.flags),
+    membership:
+      value.membership === null || value.membership === undefined
+        ? null
+        : mapMembership(value.membership),
+    entitlement: mapEntitlement(value.entitlement),
+    history: {
+      items: historyItems.map(mapMembershipEvent),
+      total: readNonNegativeInteger(value.history.total),
+      page: readPositiveInteger(value.history.page),
+      pageSize: readPositiveInteger(value.history.page_size),
+    },
+  };
+}
+
+function mapFeatureFlags(value: unknown): VipFeatureFlags {
+  if (!isRecord(value)) return { ...disabledVipFeatureFlags };
+  return {
+    vipEntitlementEnabled: value.vip_entitlement_enabled === true,
+    vipPublicUiEnabled: value.vip_public_ui_enabled === true,
+    vipPurchaseEnabled: value.vip_purchase_enabled === true,
+    vipReferralRewardEnabled: value.vip_referral_reward_enabled === true,
+    vipPublicBadgeEnabled: value.vip_public_badge_enabled === true,
+  };
+}
+
+function mapEntitlement(value: unknown): VipEntitlement {
+  if (!isRecord(value)) throw internalError();
+  const reason = value.reason;
+  if (
+    typeof value.is_active !== "boolean" ||
+    typeof reason !== "string" ||
+    !entitlementReasons.has(reason as VipEntitlementReason)
+  ) {
+    throw internalError();
+  }
+
+  const membership =
+    value.membership === null || value.membership === undefined
+      ? null
+      : mapMembership(value.membership);
+
+  return {
+    isActive: value.is_active,
+    reason: reason as VipEntitlementReason,
+    membership,
+  };
+}
+
+function mapMembershipEvent(value: unknown): VipMembershipEvent {
+  if (!isRecord(value)) throw internalError();
+  const eventType = value.event_type;
+  if (
+    typeof value.id !== "string" ||
+    typeof eventType !== "string" ||
+    !["grant", "extend", "cancel", "revoke"].includes(eventType) ||
+    typeof value.reason !== "string" ||
+    typeof value.actor_id !== "string" ||
+    typeof value.request_id !== "string" ||
+    typeof value.created_at !== "string"
+  ) {
+    throw internalError();
+  }
+
+  return {
+    id: value.id,
+    eventType: eventType as VipMembershipEventType,
+    reason: value.reason,
+    actorId: value.actor_id,
+    actorUsername:
+      typeof value.actor_username === "string" ? value.actor_username : null,
+    requestId: value.request_id,
+    createdAt: value.created_at,
+    previousState:
+      value.previous_state === null || value.previous_state === undefined
+        ? null
+        : mapMembership(value.previous_state),
+    newState: mapMembership(value.new_state),
+  };
 }
 
 async function requireVipActor(allowedRoles: string[]) {
@@ -401,13 +516,22 @@ function assertUuid(value: string): void {
   }
 }
 
-function parseTimestamp(value: string): number {
-  const parsed = Date.parse(value);
-
-  if (!Number.isFinite(parsed)) {
+function assertDurationDays(value: number): void {
+  if (!Number.isSafeInteger(value) || value < 1 || value > 3650) {
     throw invalidInput();
   }
+}
 
+function readNonNegativeInteger(value: unknown) {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    throw internalError();
+  }
+  return value;
+}
+
+function readPositiveInteger(value: unknown) {
+  const parsed = readNonNegativeInteger(value);
+  if (parsed < 1) throw internalError();
   return parsed;
 }
 

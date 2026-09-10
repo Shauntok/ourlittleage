@@ -391,6 +391,21 @@ Mixed feature:
 * 本阶段没有购买、支付、Referral、公开 `/vip` 页面、公开 VIP 徽章、Admin VIP UI、Resident Detail 控制、营销、Security Center 或风险评分。
 * Production 必须继续保持全部 VIP flags 为 OFF。应用 Production migration 与启用任一 VIP 能力都需要后续独立审批。
 
+### VIP System V1 Phase 2
+
+当前状态：**implementation complete、local verification complete，随本次变更 commit / push；Vercel deployment pending；Phase 1 与 Phase 2 Production Supabase migration 均尚未应用。** 所有 VIP feature flags 继续保持 OFF，本阶段不是居民端公开功能。
+
+* `/admin/users/[id]` 已接入 `VIP Membership` 区域。Owner/Admin 可查看储存状态、开始与到期时间、剩余时间、到期取消标记、数据库计算权益、最后更新时间及分页历史；储存状态与实际权益分开显示。
+* Owner 可授予、延长、设为到期取消或立即撤销；Admin 只读；Moderator、普通居民与未登录访客不能读取。页面隐藏只用于体验，`/api/admin/users/[id]/vip`、server-only VIP service 与数据库 RPC 都会重新校验可信身份。
+* Grant/Extend 只接收 `1..3650` 天，不接受浏览器时间。Grant 从数据库 `now()` 开始；active 会员从现有到期时间延长，已过期但储存状态仍为 active 时从数据库 `now()` 延长。cancelled/revoked 必须重新 Grant，不能用 Extend 暗中恢复。
+* 到期取消保持 `status = active` 并设置 `cancel_at_period_end = true`，所以到期前权益判断不变；立即撤销设置 `status = revoked`。撤销前必须显示居民、当前到期时间、动作与原因的确认内容。
+* 新 migration：`20260910133500_vip_admin_management.sql`。它依赖 Phase 1，向 `vip_membership_events` 增加内部 `request_payload`，并新增 `vip_admin_get_overview` 与 `vip_admin_apply_membership_action`。没有 DROP、TRUNCATE、数据清空或历史 migration 修改。
+* `request_id`、事务级 advisory lock 与请求参数快照共同保证重复点击和不确定网络重试幂等。每次首次成功操作在同一数据库事务写入 append-only VIP event 与现有 `admin_logs`；动作名为 `vip_grant`、`vip_extend`、`vip_cancel_period_end`、`vip_revoke`。
+* Admin VIP 历史只展示动作、管理员、原因、前后状态与时间，不向界面显示原始 JSON。现有后台操作日志也会把 VIP 日志转成人可读摘要，并隐藏内部 request/event 标识。
+* 隔离 PGlite PostgreSQL 17 环境按顺序通过 Phase 1 migration、Phase 1 SQL test、Phase 2 migration 与 Phase 2 SQL test。权限矩阵、可信时间、active/expired 延长、到期取消、撤销、重复 request、双日志与 feature flag OFF 行为均有回归覆盖。
+* 本阶段没有 Purchase、Payment、Referral、公开 VIP 页面/徽章、营销、Security Center、Risk Control 或独立 `/admin/vip` Dashboard。
+* Production migration 未获应用批准。本提交与 push 不等于 migration applied、deployed 或 production verified；后续必须先完成独立 Production readiness review，再由项目负责人明确批准数据库写入。
+
 ## 本次交接：公开内容分享
 
 分享功能已于 2026-08-27 合并到 `main`（功能提交 `93f1022`），现已推送。

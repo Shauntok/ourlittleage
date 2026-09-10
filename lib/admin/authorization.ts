@@ -22,6 +22,14 @@ export function canViewAdminChangelog(role: unknown): boolean {
   return role === "owner" || role === "admin";
 }
 
+export function canViewVipMembership(role: unknown): boolean {
+  return role === "owner" || role === "admin";
+}
+
+export function canManageVipMembership(role: unknown): boolean {
+  return role === "owner";
+}
+
 export async function getAdminActor(
   request?: Request
 ): Promise<AdminActor | null> {

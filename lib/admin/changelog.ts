@@ -24,6 +24,16 @@ export type AdminChangelogEntry = {
 const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
     date: "2026-09-10",
+    phase: "VIP System V1 Phase 2",
+    title: "新增居民 VIP 会员管理",
+    category: "Admin",
+    scope: "居民管理房间、会员操作与后台日志",
+    status: "待部署",
+    summary:
+      "Owner 可在居民管理房间授予、延长、设为到期取消或立即撤销 VIP，Admin 可只读查看当前状态与最近记录；所有操作保留会员事件与后台审计日志。全局 VIP 权益继续关闭。",
+  },
+  {
+    date: "2026-09-10",
     phase: "Changelog Foundation",
     title: "建立公开与后台更新日志分流",
     category: "Operations",

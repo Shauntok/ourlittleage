@@ -18,6 +18,7 @@ import {
   extendVip,
   getVipEntitlement,
   getVipFeatureFlags,
+  getVipAdminOverview,
   getVipMembership,
   getVipMembershipForAdmin,
   grantVip,
@@ -152,25 +153,23 @@ describe("VIP server service", () => {
     });
   });
 
-  it("uses explicit timestamps for an owner grant", async () => {
+  it("uses a duration for an owner grant so the database owns the clock", async () => {
     mocks.rpc.mockResolvedValue({
       data: mutationResult("grant", false),
       error: null,
     });
 
     await grantVip(residentId, {
-      startedAt,
-      expiresAt,
+      durationDays: 30,
       reason: "Founding resident grant",
       requestId,
     });
 
-    expect(mocks.rpc).toHaveBeenCalledWith("vip_apply_membership_event", {
+    expect(mocks.rpc).toHaveBeenCalledWith("vip_admin_apply_membership_action", {
       p_actor_id: ownerId,
       p_user_id: residentId,
       p_event_type: "grant",
-      p_started_at: startedAt,
-      p_expires_at: expiresAt,
+      p_duration_days: 30,
       p_reason: "Founding resident grant",
       p_request_id: requestId,
     });
@@ -183,16 +182,15 @@ describe("VIP server service", () => {
     });
 
     await extendVip(residentId, {
-      expiresAt,
+      durationDays: 7,
       reason: "Manual extension",
       requestId,
     });
     expect(mocks.rpc).toHaveBeenLastCalledWith(
-      "vip_apply_membership_event",
+      "vip_admin_apply_membership_action",
       expect.objectContaining({
         p_event_type: "extend",
-        p_started_at: null,
-        p_expires_at: expiresAt,
+        p_duration_days: 7,
       })
     );
 
@@ -205,11 +203,10 @@ describe("VIP server service", () => {
       requestId,
     });
     expect(mocks.rpc).toHaveBeenLastCalledWith(
-      "vip_apply_membership_event",
+      "vip_admin_apply_membership_action",
       expect.objectContaining({
         p_event_type: "cancel",
-        p_started_at: null,
-        p_expires_at: null,
+        p_duration_days: null,
       })
     );
 
@@ -222,7 +219,7 @@ describe("VIP server service", () => {
       requestId,
     });
     expect(mocks.rpc).toHaveBeenLastCalledWith(
-      "vip_apply_membership_event",
+      "vip_admin_apply_membership_action",
       expect.objectContaining({ p_event_type: "revoke" })
     );
   });
@@ -235,18 +232,17 @@ describe("VIP server service", () => {
 
     await expect(
       extendVip(residentId, {
-        expiresAt,
+        durationDays: 90,
         reason: "Retry-safe extension",
         requestId,
       })
     ).resolves.toMatchObject({ idempotent: true, eventType: "extend" });
   });
 
-  it("rejects malformed identifiers and invalid grant windows before the RPC", async () => {
+  it("rejects malformed identifiers and invalid durations before the RPC", async () => {
     await expect(
       grantVip("not-an-id", {
-        startedAt,
-        expiresAt,
+        durationDays: 30,
         reason: "Invalid actor",
         requestId,
       })
@@ -254,13 +250,45 @@ describe("VIP server service", () => {
 
     await expect(
       grantVip(residentId, {
-        startedAt: expiresAt,
-        expiresAt: startedAt,
-        reason: "Invalid window",
+        durationDays: 0,
+        reason: "Invalid duration",
         requestId,
       })
     ).rejects.toThrow("Invalid VIP request");
     expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("reads the complete owner/admin VIP overview through one guarded RPC", async () => {
+    mocks.getAdminActor.mockResolvedValue({ id: ownerId, role: "admin" });
+    mocks.rpc.mockResolvedValue({
+      data: {
+        database_now: startedAt,
+        flags: {
+          vip_entitlement_enabled: false,
+          vip_public_ui_enabled: false,
+          vip_purchase_enabled: false,
+          vip_referral_reward_enabled: false,
+          vip_public_badge_enabled: false,
+        },
+        membership: null,
+        entitlement: { is_active: false, reason: "feature_disabled", membership: null },
+        history: { items: [], total: 0, page: 1, page_size: 10 },
+      },
+      error: null,
+    });
+
+    await expect(getVipAdminOverview(residentId, 1)).resolves.toMatchObject({
+      databaseNow: startedAt,
+      membership: null,
+      entitlement: { isActive: false, reason: "feature_disabled" },
+      history: { items: [], total: 0, page: 1, pageSize: 10 },
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith("vip_admin_get_overview", {
+      p_actor_id: ownerId,
+      p_user_id: residentId,
+      p_page: 1,
+      p_page_size: 10,
+    });
   });
 
   it("rejects VIP writes when the trusted session actor is not an owner", async () => {

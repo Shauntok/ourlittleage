@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { getFeedbackLogPresentation } from "@/lib/admin/feedback-log-display";
 import { getAnnouncementLogPresentation } from "@/lib/admin/announcement-log-display";
+import { getVipLogPresentation } from "@/lib/admin/vip-log-display";
 
 type LogFilter =
   | "all"
@@ -44,9 +45,11 @@ function getActionStyle(
 ): ActionStyle {
   const feedbackPresentation = getFeedbackLogPresentation(action, details);
   const announcementPresentation = getAnnouncementLogPresentation(action);
+  const vipPresentation = getVipLogPresentation(action, details);
 
   if (feedbackPresentation) return feedbackPresentation;
   if (announcementPresentation) return announcementPresentation;
+  if (vipPresentation) return vipPresentation;
 
   switch (action) {
     case "give_badge":
@@ -180,7 +183,16 @@ function getLogCategory(action: string): LogFilter {
     return "content";
   }
 
-  if (["update_role", "update_status"].includes(action)) {
+  if (
+    [
+      "update_role",
+      "update_status",
+      "vip_grant",
+      "vip_extend",
+      "vip_cancel_period_end",
+      "vip_revoke",
+    ].includes(action)
+  ) {
     return "user";
   }
 
