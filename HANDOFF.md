@@ -206,7 +206,7 @@ Mixed feature:
 
 ## 2026-09-12 Security Center Phase 1
 
-当前状态：**implementation complete、已在 `codex/security-center-phase-1` 分支提交；尚未合并或 push 至 `main`，尚未 deploy，Production migration 尚未应用，Production 尚未验证。**
+当前状态：**implementation complete、committed、已合并到 `main` 并 push（implementation commit `070d20f48d6f696c3463416353c464a70a4cdcce`）；Production migration 尚未应用，最新 Vercel deployment 尚未验证，Production 功能尚未验证。**
 
 ### 已实现
 
