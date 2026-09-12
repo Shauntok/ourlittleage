@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
+  canManageSecurityRisk,
   canManageVipMembership,
+  canViewSecurityCenter,
   canViewVipMembership,
   canViewAdminChangelog,
   canViewRelationships,
@@ -126,6 +128,28 @@ describe("VIP admin permissions", () => {
     [null, false],
   ])("allows VIP writes for role %s: %s", (role, expected) => {
     expect(canManageVipMembership(role)).toBe(expected);
+  });
+});
+
+describe("Security Center permissions", () => {
+  it.each([
+    ["owner", true],
+    ["admin", true],
+    ["moderator", false],
+    ["user", false],
+    [null, false],
+  ])("allows Security Center reads for role %s: %s", (role, expected) => {
+    expect(canViewSecurityCenter(role)).toBe(expected);
+  });
+
+  it.each([
+    ["owner", true],
+    ["admin", false],
+    ["moderator", false],
+    ["user", false],
+    [null, false],
+  ])("allows Security Center writes for role %s: %s", (role, expected) => {
+    expect(canManageSecurityRisk(role)).toBe(expected);
   });
 });
 
