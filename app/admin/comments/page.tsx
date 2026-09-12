@@ -16,6 +16,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import {
   getMalaysiaTodayStart,
   isCommentCreatedToday,
+  parseCommentFilter,
 } from "@/lib/admin/commentModeration";
 import { supabase } from "@/lib/supabase";
 
@@ -166,6 +167,14 @@ export default function AdminCommentsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchComments();
   }, [fetchComments]);
+
+  useEffect(() => {
+    const linkedFilter = parseCommentFilter(
+      new URLSearchParams(window.location.search).get("filter")
+    );
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFilter(linkedFilter);
+  }, []);
 
   useEffect(() => {
     async function fetchRole() {

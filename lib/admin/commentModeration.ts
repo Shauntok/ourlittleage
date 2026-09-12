@@ -22,3 +22,7 @@ export function isCommentCreatedToday(
 
   return created >= start && created < end;
 }
+
+export function parseCommentFilter(value: string | null): "today" | "flagged" {
+  return value === "flagged" ? "flagged" : "today";
+}

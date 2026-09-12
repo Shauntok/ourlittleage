@@ -1,6 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const wordDetectionSection = vi.hoisted(() => vi.fn(() => <div>词语检测区块</div>));
+
+vi.mock("./WordDetectionSection", () => ({
+  default: wordDetectionSection,
+}));
+
 import SecurityCenterClient from "./SecurityCenterClient";
 
 const overview = {
@@ -65,6 +71,11 @@ describe("SecurityCenterClient", () => {
     expect(screen.getByText("人工复核")).toBeInTheDocument();
     expect(screen.getAllByText("已启用")).toHaveLength(2);
     expect(screen.getAllByText("未启用")).toHaveLength(2);
+    expect(screen.getByText("词语检测区块")).toBeInTheDocument();
+    expect(wordDetectionSection).toHaveBeenCalledWith(
+      expect.objectContaining({ canManage: true, summary: overview.wordDetection }),
+      undefined
+    );
     expect(screen.queryByRole("button", { name: /刷新/ })).not.toBeInTheDocument();
   });
 

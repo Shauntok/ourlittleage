@@ -8,6 +8,7 @@ import type {
   SecurityOverview,
   SecurityRiskLevel,
 } from "@/lib/security/service";
+import WordDetectionSection from "./WordDetectionSection";
 
 type Props = {
   currentRole: string | null;
@@ -138,6 +139,12 @@ export default function SecurityCenterClient({ currentRole }: Props) {
           ))}
         </div>
       </section>
+
+      <WordDetectionSection
+        summary={overview.wordDetection}
+        canManage={currentRole === "owner" || currentRole === "admin"}
+        onChanged={() => loadPage(page)}
+      />
 
       <section className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/60">
         <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">

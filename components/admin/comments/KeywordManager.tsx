@@ -23,6 +23,7 @@ type Props = {
   canManage: boolean;
   onClose: () => void;
   onChanged: () => Promise<void>;
+  displayMode?: "panel" | "embedded";
 };
 
 export default function KeywordManager({
@@ -30,6 +31,7 @@ export default function KeywordManager({
   canManage,
   onClose,
   onChanged,
+  displayMode = "panel",
 }: Props) {
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [value, setValue] = useState("");
@@ -87,6 +89,7 @@ export default function KeywordManager({
     setValue("");
     setMessage("已加入词库。新评论会立即检测，旧评论可按下重新检测。");
     await fetchKeywords();
+    await onChanged();
   }
 
   async function toggleKeyword(item: Keyword) {
@@ -105,6 +108,7 @@ export default function KeywordManager({
 
     setMessage("词库已更新。需要时请重新检测现有评论。");
     await fetchKeywords();
+    await onChanged();
   }
 
   async function deleteKeyword(id: number) {
@@ -120,6 +124,7 @@ export default function KeywordManager({
 
     setMessage("字眼已移除。需要时请重新检测现有评论。");
     await fetchKeywords();
+    await onChanged();
   }
 
   async function rescanComments() {
@@ -137,7 +142,13 @@ export default function KeywordManager({
   }
 
   return (
-    <section className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-5">
+    <section
+      className={
+        displayMode === "embedded"
+          ? "border-t border-zinc-800 pt-5"
+          : "rounded-3xl border border-zinc-800 bg-zinc-950/70 p-5"
+      }
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex gap-3">
           <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-400/20 bg-amber-400/10 text-amber-200">
@@ -151,15 +162,17 @@ export default function KeywordManager({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          title="关闭检测词库"
-          aria-label="关闭检测词库"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-900 hover:text-white"
-        >
-          <X aria-hidden="true" className="h-4 w-4" />
-        </button>
+        {displayMode === "panel" && (
+          <button
+            type="button"
+            onClick={onClose}
+            title="关闭检测词库"
+            aria-label="关闭检测词库"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-900 hover:text-white"
+          >
+            <X aria-hidden="true" className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {canManage ? (
