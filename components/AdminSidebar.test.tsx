@@ -5,10 +5,11 @@ import AdminSidebar from "./AdminSidebar";
 
 const mocks = vi.hoisted(() => ({
   role: "admin",
+  pathname: "/admin/feedback",
 }));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/admin/feedback",
+  usePathname: () => mocks.pathname,
   useRouter: () => ({ push: vi.fn() }),
 }));
 
@@ -42,6 +43,7 @@ afterEach(cleanup);
 
 beforeEach(() => {
   mocks.role = "admin";
+  mocks.pathname = "/admin/feedback";
 });
 
 describe("AdminSidebar desktop layout", () => {
@@ -77,5 +79,22 @@ describe("AdminSidebar desktop layout", () => {
 
     expect(await screen.findAllByText("回首页")).not.toHaveLength(0);
     expect(screen.queryByRole("link", { name: /后台更新日志/ })).not.toBeInTheDocument();
+  });
+
+  it("shows the Security Center only to Owner/Admin and marks it active", async () => {
+    mocks.pathname = "/admin/security";
+    render(<AdminSidebar />);
+
+    const links = await screen.findAllByRole("link", { name: /安全中心/ });
+    expect(links[0]).toHaveAttribute("href", "/admin/security");
+    expect(links[0]).toHaveClass("bg-white");
+  });
+
+  it("does not show the Security Center to moderators", async () => {
+    mocks.role = "moderator";
+    render(<AdminSidebar />);
+
+    expect(await screen.findAllByText("回首页")).not.toHaveLength(0);
+    expect(screen.queryByRole("link", { name: /安全中心/ })).not.toBeInTheDocument();
   });
 });

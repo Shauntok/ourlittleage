@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ClipboardList, FileClock, Handshake } from "lucide-react";
+import { ClipboardList, FileClock, Handshake, ShieldCheck } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -132,6 +132,11 @@ export default function AdminSidebar() {
   ];
 
   const internalLinks: AdminLink[] = [
+    {
+      href: "/admin/security",
+      label: "安全中心",
+      icon: <ShieldCheck aria-hidden="true" className="h-4 w-4" />,
+    },
     {
       href: "/admin/changelog",
       label: "后台更新日志",
