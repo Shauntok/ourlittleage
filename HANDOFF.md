@@ -1,6 +1,6 @@
 # HANDOFF
 
-更新时间：2026-09-10
+更新时间：2026-09-12
 
 ## Product Rules / Long-term Architecture
 
@@ -204,7 +204,7 @@ Mixed feature:
 
 ## 2026-09-10 Admin Changelog Foundation
 
-当前状态：**implemented、随本次变更 commit / push；Production deployment pending。** 本次没有数据库变更，也不需要 Production migration。
+当前状态：**implemented、committed、pushed，并已随 Production commit `02e7c48aea58c00dfe2095e7f97494102be90b0d` 部署验证。** 本次没有数据库变更，也不需要 Production migration。
 
 * 新增 `/admin/changelog`，复用现有后台布局与侧栏，显示日期、阶段、类别、影响范围、状态与简要说明。
 * Admin Changelog 数据位于 `server-only` 模块，不提供 Public API，也不会由 Public Changelog 页面引用。
@@ -378,7 +378,7 @@ Mixed feature:
 
 ### VIP System V1 Phase 1
 
-当前状态：**implementation complete、local verification complete、已 commit（`eb2fc6f`）并随本次 HANDOFF 同步 push 到 `main`。Vercel deployment verification pending；Production Supabase migration 尚未应用。**
+当前状态：**implementation complete、local verification complete、已 commit（`eb2fc6f`）、push 到 `main`，并已包含在 Production commit `02e7c48aea58c00dfe2095e7f97494102be90b0d`。Production Supabase migration 已于 2026-09-12 应用并验证。**
 
 * 新 migration：`20260909131821_vip_foundation.sql`。只建立 VIP Foundation，不修改 `profiles.role`，VIP 与 `owner/admin/moderator/user` 身份保持正交。
 * `vip_feature_flags` 是服务端单例开关；`vip_entitlement_enabled`、`vip_public_ui_enabled`、`vip_purchase_enabled`、`vip_referral_reward_enabled`、`vip_public_badge_enabled` 全部默认并保持 `false`。缺行、异常或未知值按关闭处理。
@@ -389,11 +389,11 @@ Mixed feature:
 * Phase 1 的 `cancelVip` 是立即取消；`cancel_at_period_end` 仅保留数据结构，未来语义尚未开放。grant/extend 使用明确时间，不把“月”硬编码为 30 天。
 * 隔离 PGlite PostgreSQL 兼容环境已执行完整 migration，并在同一数据库连续两次通过 VIP SQL 回归；VIP Vitest 12/12、TypeScript、focused ESLint、production build 与 `git diff --check` 均通过。
 * 本阶段没有购买、支付、Referral、公开 `/vip` 页面、公开 VIP 徽章、Admin VIP UI、Resident Detail 控制、营销、Security Center 或风险评分。
-* Production 必须继续保持全部 VIP flags 为 OFF。应用 Production migration 与启用任一 VIP 能力都需要后续独立审批。
+* Production 当前全部 VIP flags 仍为 OFF。migration applied 不等于 VIP enabled；启用任一居民权益、公开界面、购买、Referral 或徽章仍需后续独立审批。
 
 ### VIP System V1 Phase 2
 
-当前状态：**implementation complete、local verification complete，随本次变更 commit / push；Vercel deployment pending；Phase 1 与 Phase 2 Production Supabase migration 均尚未应用。** 所有 VIP feature flags 继续保持 OFF，本阶段不是居民端公开功能。
+当前状态：**implementation complete、local verification complete、已 commit（`02e7c48aea58c00dfe2095e7f97494102be90b0d`）、push 并部署至 Vercel Production（READY）。Phase 1 与 Phase 2 Production Supabase migration 已于 2026-09-12 依序应用并通过数据库/服务端 smoke verification。** 所有 VIP feature flags 继续保持 OFF，本阶段不是居民端公开功能。
 
 * `/admin/users/[id]` 已接入 `VIP Membership` 区域。Owner/Admin 可查看储存状态、开始与到期时间、剩余时间、到期取消标记、数据库计算权益、最后更新时间及分页历史；储存状态与实际权益分开显示。
 * Owner 可授予、延长、设为到期取消或立即撤销；Admin 只读；Moderator、普通居民与未登录访客不能读取。页面隐藏只用于体验，`/api/admin/users/[id]/vip`、server-only VIP service 与数据库 RPC 都会重新校验可信身份。
@@ -404,7 +404,39 @@ Mixed feature:
 * Admin VIP 历史只展示动作、管理员、原因、前后状态与时间，不向界面显示原始 JSON。现有后台操作日志也会把 VIP 日志转成人可读摘要，并隐藏内部 request/event 标识。
 * 隔离 PGlite PostgreSQL 17 环境按顺序通过 Phase 1 migration、Phase 1 SQL test、Phase 2 migration 与 Phase 2 SQL test。权限矩阵、可信时间、active/expired 延长、到期取消、撤销、重复 request、双日志与 feature flag OFF 行为均有回归覆盖。
 * 本阶段没有 Purchase、Payment、Referral、公开 VIP 页面/徽章、营销、Security Center、Risk Control 或独立 `/admin/vip` Dashboard。
-* Production migration 未获应用批准。本提交与 push 不等于 migration applied、deployed 或 production verified；后续必须先完成独立 Production readiness review，再由项目负责人明确批准数据库写入。
+* Production migration 已应用；数据库 migration history 记录为 `20260912080231 vip_foundation` 与 `20260912080326 vip_admin_management`。本地 migration 文件仍保持原名，未修改历史文件。代码部署与 migration applied 均不等于 VIP enabled。
+
+### VIP Production Readiness Review（2026-09-11）
+
+审查结论：**`SAFE TO APPLY PHASE 1 -> PHASE 2`。该结论已于 2026-09-12 按顺序执行，两个阶段均通过验证；VIP 未开启。**
+
+* Vercel Production 当前运行 `02e7c48aea58c00dfe2095e7f97494102be90b0d`，状态为 READY；该提交已经包含 VIP Phase 1、Admin Changelog 与 VIP Phase 2。
+* 审查当时的 Production Supabase 只读目录检查确认两份 VIP migration 均未记录，且当时不存在同名 VIP tables、functions、indexes、constraints、triggers、policies 或 types。现有 `profiles` 与 `admin_logs` 依赖字段及类型匹配。
+* migration 顺序固定为 `20260909131821_vip_foundation.sql` 后接 `20260910133500_vip_admin_management.sql`。Phase 2 依赖 Phase 1 的三张表、状态约束及基础函数，不可反向执行。
+* 两份 migration 没有 DROP、TRUNCATE、历史数据 DELETE、破坏性 CASCADE 或无关表重构。Phase 2 只为事件表增加 nullable `request_payload`、相容约束及后台 RPC。
+* 五个 VIP flags 的数据库默认值全部为 `false`；服务端对缺行、读取错误、未知值与矛盾 entitlement 结果继续 fail closed。数据库迁移完成本身不会启用居民权益或公开界面。
+* VIP 表启用 RLS 并撤销 `PUBLIC`、`anon`、`authenticated` 权限；VIP RPC 仅授权 `service_role`。读函数在数据库内再次验证 Owner/Admin，写函数再次验证 Owner、账号状态与输入。
+* Phase 2 写入使用数据库 `now()`、`timestamptz`、唯一 `request_id`、request/user advisory transaction lock，并在同一函数事务更新 membership、写 append-only event 与 `admin_logs`。顺序重放四种动作只产生各一条事件和日志。
+* 审查确认应用在 migration 缺失时只让 VIP 区域显示「暂时无法读取」，不会阻断居民完整资料页；普通居民路径不读取 VIP 后台资料。
+* 隔离 PGlite 环境重新按顺序通过 Phase 1 migration、Phase 1 SQL test、Phase 2 migration 与 Phase 2 SQL test。真正双连接并发尚未在 Production 执行，保留为 migration 后专用测试账号 smoke test 项。
+* Recovery 原则：若 Phase 1 成功而 Phase 2 失败，保持所有 flags OFF 并保留 Phase 1，修复后使用 forward migration 完成 Phase 2；不以 DROP Phase 1 作为默认恢复方式。
+
+### VIP Production Migration Gate（2026-09-11）
+
+历史闸门记录：Production Supabase 为 Free 方案，无法确认自动每日备份或 PITR，因此首次执行在任何数据库写入前暂停。项目负责人获知恢复限制后，于 2026-09-12 再次明确批准继续；执行期间依靠 migration transaction、全部 flags OFF 与 forward-repair 原则控制风险，没有使用 `supabase db push`，也没有同步无关 migration history。
+
+### VIP Production Migration & Smoke Verification（2026-09-12）
+
+* 严格按 `20260909131821_vip_foundation.sql` -> VERIFY -> `20260910133500_vip_admin_management.sql` -> VERIFY 执行。Production history 对应记录为 `20260912080231 vip_foundation` 与 `20260912080326 vip_admin_management`。
+* Phase 1 三张 VIP 表、constraints、indexes、RLS、append-only trigger、基础函数与 grants 均通过检查；Phase 2 的 `request_payload` 约束、后台 overview/mutation RPC、空 `search_path` 与 service-role-only execute grants 均通过检查。
+* 使用专用 QA Relationship A/B 测试。Owner Grant、Extend、Cancel at period end、Revoke 均成功，每次首次操作只产生一条 immutable event 与一条 `admin_logs`；同一 `request_id` 重放正确返回幂等结果。
+* 真正双连接并发对同一账号、同一 Grant 与同一 `request_id` 同时发起两次调用：一次执行、一次幂等返回，最终只有一条 membership、event 与 admin log。
+* 权限矩阵通过数据库真实调用验证：Owner 可写，Admin 只读，Moderator 与普通居民拒绝；临时角色测试在 transaction 内回滚，QA 账号均恢复为 `active user`。未登录浏览器访问 `/admin/users/[id]` 会返回居民登录入口。
+* Cleanup 已删除两个 QA 账号的当前 membership；测试 events 与 admin logs 按审计要求保留，并新增 `vip_test_cleanup` 标记。两个账号均无残留 VIP membership。
+* 全部五个 VIP flags 最终复核仍为 `false`，公开 entitlement 返回 `feature_disabled`。Purchase、Referral、公开 UI 与 Badge 均未启用。
+* Vercel Production 首页返回 200，最近一小时没有 runtime error。没有发现普通居民路径回归。
+* 由于没有可用的 Owner/Admin 浏览器登录 session，本轮没有提交认证秘密或绕过 Auth；Production Owner/Admin 页面视觉点击流程仍建议由负责人登录后做一次最终人工确认。数据库 RPC、权限、事务、审计与匿名 guard 已完成 Production 验证。
+* Supabase Advisor 未发现 VIP 专属高危问题；VIP 表的「RLS enabled, no policy」为预期 deny-all 设计，并同时撤销 `PUBLIC/anon/authenticated` table grants。Advisor 仍报告若干既有全站权限/性能提醒，未在本次 narrow-scope migration 中改动。
 
 ## 本次交接：公开内容分享
 

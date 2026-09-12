@@ -23,12 +23,42 @@ export type AdminChangelogEntry = {
 
 const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
+    date: "2026-09-12",
+    phase: "VIP Production Migration",
+    title: "完成 VIP 基础与后台管理数据库部署",
+    category: "Database",
+    scope: "VIP 基础数据、后台管理、权限与审计",
+    status: "已完成",
+    summary:
+      "依序完成 VIP Phase 1 与 Phase 2 数据库迁移及专用测试账号验证。Owner 写入、Admin 只读、角色限制、幂等与审计记录均符合预期；全部 VIP 功能开关继续关闭。",
+  },
+  {
+    date: "2026-09-11",
+    phase: "VIP Production Migration Gate",
+    title: "完成 VIP 数据库迁移风险闸门",
+    category: "Operations",
+    scope: "Production migration 与恢复准备",
+    status: "已完成",
+    summary:
+      "数据库写入曾因恢复条件待确认而暂停；负责人确认已知风险并再次批准后，按 Phase 1、验证、Phase 2、验证的顺序完成执行。全部 VIP 功能继续关闭。",
+  },
+  {
+    date: "2026-09-11",
+    phase: "VIP Production Readiness",
+    title: "完成 VIP 上线前审查",
+    category: "Operations",
+    scope: "VIP 基础、后台管理与上线恢复计划",
+    status: "已完成",
+    summary:
+      "完成 VIP Phase 1 与 Phase 2 的上线前依赖、安全、幂等与恢复审查；数据库变更随后于 2026-09-12 经独立批准并完成验证。全部 VIP 功能继续保持关闭。",
+  },
+  {
     date: "2026-09-10",
     phase: "VIP System V1 Phase 2",
     title: "新增居民 VIP 会员管理",
     category: "Admin",
     scope: "居民管理房间、会员操作与后台日志",
-    status: "待部署",
+    status: "已完成",
     summary:
       "Owner 可在居民管理房间授予、延长、设为到期取消或立即撤销 VIP，Admin 可只读查看当前状态与最近记录；所有操作保留会员事件与后台审计日志。全局 VIP 权益继续关闭。",
   },
@@ -38,7 +68,7 @@ const adminChangelogEntries: readonly AdminChangelogEntry[] = [
     title: "建立公开与后台更新日志分流",
     category: "Operations",
     scope: "更新日志维护、后台导航与访问权限",
-    status: "待部署",
+    status: "已完成",
     summary:
       "建立服务器保护的后台更新日志，并明确居民可见、后台内部与技术交接三种记录的长期职责。",
   },
