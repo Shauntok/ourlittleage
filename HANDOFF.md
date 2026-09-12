@@ -117,9 +117,11 @@ JWT Secret
 API Secret
 ```
 
-### 7. Future Security Center
+### 7. Security Center 长期方向
 
-以下方向已规划，但目前不开发：
+Security Center Phase 1 已于本地完成基础实现，包含受保护的后台概览、居民人工风险与复核记录、不可变安全事件，以及现有评论词语检测入口。Phase 1 不包含自动风险判断或自动处罚。
+
+以下进阶方向仍仅为未来规划，目前不开发：
 
 ```text
 Admin
@@ -201,6 +203,30 @@ Mixed feature:
 ```
 
 后续 Codex 完成实际开发任务时，最终报告必须包含 `CHANGELOG SYNC`，分别说明 HANDOFF、Public Changelog 与 Admin Changelog 是否更新以及分类原因。公开版本号继续按开发阶段累计，不因每个小修复频繁递增。
+
+## 2026-09-12 Security Center Phase 1
+
+当前状态：**implementation complete、已在 `codex/security-center-phase-1` 分支提交；尚未合并或 push 至 `main`，尚未 deploy，Production migration 尚未应用，Production 尚未验证。**
+
+### 已实现
+
+* 新增 migration `supabase/migrations/20260912150000_security_center_foundation.sql`：建立 `security_feature_flags`、`security_events` 与 `security_risk_profiles`。
+* `security_events` 采用 append-only 保护；人工风险、复核与内部备注操作使用 request ID + fingerprint 幂等处理，并在同一数据库事务写入一条 Security Event 与一条 `admin_logs`。
+* 风险资料与 `profiles.status` 保持独立。人工风险调整不会自动警告、禁言、封禁居民，也不会触发其他处罚。
+* Security Center 与事件收集开关默认开启；`risk_evaluation_enabled` 与 `automatic_enforcement_enabled` 默认且持续关闭。
+* 新增受保护 RPC：`security_get_feature_flags`、`security_admin_get_overview`、`security_admin_get_resident`、`security_owner_apply_risk_action`。浏览器角色没有直接表或 RPC 权限，服务端继续使用可信会话取得 actor。
+* 新增 `/api/admin/security` 与 `/api/admin/users/[id]/security`。Owner/Admin 可读；只有 Owner 可修改风险、复核状态与内部备注；Moderator、普通居民与匿名访客均被 Server/API 与数据库边界拒绝。
+* 新增 `/admin/security` 与侧栏入口，显示人工复核数量、风险分布、只读 feature flags、分页安全事件，以及词语检测区块。
+* 词语检测继续复用 `comment_moderation_keywords`、`comment_moderation_flags`、`rescan_comment_moderation` 与原 `/admin/comments` 审核流程。Security Center 只显示启用/停用数量、待检查数量与最近五条命中，不复制评论正文或审核动作，也不产生风险事件。
+* `/admin/comments?filter=flagged` 只接受 `flagged` 深链接；其他 URL filter 均回到原本的今日视图。
+* `/admin/users/[id]` 增加独立 Security 区域：账号状态、风险等级、复核状态与历史清楚分开；Owner 可写，Admin 只读；读取失败不会使居民管理房间崩溃。
+
+### 验证与限制
+
+* 已新增 `supabase/tests/security_center_foundation.test.sql`，覆盖 schema、默认值、角色矩阵、append-only、幂等、审计与账号状态独立性。
+* 本机没有 Docker/Podman/Postgres，因此 Supabase SQL test 尚未实际执行；不得以 Production 代替本地测试。应用 Production migration 前必须在可用的隔离 Supabase 环境运行 SQL test 并进行独立 readiness review。
+* Vitest 定向测试、TypeScript、focused ESLint、Production build 与 `git diff --check` 的最终结果记录在本任务完成报告；Production apply 必须另行取得明确批准。
+* Public Changelog：不适用。本阶段是内部后台、安全与权限基础，只同步 HANDOFF 与 Admin Changelog。
 
 ## 2026-09-10 Admin Changelog Foundation
 

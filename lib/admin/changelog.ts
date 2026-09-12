@@ -24,6 +24,16 @@ export type AdminChangelogEntry = {
 const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
     date: "2026-09-12",
+    phase: "Security Center Phase 1",
+    title: "建立安全中心与人工复核基础",
+    category: "Security",
+    scope: "后台安全中心、居民管理房间与评论检测词库",
+    status: "待部署",
+    summary:
+      "新增受保护的风险状态与人工复核记录，并把现有评论检测词库、待检查摘要及评论管理入口集中到安全中心。自动风险判断与自动处置仍保持关闭。",
+  },
+  {
+    date: "2026-09-12",
     phase: "VIP Production Migration",
     title: "完成 VIP 基础与后台管理数据库部署",
     category: "Database",
