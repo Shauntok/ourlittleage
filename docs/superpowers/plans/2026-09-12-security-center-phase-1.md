@@ -119,6 +119,7 @@ create table public.security_events (
   )),
   user_id uuid references public.profiles(id) on delete set null,
   actor_id uuid references public.profiles(id) on delete set null,
+  reason text not null check (btrim(reason) <> '' and char_length(reason) <= 500),
   severity text not null check (severity in ('low', 'medium', 'high', 'critical')),
   source text not null check (source = 'security_center_manual'),
   metadata jsonb not null default '{}'::jsonb check (jsonb_typeof(metadata) = 'object'),
@@ -322,6 +323,7 @@ export type SecurityEvent = {
   username: string | null;
   actorId: string | null;
   actorUsername: string | null;
+  reason: string;
   severity: SecurityRiskLevel;
   occurredAt: string;
   metadata: Record<string, unknown>;

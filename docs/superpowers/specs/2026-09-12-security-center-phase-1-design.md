@@ -78,6 +78,7 @@ Append-only event history with:
 - `category`;
 - nullable target `user_id`;
 - nullable `actor_id`;
+- bounded, non-empty administrative `reason`;
 - `severity`;
 - `source`;
 - object-only JSON metadata;
