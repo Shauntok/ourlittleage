@@ -16,6 +16,7 @@ import UserJoinedCard from "@/components/admin/users/UserJoinedCard";
 import UserProfileInfoCard from "@/components/admin/users/UserProfileInfoCard";
 import UserRelationshipSection from "@/components/admin/users/UserRelationshipSection";
 import UserVipMembershipSection from "@/components/admin/users/UserVipMembershipSection";
+import UserSecuritySection from "@/components/admin/users/UserSecuritySection";
 import { fetchUserDetailData } from "@/components/admin/users/userDetailData";
 
 export default function AdminUserDetailPage() {
@@ -434,6 +435,16 @@ export default function AdminUserDetailPage() {
           key={`vip-${id}`}
           userId={id}
           username={profile.username}
+          currentRole={currentRole}
+        />
+      )}
+
+      {(currentRole === "owner" || currentRole === "admin") && (
+        <UserSecuritySection
+          key={`security-${id}`}
+          userId={id}
+          username={profile.username}
+          accountStatus={profile.status}
           currentRole={currentRole}
         />
       )}
