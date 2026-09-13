@@ -24,11 +24,21 @@ export type AdminChangelogEntry = {
 const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
     date: "2026-09-12",
+    phase: "Security Center Lifecycle Fix",
+    title: "完成安全事件与账号生命周期兼容修复",
+    category: "Security",
+    scope: "安全事件审计与居民账号生命周期",
+    status: "待验证",
+    summary:
+      "修正安全事件审计历史与居民资料删除流程的兼容性，同时保持历史事件不可修改、不可删除。Production migration 仍未应用，自动风险判断与自动处置继续关闭，等待新的上线前审查。",
+  },
+  {
+    date: "2026-09-12",
     phase: "Security Center Phase 1",
     title: "建立安全中心与人工复核基础",
     category: "Security",
     scope: "后台安全中心、居民管理房间与评论检测词库",
-    status: "待部署",
+    status: "待验证",
     summary:
       "新增受保护的风险状态与人工复核记录，并把现有评论检测词库、待检查摘要及评论管理入口集中到安全中心。自动风险判断与自动处置仍保持关闭。",
   },

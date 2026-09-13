@@ -39,8 +39,9 @@ create table public.security_events (
   request_fingerprint text not null,
   event_type text not null,
   category text not null,
-  user_id uuid references public.profiles(id) on delete set null,
-  actor_id uuid references public.profiles(id) on delete set null,
+  -- Historical identifiers intentionally outlive profiles and remain immutable.
+  user_id uuid,
+  actor_id uuid,
   reason text not null,
   severity text not null,
   source text not null,

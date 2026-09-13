@@ -206,7 +206,7 @@ Mixed feature:
 
 ## 2026-09-12 Security Center Phase 1
 
-当前状态：**implementation complete、committed、已合并到 `main` 并 push（implementation commit `070d20f48d6f696c3463416353c464a70a4cdcce`）；Production migration 尚未应用，最新 Vercel deployment 尚未验证，Production 功能尚未验证。**
+当前状态：**implementation complete；已确认的账号删除 lifecycle 阻塞已在 migration 与 SQL regression 中修复。Production migration 尚未应用，自动风险判断与自动处置保持关闭；必须完成新的 Production Readiness Review 后才能申请上线。**
 
 ### 已实现
 
@@ -223,8 +223,11 @@ Mixed feature:
 
 ### 验证与限制
 
-* 已新增 `supabase/tests/security_center_foundation.test.sql`，覆盖 schema、默认值、角色矩阵、append-only、幂等、审计与账号状态独立性。
-* 本机没有 Docker/Podman/Postgres，因此 Supabase SQL test 尚未实际执行；不得以 Production 代替本地测试。应用 Production migration 前必须在可用的隔离 Supabase 环境运行 SQL test 并进行独立 readiness review。
+* 已新增 `supabase/tests/security_center_foundation.test.sql`，覆盖 schema、默认值、角色矩阵、append-only、幂等、审计与账号状态独立性；账号 lifecycle regression 进一步覆盖删除事件 subject 与 actor 的真实 `auth.users -> profiles` 级联流程。
+* Readiness Review 的只读 Production catalog 检查确认目标 migration 尚未记录，同名 tables/functions/triggers/indexes/policies 均不存在，现有 `profiles`、`admin_logs` 与评论词语检测依赖匹配；Production PostgreSQL 为 17.6，隔离验证环境为 PGlite PostgreSQL 18.3。
+* **Lifecycle 修复：**`security_events.user_id` / `actor_id` 现作为无 profile FK 的 immutable historical UUID 保存。删除居民或 actor 不会更新或删除安全事件，资料生命周期可以完成，事件 UUID、reason 与 metadata 保持原值；普通 UPDATE/DELETE 仍由 append-only trigger 拒绝。
+* 修复后的 migration 与完整 SQL verification 已在隔离 PGlite PostgreSQL 18.3 环境通过；subject 删除、actor 删除、RLS、RPC、幂等与审计回归均通过。本次 SQL 未使用 PostgreSQL 18-only feature，保持与 Production PostgreSQL 17.6 兼容。
+* Production 为 Supabase Free plan，没有平台自动每日备份或 PITR。后续重新获批上线前应先准备可验证的逻辑备份/恢复条件，并继续采用单一 migration、事务执行、自动评估与自动处置关闭、异常时 forward repair 的方案。
 * Vitest 定向测试、TypeScript、focused ESLint、Production build 与 `git diff --check` 的最终结果记录在本任务完成报告；Production apply 必须另行取得明确批准。
 * Public Changelog：不适用。本阶段是内部后台、安全与权限基础，只同步 HANDOFF 与 Admin Changelog。
 

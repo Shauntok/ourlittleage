@@ -340,6 +340,96 @@ $$;
 
 reset role;
 
+insert into auth.users (id, email) values
+  ('30000000-0000-4000-8000-000000000007', 'security-deleted-subject@example.test'),
+  ('30000000-0000-4000-8000-000000000008', 'security-deleted-actor@example.test');
+
+insert into public.profiles (id, username, role, status) values
+  ('30000000-0000-4000-8000-000000000007', 'security-deleted-subject', 'user', 'active'),
+  ('30000000-0000-4000-8000-000000000008', 'security-deleted-actor', 'admin', 'active');
+
+insert into public.security_events (
+  request_id,
+  request_fingerprint,
+  event_type,
+  category,
+  user_id,
+  actor_id,
+  reason,
+  severity,
+  source,
+  metadata
+)
+values
+  (
+    '31000000-0000-4000-8000-000000000007',
+    repeat('7', 64),
+    'review_marked_pending',
+    'account',
+    '30000000-0000-4000-8000-000000000007',
+    '30000000-0000-4000-8000-000000000001',
+    'Preserve deleted resident audit history',
+    'low',
+    'security_center_manual',
+    '{"lifecycle":"subject"}'::jsonb
+  ),
+  (
+    '31000000-0000-4000-8000-000000000008',
+    repeat('8', 64),
+    'review_marked_complete',
+    'admin',
+    '30000000-0000-4000-8000-000000000005',
+    '30000000-0000-4000-8000-000000000008',
+    'Preserve deleted actor audit history',
+    'low',
+    'security_center_manual',
+    '{"lifecycle":"actor"}'::jsonb
+  );
+
+delete from auth.users
+where id = '30000000-0000-4000-8000-000000000007';
+
+select security_center_test.assert_true(
+  not exists (
+    select 1
+    from public.profiles
+    where id = '30000000-0000-4000-8000-000000000007'
+  ),
+  'Deleting a subject auth user completes the real profile lifecycle'
+);
+
+select security_center_test.assert_true(
+  (select user_id = '30000000-0000-4000-8000-000000000007'
+     and actor_id = '30000000-0000-4000-8000-000000000001'
+     and reason = 'Preserve deleted resident audit history'
+     and metadata = '{"lifecycle":"subject"}'::jsonb
+   from public.security_events
+   where request_id = '31000000-0000-4000-8000-000000000007'),
+  'Deleted subject UUID remains an immutable historical identifier'
+);
+
+delete from auth.users
+where id = '30000000-0000-4000-8000-000000000008';
+
+select security_center_test.assert_true(
+  not exists (
+    select 1
+    from public.profiles
+    where id = '30000000-0000-4000-8000-000000000008'
+  ),
+  'Deleting an actor auth user completes the real profile lifecycle'
+);
+
+select security_center_test.assert_true(
+  (select user_id = '30000000-0000-4000-8000-000000000005'
+     and actor_id = '30000000-0000-4000-8000-000000000008'
+     and reason = 'Preserve deleted actor audit history'
+     and metadata = '{"lifecycle":"actor"}'::jsonb
+   from public.security_events
+   where request_id = '31000000-0000-4000-8000-000000000008'),
+  'Deleted actor UUID remains an immutable historical identifier'
+);
+
 do $$
 begin
   begin
