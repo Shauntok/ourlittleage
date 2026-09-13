@@ -206,7 +206,7 @@ Mixed feature:
 
 ## 2026-09-12 Security Center Phase 1
 
-当前状态：**implementation complete；lifecycle 修复 commit `333e298019114e392f0c8ad15c8c290235d682c9` 已部署至 Vercel Production（READY）。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration 已应用至 Production，远端记录为 `20260913034004 security_center_foundation`。核心 schema、46 条默认风险资料、开关、权限、幂等、审计与 append-only 验证通过，但完整账号 lifecycle smoke test 被既有 Profile FK 生命周期冲突阻断。Forward repair migration `20260913035922_fix_profile_lifecycle_foreign_keys.sql` 已本地建立并通过隔离 SQL 回归，尚未应用 Production；因此 Phase 1 尚未标记为 Production fully verified。自动风险判断与自动处置保持关闭，Security Phase 2 不得开始。**
+当前状态：**implementation complete；lifecycle 修复 commit `f58585a` 已 push 至 `main`。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration 已应用至 Production，远端记录为 `20260913034004 security_center_foundation`。Forward repair migration `20260913035922_fix_profile_lifecycle_foreign_keys.sql` 也已应用至 Production，远端记录为 `20260913090355 fix_profile_lifecycle_foreign_keys`；目标 FK 与 nullable 状态已逐项验证。Production lifecycle smoke test 继续发现 `comment_moderation_flags_review_check` 与 `reviewed_by ON DELETE SET NULL` 冲突，删除已审核归因居民时仍会被 PostgreSQL `23514` 阻止。测试事务完整回滚且无 QA 残留，因此 Phase 1 仍未标记为 Production fully verified。自动风险判断与自动处置保持关闭，Security Phase 2 不得开始。**
 
 ### 已实现
 
@@ -240,10 +240,12 @@ Mixed feature:
 * Production flags：Security Center 与事件收集开启；`risk_evaluation_enabled = false`、`automatic_enforcement_enabled = false`。不存在自动警告、禁言、封禁、登出或内容删除。
 * Owner QA 操作已验证 risk、review、internal note、request ID 幂等，以及每次有效 mutation 同时产生 Security Event 与 Admin Log；QA 风险资料已恢复为默认状态。六条 QA 安全事件与六条对应 Admin Log 按 append-only 审计规则保留。
 * `security_events` 的 UPDATE 与 DELETE 均被 append-only trigger 以 `42501` 拒绝。普通 authenticated / anon 没有安全表读取、事件写入或安全 RPC 执行权限。
-* **Production blocker：**事务化 QA lifecycle 测试在删除 Profile 时失败。现有 `notifications_user_id_fkey` 定义为 `ON DELETE SET NULL`，但 `notifications.user_id` 同时为 `NOT NULL`，PostgreSQL 因 `23502` 拒绝删除；测试事务已回滚，QA Profile、46 个居民与安全资料均完整，未留下 lifecycle 测试事件。
+* 首个 Production lifecycle blocker（`notifications.user_id NOT NULL` 搭配 `ON DELETE SET NULL`）已由 forward repair 修正为 `NOT NULL + ON DELETE CASCADE`。
 * 已批准生命周期规则：通知收件箱、风险资料、VIP 当前会员与居民徽章随账号删除；运营/审核归因保留记录并把已删除操作者设为 `NULL`；Security Event、Admin Log 与 VIP Event 保留不可变历史 UUID；社区内容 FK 本阶段不改。
 * 新增 forward migration `supabase/migrations/20260913035922_fix_profile_lifecycle_foreign_keys.sql` 与 SQL 回归 `supabase/tests/profile_lifecycle_forward_repair.test.sql`。测试先在旧 schema 上因通知收件人规则失败，再在 migration 后通过完整 Profile lifecycle、多个通知、无关居民、归因匿名化、审计 UUID 保留与 Security Event append-only 回归。
-* Forward repair 尚未应用 Production。应用并完成 Production lifecycle 与剩余 Owner/Admin/Moderator/UI/health smoke tests 前，不得宣称 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`，不得开始 Security Phase 2。
+* Forward repair 已应用 Production，远端 migration history 为 `20260913090355 fix_profile_lifecycle_foreign_keys`。最终 FK catalog、46 个 Profile、140 条通知、0 个空收件人及 0 个孤儿通知均验证正常。
+* **当前 Production blocker：**真实事务化 QA 删除在 `comment_moderation_flags.reviewed_by` 执行 `SET NULL` 时触发 `comment_moderation_flags_review_check`；该 check 要求 `cleared` 状态必须同时保留非空 `reviewed_by` 与 `reviewed_at`，导致 PostgreSQL `23514`。测试事务完整回滚，所有 QA auth/profile/通知/报告/审计记录均为 0，未影响现有居民资料。
+* 按 lifecycle gate 已停止后续 Security Center 权限、UI 与 health smoke tests。必须另行设计并批准 forward repair；在完整 Production lifecycle 重测通过前，不得宣称 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`，不得开始 Security Phase 2。
 
 ## 2026-09-10 Admin Changelog Foundation
 

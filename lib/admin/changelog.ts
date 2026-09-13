@@ -25,12 +25,12 @@ const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
     date: "2026-09-13",
     phase: "Profile Lifecycle Forward Repair",
-    title: "准备居民永久删除流程兼容修复",
+    title: "部署居民账号生命周期前向修复",
     category: "Database",
     scope: "居民账号生命周期、内部通知与后台历史资料",
-    status: "待部署",
+    status: "需后续修复",
     summary:
-      "已准备账号永久删除流程的前向修复：居民私有当前资料按规则清理，后台历史记录继续保留并安全处理已删除账号归因。修复已通过隔离回归，尚未应用 Production。",
+      "前向修复已部署并完成外键状态核对，通知收件箱等首个删除阻塞已解除。Production 生命周期测试进一步发现已审核词语记录的归因约束冲突；测试已安全回滚，自动风险判断与自动处置继续关闭，等待独立修复批准。",
   },
   {
     date: "2026-09-13",
@@ -40,7 +40,7 @@ const adminChangelogEntries: readonly AdminChangelogEntry[] = [
     scope: "安全中心基础数据、权限、审计与账号生命周期",
     status: "待验证",
     summary:
-      "安全中心基础 migration 已部署，默认风险资料、权限、开关、幂等与不可变审计验证通过；账号删除测试发现既有通知收件人外键与非空约束冲突。自动风险判断与自动处置继续关闭，完成前向修复和剩余验证前不进入下一阶段。",
+      "安全中心基础 migration 已部署，默认风险资料、权限、开关、幂等与不可变审计验证通过；账号生命周期前向修复也已部署，但完整删除测试仍被既有审核归因约束阻止。自动风险判断与自动处置继续关闭，修复并完成剩余验证前不进入下一阶段。",
   },
   {
     date: "2026-09-13",
