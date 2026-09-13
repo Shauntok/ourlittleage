@@ -28,9 +28,9 @@ const adminChangelogEntries: readonly AdminChangelogEntry[] = [
     title: "修正审核历史与账号生命周期兼容性",
     category: "Database",
     scope: "评论审核历史与居民账号生命周期",
-    status: "待部署",
+    status: "已完成",
     summary:
-      "已在隔离环境完成审核历史归因的前向修复与完整生命周期回归。已审核记录会保留历史识别资料，未审核记录继续维持原有规则；Production 尚未应用。",
+      "审核历史归因前向修复已部署并通过 Production 生命周期回归。已审核记录保留历史识别资料，未审核记录继续维持原有规则。",
   },
   {
     date: "2026-09-13",
@@ -38,19 +38,19 @@ const adminChangelogEntries: readonly AdminChangelogEntry[] = [
     title: "部署居民账号生命周期前向修复",
     category: "Database",
     scope: "居民账号生命周期、内部通知与后台历史资料",
-    status: "待验证",
+    status: "已完成",
     summary:
-      "前向修复已部署并完成外键状态核对，通知收件箱等首个删除阻塞已解除。Production 生命周期测试进一步发现已审核词语记录的归因约束冲突；测试已安全回滚，自动风险判断与自动处置继续关闭，等待独立修复批准。",
+      "账号生命周期前向修复与审核历史兼容修复均已部署，完整 Production 删除流程和历史保留规则验证通过；自动风险判断与自动处置继续关闭。",
   },
   {
     date: "2026-09-13",
     phase: "Security Center Production Migration",
-    title: "完成安全中心数据库部署并发现生命周期阻断",
+    title: "完成安全中心数据库部署与生命周期验证",
     category: "Database",
     scope: "安全中心基础数据、权限、审计与账号生命周期",
-    status: "待验证",
+    status: "已完成",
     summary:
-      "安全中心基础 migration 已部署，默认风险资料、权限、开关、幂等与不可变审计验证通过；账号生命周期前向修复也已部署，但完整删除测试仍被既有审核归因约束阻止。自动风险判断与自动处置继续关闭，修复并完成剩余验证前不进入下一阶段。",
+      "安全中心基础 migration、权限、开关、幂等、不可变审计及账号生命周期已通过 Production 验证。自动风险判断与自动处置继续关闭，不进入下一阶段。",
   },
   {
     date: "2026-09-13",
@@ -60,7 +60,7 @@ const adminChangelogEntries: readonly AdminChangelogEntry[] = [
     scope: "数据库兼容性、权限、审计与恢复准备",
     status: "已完成",
     summary:
-      "最终审查确认账号生命周期兼容修复、权限边界与审计保护符合上线条件。Production migration 仍未应用，正式执行前需另行批准并完成逻辑备份；自动风险判断与自动处置继续关闭。",
+      "最终审查确认账号生命周期兼容修复、权限边界与审计保护符合上线条件；随后已完成离站逻辑备份、独立上线批准与 Production 验证。自动风险判断与自动处置继续关闭。",
   },
   {
     date: "2026-09-12",
@@ -70,7 +70,7 @@ const adminChangelogEntries: readonly AdminChangelogEntry[] = [
     scope: "安全事件审计与居民账号生命周期",
     status: "已完成",
     summary:
-      "修正安全事件审计历史与居民资料删除流程的兼容性，同时保持历史事件不可修改、不可删除。Production migration 仍未应用，自动风险判断与自动处置继续关闭，等待新的上线前审查。",
+      "修正安全事件审计历史与居民资料删除流程的兼容性，同时保持历史事件不可修改、不可删除；相关 migration 后续已受控应用并完成 Production 验证。",
   },
   {
     date: "2026-09-12",
@@ -78,7 +78,7 @@ const adminChangelogEntries: readonly AdminChangelogEntry[] = [
     title: "建立安全中心与人工复核基础",
     category: "Security",
     scope: "后台安全中心、居民管理房间与评论检测词库",
-    status: "待验证",
+    status: "已完成",
     summary:
       "新增受保护的风险状态与人工复核记录，并把现有评论检测词库、待检查摘要及评论管理入口集中到安全中心。自动风险判断与自动处置仍保持关闭。",
   },

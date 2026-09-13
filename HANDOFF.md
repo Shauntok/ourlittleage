@@ -119,7 +119,7 @@ API Secret
 
 ### 7. Security Center 长期方向
 
-Security Center Phase 1 已于本地完成基础实现，包含受保护的后台概览、居民人工风险与复核记录、不可变安全事件，以及现有评论词语检测入口。Phase 1 不包含自动风险判断或自动处罚。
+Security Center Phase 1 已完成基础实现并通过 Production 验证，包含受保护的后台概览、居民人工风险与复核记录、不可变安全事件，以及现有评论词语检测入口。Phase 1 不包含自动风险判断或自动处罚。
 
 以下进阶方向仍仅为未来规划，目前不开发：
 
@@ -206,7 +206,7 @@ Mixed feature:
 
 ## 2026-09-12 Security Center Phase 1
 
-当前状态：**implementation complete；lifecycle 修复 commit `f58585a` 已 push 至 `main`。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration 已应用至 Production，远端记录为 `20260913034004 security_center_foundation`。Forward repair migration `20260913035922_fix_profile_lifecycle_foreign_keys.sql` 也已应用至 Production，远端记录为 `20260913090355 fix_profile_lifecycle_foreign_keys`；目标 FK 与 nullable 状态已逐项验证。Production lifecycle smoke test 继续发现 `comment_moderation_flags_review_check` 与 `reviewed_by ON DELETE SET NULL` 冲突。新的 forward migration `20260913113218_fix_moderation_review_lifecycle.sql` 已在本地建立并通过隔离 moderation/full lifecycle SQL 回归，但尚未 commit、push 或应用 Production。Phase 1 仍未标记为 Production fully verified；自动风险判断与自动处置保持关闭，Security Phase 2 不得开始。**
+当前状态：**implementation complete、committed、pushed、deployed，并已通过 Production 验证。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration、Profile lifecycle forward repair 与 Moderation review lifecycle forward repair 均已受控应用至 Production。最终数据库权限矩阵、完整账号生命周期与线上健康检查通过；自动风险判断与自动处置保持关闭，Security Phase 2 不得开始。**
 
 ### 已实现
 
@@ -228,8 +228,8 @@ Mixed feature:
 * **Lifecycle 修复：**`security_events.user_id` / `actor_id` 现作为无 profile FK 的 immutable historical UUID 保存。删除居民或 actor 不会更新或删除安全事件，资料生命周期可以完成，事件 UUID、reason 与 metadata 保持原值；普通 UPDATE/DELETE 仍由 append-only trigger 拒绝。
 * 修复后的 migration 与完整 SQL verification 已在隔离 PGlite PostgreSQL 18.3 环境通过；subject 删除、actor 删除、RLS、RPC、幂等与审计回归均通过。本次 SQL 未使用 PostgreSQL 18-only feature，保持与 Production PostgreSQL 17.6 兼容。
 * 最终只读 Production 检查确认 migration history 与 catalog 中仍无 Security Center 对象或命名冲突；现有 46 名居民，首次 migration 预计建立 46 条默认 `low` / `no_review_required` 风险资料，不修改 `profiles.status`。
-* Production 为 Supabase Free plan，没有平台自动每日备份或 PITR。正式 apply 前必须用 Supabase CLI `db dump` / `pg_dump` 生成可验证的离站逻辑备份；异常时保持自动评估与自动处置关闭，必要时关闭 Security Center UI，并优先使用 forward repair migration。
-* Vitest 定向测试、TypeScript、focused ESLint、Production build 与 `git diff --check` 的最终结果记录在本任务完成报告；Production apply 必须另行取得明确批准。
+* Production 为 Supabase Free plan，没有平台自动每日备份或 PITR。上线前闸门已使用 Supabase CLI `db dump` / `pg_dump` 生成并验证离站逻辑备份；异常时继续保持自动评估与自动处置关闭，并优先使用 forward repair migration。
+* Vitest 定向测试、TypeScript、focused ESLint、Production build 与 `git diff --check` 均已通过；Production apply 已在独立明确批准后执行。
 * Public Changelog：不适用。本阶段是内部后台、安全与权限基础，只同步 HANDOFF 与 Admin Changelog。
 
 ### Production Migration 与验证状态（2026-09-13）
@@ -244,12 +244,16 @@ Mixed feature:
 * 已批准生命周期规则：通知收件箱、风险资料、VIP 当前会员与居民徽章随账号删除；运营/审核归因保留记录并把已删除操作者设为 `NULL`；Security Event、Admin Log 与 VIP Event 保留不可变历史 UUID；社区内容 FK 本阶段不改。
 * 新增 forward migration `supabase/migrations/20260913035922_fix_profile_lifecycle_foreign_keys.sql` 与 SQL 回归 `supabase/tests/profile_lifecycle_forward_repair.test.sql`。测试先在旧 schema 上因通知收件人规则失败，再在 migration 后通过完整 Profile lifecycle、多个通知、无关居民、归因匿名化、审计 UUID 保留与 Security Event append-only 回归。
 * Forward repair 已应用 Production，远端 migration history 为 `20260913090355 fix_profile_lifecycle_foreign_keys`。最终 FK catalog、46 个 Profile、140 条通知、0 个空收件人及 0 个孤儿通知均验证正常。
-* **当前 Production blocker：**真实事务化 QA 删除在 `comment_moderation_flags.reviewed_by` 执行 `SET NULL` 时触发 `comment_moderation_flags_review_check`；该 check 要求 `cleared` 状态必须同时保留非空 `reviewed_by` 与 `reviewed_at`，导致 PostgreSQL `23514`。测试事务完整回滚，所有 QA auth/profile/通知/报告/审计记录均为 0，未影响现有居民资料。
+* **已解除的 Production blocker：**真实事务化 QA 删除曾在 `comment_moderation_flags.reviewed_by` 执行 `SET NULL` 时触发 `comment_moderation_flags_review_check`；该 check 要求 `cleared` 状态必须同时保留非空 `reviewed_by` 与 `reviewed_at`，导致 PostgreSQL `23514`。失败测试事务完整回滚，未影响现有居民资料。
 * 产品规则已修正：`comment_moderation_flags.reviewed_by` 属于 historical moderation attribution。Pending 继续允许 `NULL`；Cleared 记录在 reviewer Profile 删除后保留原 UUID、状态与时间，不保存额外 PII。
-* 新增本地 forward migration `supabase/migrations/20260913113218_fix_moderation_review_lifecycle.sql`：只删除 `comment_moderation_flags_reviewed_by_fkey`，保持 column nullable、`comment_moderation_flags_review_check`、索引及现有 rows 不变。Production 尚未应用。
+* 新增 forward migration `supabase/migrations/20260913113218_fix_moderation_review_lifecycle.sql`：只删除 `comment_moderation_flags_reviewed_by_fkey`，保持 column nullable、`comment_moderation_flags_review_check`、索引及现有 rows 不变。代码提交 `115bcca0b14edfe215a4322677fe96040faf337e` 已 push 至 `main`，Production migration history 记录为 `20260913115107 fix_moderation_review_lifecycle`。
 * 新增 `supabase/tests/moderation_review_lifecycle_forward_repair.test.sql`，并更新完整 lifecycle regression。测试已先在旧 FK 设计上准确复现 check failure，再于新 migration 后确认 reviewer Profile 可删除、Cleared flag 与 reviewer UUID 保留、Pending flag 继续合法、review check 仍存在；完整 Profile lifecycle 与 Security Event append-only 回归通过。
 * Narrow `SET NULL` audit 只检查 `reports.reporter_id`、`comment_moderation_keywords.created_by`、`comment_moderation_flags.reviewed_by`、`growth_logs.actor_id`、`posts.deleted_by`、`user_badges.assigned_by`。除已修正的 moderation reviewer 冲突外，其余五列没有 CHECK、trigger 或 function/RPC 的确定性 lifecycle 矛盾，保持现状。
-* 在新 forward migration 获得独立 Production approval 并完成完整 Production lifecycle 重测前，不得宣称 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`，不得开始 Security Phase 2。
+* Production 重测已确认 reviewer Profile 可删除，Cleared flag、状态、时间与历史 reviewer UUID 保留，Pending flag 继续合法；完整 Profile lifecycle、Security Event append-only、Owner/Admin/Moderator/Resident 权限矩阵与幂等审计均通过。
+* Production 测试全部在事务中回滚；QA auth、profile、通知、安全事件、后台日志、VIP 事件与审核 flag 残留均为 0。先前已记录的六条 QA Security Event 与六条 Admin Log 继续按 append-only 审计规则保留。
+* Vercel Production deployment `dpl_69yoh77dNtjXDzx3mLRsdKkQ2Rdf` 已部署提交 `115bcca0b14edfe215a4322677fe96040faf337e`，状态 `READY`，正式域名 alias 正常；检查窗口内没有 runtime error。
+* 当前没有可用的 Owner/Admin 浏览器登录 session，因此后台 Security Center 与 Resident Detail 的最终视觉点击验证标记为 deferred；未绕过认证。数据库权限、事务、审计、匿名访问守卫与 Production 页面响应已经验证。
+* **结论：`PROFILE LIFECYCLE REPAIR PRODUCTION VERIFIED`，并且 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`。** 自动风险判断与自动处置仍关闭；不得自行开始 Security Phase 2。
 
 ## 2026-09-10 Admin Changelog Foundation
 
