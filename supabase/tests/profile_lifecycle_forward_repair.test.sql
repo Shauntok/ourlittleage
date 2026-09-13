@@ -77,14 +77,17 @@ insert into public.posts (id, title, content, slug, author_id, deleted_by) value
 
 insert into public.comments (id, post_id, author_id, content) values
   ('44000000-0000-4000-8000-000000000001', 400000001,
-   '40000000-0000-4000-8000-000000000002', 'Profile lifecycle QA');
+   '40000000-0000-4000-8000-000000000002', 'Profile lifecycle QA reviewed'),
+  ('44000000-0000-4000-8000-000000000002', 400000001,
+   '40000000-0000-4000-8000-000000000002', 'Profile lifecycle QA pending');
 
 insert into public.comment_moderation_flags (
-  comment_id, matched_keywords, reviewed_by
-) values (
-  '44000000-0000-4000-8000-000000000001', array['profile-lifecycle-qa-keyword'],
-  '40000000-0000-4000-8000-000000000001'
-);
+  comment_id, matched_keywords, status, reviewed_by, reviewed_at
+) values
+  ('44000000-0000-4000-8000-000000000001', array['profile-lifecycle-qa-keyword'],
+   'cleared', '40000000-0000-4000-8000-000000000001', now()),
+  ('44000000-0000-4000-8000-000000000002', array['profile-lifecycle-qa-keyword'],
+   'pending', null, null);
 
 insert into public.growth_logs (id, user_id, reason, actor_id) values
   ('45000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000002',
@@ -147,11 +150,10 @@ select profile_lifecycle_test.assert_true(
 select profile_lifecycle_test.assert_true(
   (select reporter_id is null from public.reports where id = '43000000-0000-4000-8000-000000000001')
   and (select created_by is null from public.comment_moderation_keywords where id = 400000001)
-  and (select reviewed_by is null from public.comment_moderation_flags where comment_id = '44000000-0000-4000-8000-000000000001')
   and (select actor_id is null from public.growth_logs where id = '45000000-0000-4000-8000-000000000001')
   and (select deleted_by is null from public.posts where id = 400000001)
   and (select assigned_by is null from public.user_badges where id = '46000000-0000-4000-8000-000000000002'),
-  'Operational and moderation attribution is anonymized'
+  'Operational attribution is anonymized'
 );
 
 select profile_lifecycle_test.assert_true(
@@ -159,8 +161,20 @@ select profile_lifecycle_test.assert_true(
   and (select user_id = '40000000-0000-4000-8000-000000000001' from public.vip_membership_events where id = '47000000-0000-4000-8000-000000000001')
   and (select actor_id = '40000000-0000-4000-8000-000000000001' from public.vip_membership_events where id = '47000000-0000-4000-8000-000000000002')
   and (select user_id = '40000000-0000-4000-8000-000000000001' from public.security_events where id = '48000000-0000-4000-8000-000000000001')
-  and (select actor_id = '40000000-0000-4000-8000-000000000001' from public.security_events where id = '48000000-0000-4000-8000-000000000002'),
+  and (select actor_id = '40000000-0000-4000-8000-000000000001' from public.security_events where id = '48000000-0000-4000-8000-000000000002')
+  and (select status = 'cleared'
+       and reviewed_by = '40000000-0000-4000-8000-000000000001'
+       and reviewed_at is not null
+       from public.comment_moderation_flags
+       where comment_id = '44000000-0000-4000-8000-000000000001'),
   'Immutable audit history retains historical UUIDs'
+);
+
+select profile_lifecycle_test.assert_true(
+  (select status = 'pending' and reviewed_by is null and reviewed_at is null
+   from public.comment_moderation_flags
+   where comment_id = '44000000-0000-4000-8000-000000000002'),
+  'Pending moderation flags remain valid without reviewer attribution'
 );
 
 do $$

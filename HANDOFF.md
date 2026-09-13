@@ -1,6 +1,6 @@
 # HANDOFF
 
-更新时间：2026-09-12
+更新时间：2026-09-13
 
 ## Product Rules / Long-term Architecture
 
@@ -206,7 +206,7 @@ Mixed feature:
 
 ## 2026-09-12 Security Center Phase 1
 
-当前状态：**implementation complete；lifecycle 修复 commit `f58585a` 已 push 至 `main`。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration 已应用至 Production，远端记录为 `20260913034004 security_center_foundation`。Forward repair migration `20260913035922_fix_profile_lifecycle_foreign_keys.sql` 也已应用至 Production，远端记录为 `20260913090355 fix_profile_lifecycle_foreign_keys`；目标 FK 与 nullable 状态已逐项验证。Production lifecycle smoke test 继续发现 `comment_moderation_flags_review_check` 与 `reviewed_by ON DELETE SET NULL` 冲突，删除已审核归因居民时仍会被 PostgreSQL `23514` 阻止。测试事务完整回滚且无 QA 残留，因此 Phase 1 仍未标记为 Production fully verified。自动风险判断与自动处置保持关闭，Security Phase 2 不得开始。**
+当前状态：**implementation complete；lifecycle 修复 commit `f58585a` 已 push 至 `main`。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration 已应用至 Production，远端记录为 `20260913034004 security_center_foundation`。Forward repair migration `20260913035922_fix_profile_lifecycle_foreign_keys.sql` 也已应用至 Production，远端记录为 `20260913090355 fix_profile_lifecycle_foreign_keys`；目标 FK 与 nullable 状态已逐项验证。Production lifecycle smoke test 继续发现 `comment_moderation_flags_review_check` 与 `reviewed_by ON DELETE SET NULL` 冲突。新的 forward migration `20260913113218_fix_moderation_review_lifecycle.sql` 已在本地建立并通过隔离 moderation/full lifecycle SQL 回归，但尚未 commit、push 或应用 Production。Phase 1 仍未标记为 Production fully verified；自动风险判断与自动处置保持关闭，Security Phase 2 不得开始。**
 
 ### 已实现
 
@@ -245,7 +245,11 @@ Mixed feature:
 * 新增 forward migration `supabase/migrations/20260913035922_fix_profile_lifecycle_foreign_keys.sql` 与 SQL 回归 `supabase/tests/profile_lifecycle_forward_repair.test.sql`。测试先在旧 schema 上因通知收件人规则失败，再在 migration 后通过完整 Profile lifecycle、多个通知、无关居民、归因匿名化、审计 UUID 保留与 Security Event append-only 回归。
 * Forward repair 已应用 Production，远端 migration history 为 `20260913090355 fix_profile_lifecycle_foreign_keys`。最终 FK catalog、46 个 Profile、140 条通知、0 个空收件人及 0 个孤儿通知均验证正常。
 * **当前 Production blocker：**真实事务化 QA 删除在 `comment_moderation_flags.reviewed_by` 执行 `SET NULL` 时触发 `comment_moderation_flags_review_check`；该 check 要求 `cleared` 状态必须同时保留非空 `reviewed_by` 与 `reviewed_at`，导致 PostgreSQL `23514`。测试事务完整回滚，所有 QA auth/profile/通知/报告/审计记录均为 0，未影响现有居民资料。
-* 按 lifecycle gate 已停止后续 Security Center 权限、UI 与 health smoke tests。必须另行设计并批准 forward repair；在完整 Production lifecycle 重测通过前，不得宣称 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`，不得开始 Security Phase 2。
+* 产品规则已修正：`comment_moderation_flags.reviewed_by` 属于 historical moderation attribution。Pending 继续允许 `NULL`；Cleared 记录在 reviewer Profile 删除后保留原 UUID、状态与时间，不保存额外 PII。
+* 新增本地 forward migration `supabase/migrations/20260913113218_fix_moderation_review_lifecycle.sql`：只删除 `comment_moderation_flags_reviewed_by_fkey`，保持 column nullable、`comment_moderation_flags_review_check`、索引及现有 rows 不变。Production 尚未应用。
+* 新增 `supabase/tests/moderation_review_lifecycle_forward_repair.test.sql`，并更新完整 lifecycle regression。测试已先在旧 FK 设计上准确复现 check failure，再于新 migration 后确认 reviewer Profile 可删除、Cleared flag 与 reviewer UUID 保留、Pending flag 继续合法、review check 仍存在；完整 Profile lifecycle 与 Security Event append-only 回归通过。
+* Narrow `SET NULL` audit 只检查 `reports.reporter_id`、`comment_moderation_keywords.created_by`、`comment_moderation_flags.reviewed_by`、`growth_logs.actor_id`、`posts.deleted_by`、`user_badges.assigned_by`。除已修正的 moderation reviewer 冲突外，其余五列没有 CHECK、trigger 或 function/RPC 的确定性 lifecycle 矛盾，保持现状。
+* 在新 forward migration 获得独立 Production approval 并完成完整 Production lifecycle 重测前，不得宣称 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`，不得开始 Security Phase 2。
 
 ## 2026-09-10 Admin Changelog Foundation
 

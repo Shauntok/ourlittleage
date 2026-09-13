@@ -24,11 +24,21 @@ export type AdminChangelogEntry = {
 const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
     date: "2026-09-13",
+    phase: "Moderation Review Lifecycle Forward Repair",
+    title: "修正审核历史与账号生命周期兼容性",
+    category: "Database",
+    scope: "评论审核历史与居民账号生命周期",
+    status: "待部署",
+    summary:
+      "已在隔离环境完成审核历史归因的前向修复与完整生命周期回归。已审核记录会保留历史识别资料，未审核记录继续维持原有规则；Production 尚未应用。",
+  },
+  {
+    date: "2026-09-13",
     phase: "Profile Lifecycle Forward Repair",
     title: "部署居民账号生命周期前向修复",
     category: "Database",
     scope: "居民账号生命周期、内部通知与后台历史资料",
-    status: "需后续修复",
+    status: "待验证",
     summary:
       "前向修复已部署并完成外键状态核对，通知收件箱等首个删除阻塞已解除。Production 生命周期测试进一步发现已审核词语记录的归因约束冲突；测试已安全回滚，自动风险判断与自动处置继续关闭，等待独立修复批准。",
   },
