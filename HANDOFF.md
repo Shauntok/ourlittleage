@@ -206,7 +206,7 @@ Mixed feature:
 
 ## 2026-09-13 Draft / Trash Lifecycle Fix
 
-当前状态：**implementation complete、local verification complete。没有数据库 schema 变更，不需要 Production migration；尚未 commit、push 或 deploy。**
+当前状态：**implementation complete、committed、pushed、deployed。功能提交 `1f2e3426fedcbc7e425cc2a4e1f5e07eab7f8652` 已由 Vercel 自动部署至 Production；没有数据库 schema 变更，不需要 Production migration。Production 匿名访问保护已验证，登录居民的删除、恢复与 15 天生命周期 smoke test 仍待可用的专用测试账号会话。**
 
 ### 行为与实现
 
@@ -233,6 +233,8 @@ Mixed feature:
 * Production build：通过，46/46 static pages，`/trash` 为动态 server-rendered route，`/drafts` 保留为旧地址兼容入口。
 * 桌面 1440x900 与手机 375x812 实际渲染通过。手机恢复按钮宽 330px，页面 `scrollWidth 370 <= viewport 375`，无横向溢出；菜单图标均为 18px，手机 7 个标签的起点统一为 x=86，桌面 7 个标签的起点统一为 x=1025.5。视觉检查用临时预览逻辑已删除，未进入最终工作区。
 * `git diff --check`：通过。仅有 Windows 工作区既有 LF -> CRLF 提示，没有 whitespace error。
+* Production deployment：Vercel deployment `dpl_6ZLRsSSiptiKHWkvrFQqkDQEozGJ` 为 `READY`，目标为 `production`，Git ref 为 `main`，正式域名 `ourlittleage.com` 与 `www.ourlittleage.com` 已指向该部署。
+* Production smoke boundary：未登录访问 `/trash` 以及兼容入口 `/drafts` 均返回居民入口，私人垃圾桶内容没有泄漏。本轮没有可用的专用测试居民登录会话，因此没有在 Production 创建、删除或恢复任何内容；认证后的完整生命周期验证明确保留为待办，不能据此写成 production fully verified。
 
 ## 2026-09-12 Security Center Phase 1
 
