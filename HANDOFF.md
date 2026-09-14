@@ -173,7 +173,7 @@ pushed
 Production migration applied
 Relationship Auth hotfix committed and pushed
 latest Vercel deployment verification pending
-production test-account flow paused pending hotfix verification
+production test-account flow paused pending password recovery hotfix deployment and verification
 ```
 
 ### 10. CHANGELOG POLICY
@@ -203,6 +203,31 @@ Mixed feature:
 ```
 
 后续 Codex 完成实际开发任务时，最终报告必须包含 `CHANGELOG SYNC`，分别说明 HANDOFF、Public Changelog 与 Admin Changelog 是否更新以及分类原因。公开版本号继续按开发阶段累计，不因每个小修复频繁递增。
+
+## 2026-09-14 P0 Password Recovery Identity Isolation Hotfix
+
+当前状态：**implementation complete、local verification complete、尚未 commit、尚未 push、尚未 deploy、Production verification pending。** 在本修复完成部署与线上验证前，Draft / Trash Production smoke test 暂停。
+
+### Root cause 与影响
+
+* 旧的 `/reset-password` 直接使用网站一般登录共用的 Browser Supabase client 调用 `updateUser()`，并未要求页面先收到可信的 `PASSWORD_RECOVERY` 事件。
+* 密码恢复邮件原本由 PKCE Browser client 发出。链接若改在另一台电脑或另一个浏览器打开，缺少原浏览器保存的 code verifier，恢复 callback 无法建立对应会话；若该浏览器已有其他居民登录，会继续保留原有有效 session。
+* 两个条件叠加后，重设页面仍会显示密码表单，并可能修改浏览器当前已登录居民的密码，而不是邮件链接对应的居民。此问题列为 P0，其他 Production smoke test 必须等待修复上线并验证。
+
+### 修复
+
+* `lib/auth/passwordRecovery.ts` 新增专用密码恢复 client。发信采用不依赖原设备 verifier 的 implicit recovery flow，且不读取或持久化网站的一般登录 session。
+* 重设页面使用独立的 `sessionStorage` key 接收恢复 session；只有收到 `PASSWORD_RECOVERY` 且带有有效居民身份时才显示密码表单。
+* 提交前再次通过恢复 client 向 Supabase 验证当前居民，并要求 ID 与恢复事件确认的居民完全一致；密码更新只通过这一个隔离 client 执行，客户端传入的居民 ID 不受信任。
+* 页面明确显示本次重设对应的邮箱。无效、过期、未验证或身份不一致的链接会隐藏密码表单，并持续显示可阅读的错误说明和重新申请入口，不再短暂闪烁后消失。
+* 重设成功后清除专用恢复 session 与本机原有登录 session，再引导居民重新登录，避免旧账号画面造成身份误解。
+* 没有修改 Supabase schema、migration、RLS、Auth Dashboard 配置、Relationship、Notification 或 Draft / Trash 行为；没有读取或写入 Production 数据。
+
+### 验证
+
+* 密码恢复定向 Vitest：3 个文件、7/7 tests 通过。覆盖无恢复链接、伪造 recovery URL、有效恢复身份、提交前身份不一致、隔离发信 client 与临时恢复 storage。
+* Auth、密码恢复与 Changelog 定向回归：8 个文件、63/63 tests 通过；其中密码恢复专属测试为 3 个文件、7/7 tests。
+* TypeScript、focused ESLint、production build（46/46 static pages）与 `git diff --check` 全部通过。
 
 ## 2026-09-13 Draft / Trash Lifecycle Fix
 

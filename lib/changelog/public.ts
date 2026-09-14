@@ -12,6 +12,7 @@ export const publicChangelogEntries: readonly PublicChangelogEntry[] = [
     date: "2026.09.14",
     features: ["新增垃圾桶，删除的日记与文章会保留 15 天，并可在期限内恢复"],
     fixes: [
+      "修复部分情况下密码重设页面无法正确继续或对应错误账号的问题",
       "修复部分环境中信箱内容与分类数量错误显示为零的问题",
       "修复已删除草稿仍出现在草稿列表，并可能反复跳转的问题",
     ],

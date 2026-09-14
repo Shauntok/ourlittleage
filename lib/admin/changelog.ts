@@ -23,6 +23,16 @@ export type AdminChangelogEntry = {
 
 const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
+    date: "2026-09-14",
+    phase: "P0 Password Recovery Identity Isolation Hotfix",
+    title: "隔离密码恢复身份与现有登录状态",
+    category: "Auth",
+    scope: "密码恢复、居民身份与浏览器会话",
+    status: "待部署",
+    summary:
+      "密码重设现在只允许经过邮件恢复流程确认的居民继续，并在提交前再次核对身份。无效或过期链接会持续显示错误说明，不再影响浏览器原本登录的其他居民。",
+  },
+  {
     date: "2026-09-13",
     phase: "Moderation Review Lifecycle Forward Repair",
     title: "修正审核历史与账号生命周期兼容性",
