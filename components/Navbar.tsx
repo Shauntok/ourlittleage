@@ -1,8 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import {
+  BookOpen,
+  FileText,
+  House,
+  LogOut,
+  Mail,
+  MessageCircle,
+  MoonStar,
+  NotebookPen,
+  PenLine,
+  Settings,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+
+const menuItemClass =
+  "grid w-full grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 text-left transition hover:bg-white/[0.05]";
+const menuIconClass =
+  "h-[18px] w-[18px] shrink-0 justify-self-center text-current";
 
 export default function Navbar() {
   const [profile, setProfile] = useState<any>(null);
@@ -172,7 +191,11 @@ export default function Navbar() {
           </Link>
 
           {worldMenuOpen && (
-              <div className="fixed left-4 top-[76px] z-[100] w-64 overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:hidden">              <div className="border-b border-white/10 px-5 py-4">
+            <nav
+              aria-label="手机居民菜单"
+              className="fixed left-4 top-[76px] z-[100] w-64 overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:hidden"
+            >
+              <div className="border-b border-white/10 px-5 py-4">
                 <p className="text-xs tracking-[0.3em] text-white/25">
                   OUR LITTLE AGE
                 </p>
@@ -182,46 +205,46 @@ export default function Navbar() {
               </div>
 
               <div className="py-2">
-                <Link href="/home" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
-                  <span>🏠</span>
+                <Link href="/home" onClick={closeMenus} className={`${menuItemClass} text-sm text-white/70 hover:text-white`}>
+                  <House aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                   <span>首页</span>
                 </Link>
 
-                <Link href="/space" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
-                  <span>🌙</span>
+                <Link href="/space" onClick={closeMenus} className={`${menuItemClass} text-sm text-white/70 hover:text-white`}>
+                  <MoonStar aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                   <span>深夜广场</span>
                 </Link>
 
                 <div className="my-1 border-t border-white/10" />
 
-                <Link href="/diary" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
-                  <span>📔</span>
+                <Link href="/diary" onClick={closeMenus} className={`${menuItemClass} text-sm text-white/70 hover:text-white`}>
+                  <NotebookPen aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                   <span>我的日记</span>
                 </Link>
 
-                <Link href="/articles" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
-                  <span>📝</span>
+                <Link href="/articles" onClick={closeMenus} className={`${menuItemClass} text-sm text-white/70 hover:text-white`}>
+                  <FileText aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                   <span>我的文章</span>
                 </Link>
 
-                <Link href="/drafts" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
-                  <span>📦</span>
-                  <span>草稿箱</span>
+                <Link href="/trash" onClick={closeMenus} className={`${menuItemClass} text-sm text-white/70 hover:text-white`}>
+                  <Trash2 aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
+                  <span>垃圾桶</span>
                 </Link>
 
                 <div className="my-1 border-t border-white/10" />
 
-                <Link href="/diary/new" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
-                  <span>✍️</span>
+                <Link href="/diary/new" onClick={closeMenus} className={`${menuItemClass} text-sm text-white/70 hover:text-white`}>
+                  <PenLine aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                   <span>写日记</span>
                 </Link>
 
-                <Link href="/articles/new" onClick={closeMenus} className="flex items-center gap-3 px-5 py-4 text-sm text-white/70 transition hover:bg-white/[0.05] hover:text-white">
-                  <span>📖</span>
+                <Link href="/articles/new" onClick={closeMenus} className={`${menuItemClass} text-sm text-white/70 hover:text-white`}>
+                  <BookOpen aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                   <span>写文章</span>
                 </Link>
               </div>
-            </div>
+            </nav>
           )}
         </div>
 
@@ -286,7 +309,10 @@ export default function Navbar() {
               </button>
 
               {menuOpen && (
-                <div className="fixed right-4 top-[76px] z-[100] max-h-[calc(100vh-112px)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:right-8 md:top-[96px]">
+                <nav
+                  aria-label="居民账号菜单"
+                  className="fixed right-4 top-[76px] z-[100] max-h-[calc(100vh-112px)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:right-8 md:top-[96px]"
+                >
                   <div className="border-b border-white/10 px-5 py-5">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
@@ -324,19 +350,19 @@ export default function Navbar() {
                     <Link
                       href={profileHref}
                       onClick={closeMenus}
-                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
+                      className={`${menuItemClass} text-white/70 hover:text-white`}
                     >
-                      <span>🏠</span>
+                      <House aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                       <span>我的房间</span>
                     </Link>
 
                     <Link
                       href="/notifications"
                       onClick={closeMenus}
-                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
+                      className={`${menuItemClass} text-white/70 hover:text-white`}
                     >
-                      <span>📬</span>
-                      <span className="flex-1">信箱与互动</span>
+                      <Mail aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
+                      <span className="min-w-0">信箱与互动</span>
 
                       {unreadCount > 0 && (
                         <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
@@ -346,29 +372,29 @@ export default function Navbar() {
                     </Link>
 
                     <Link
-                      href="/drafts"
+                      href="/trash"
                       onClick={closeMenus}
-                      className="hidden items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white md:flex"
+                      className={`${menuItemClass} hidden text-white/70 hover:text-white md:grid`}
                     >
-                      <span>📦</span>
-                      <span>草稿箱</span>
+                      <Trash2 aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
+                      <span>垃圾桶</span>
                     </Link>
 
                     <Link
                       href="/settings/profile"
                       onClick={closeMenus}
-                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
+                      className={`${menuItemClass} text-white/70 hover:text-white`}
                     >
-                      <span>⚙️</span>
+                      <Settings aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                       <span>房间设置</span>
                     </Link>
 
                     <Link
                       href="/feedback"
                       onClick={closeMenus}
-                      className="flex items-center gap-3 px-5 py-4 text-white/70 transition hover:bg-white/[0.05] hover:text-white"
+                      className={`${menuItemClass} text-white/70 hover:text-white`}
                     >
-                      <span>💌</span>
+                      <MessageCircle aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                       <span>意见反馈</span>
                     </Link>
                   </div>
@@ -378,9 +404,9 @@ export default function Navbar() {
                       <Link
                         href="/admin"
                         onClick={closeMenus}
-                        className="flex items-center gap-3 px-5 py-4 text-violet-300 transition hover:bg-white/[0.05]"
+                        className={`${menuItemClass} text-violet-300`}
                       >
-                        <span>🛠</span>
+                        <ShieldCheck aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                         <span>后台管理</span>
                       </Link>
                     </div>
@@ -393,13 +419,13 @@ export default function Navbar() {
                         await supabase.auth.signOut();
                         window.location.href = "/";
                       }}
-                      className="flex w-full items-center gap-3 px-5 py-4 text-left text-red-300 transition hover:bg-white/[0.05]"
+                      className={`${menuItemClass} text-red-300`}
                     >
-                      <span>🚪</span>
+                      <LogOut aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
                       <span>登出</span>
                     </button>
                   </div>
-                </div>
+                </nav>
               )}
             </div>
           ) : (

@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DiaryCalendarFilter from "@/components/diary/DiaryCalendarFilter";
+import { getOwnedPostDestination } from "@/lib/posts/ownedPostRoutes";
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -236,7 +237,12 @@ export default function DiaryPage() {
             return (
               <Link
                 key={diary.id}
-                href={`/diary/${diary.id}`}
+                href={getOwnedPostDestination({
+                  id: diary.id,
+                  slug: diary.slug || "",
+                  type: "diary",
+                  status: diary.status,
+                })}
                 className="group block min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl transition-all duration-700 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.05] md:p-8"
               >
                 <div className="flex flex-wrap items-center gap-2 text-xs text-white/35 md:gap-3">

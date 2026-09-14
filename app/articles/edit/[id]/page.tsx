@@ -14,6 +14,7 @@ import MobileVisibilityDialog from "@/components/editor/MobileVisibilityDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { uploadEditorImage } from "@/components/editor/editorImageUpload";
 import { insertEditorText } from "@/components/editor/editorTextUtils";
+import { trashPost } from "@/app/actions/trash";
 
 type ArticleVisibility = "public" | "hidden" | "unlisted" | "private";
 
@@ -101,7 +102,7 @@ export default function EditArticlePage() {
         .single();
 
       if (error || !data) {
-        router.push("/articles");
+        router.push("/trash");
         return;
       }
 
@@ -278,7 +279,7 @@ export default function EditArticlePage() {
       return;
     }
 
-    router.push("/drafts");
+    router.push("/articles");
   }
 
   async function publishDraft() {
@@ -379,30 +380,18 @@ export default function EditArticlePage() {
   async function deleteArticle() {
     setDeleting(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        deleted_at: new Date().toISOString(),
-        deleted_by: user?.id || null,
-        delete_reason: "author_soft_delete",
-        edited_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+    const result = await trashPost(Number(id));
 
     setDeleting(false);
 
-    if (error) {
-      setEditorMessage(error.message);
+    if (!result.ok) {
+      setEditorMessage(result.error);
       setShowDeleteDialog(false);
       return;
     }
 
     setShowDeleteDialog(false);
-    router.push(isDraft ? "/drafts" : "/articles");
+    router.push("/trash");
   }
 
   function leaveWithoutSaving() {
@@ -411,7 +400,7 @@ export default function EditArticlePage() {
       return;
     }
 
-    router.push(isDraft ? "/drafts" : `/articles/${article.slug}`);
+    router.push(isDraft ? "/articles" : `/articles/${article.slug}`);
   }
 
   function handleSaveArticleClick() {
@@ -468,7 +457,7 @@ export default function EditArticlePage() {
             onClick={leaveWithoutSaving}
             className="text-sm text-white/35 transition hover:text-white/70"
           >
-            ← {isDraft ? "回到草稿箱" : "回到文章"}
+            ← {isDraft ? "回到我的文章" : "回到文章"}
           </button>
 
           <div className="relative rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:p-8">

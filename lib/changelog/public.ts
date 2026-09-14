@@ -9,11 +9,16 @@ export type PublicChangelogEntry = {
 export const publicChangelogEntries: readonly PublicChangelogEntry[] = [
   {
     version: "Alpha 0.9.8",
-    date: "2026.09.09",
-    features: [],
-    fixes: ["修复部分环境中信箱内容与分类数量错误显示为零的问题"],
+    date: "2026.09.14",
+    features: ["新增垃圾桶，删除的日记与文章会保留 15 天，并可在期限内恢复"],
+    fixes: [
+      "修复部分环境中信箱内容与分类数量错误显示为零的问题",
+      "修复已删除草稿仍出现在草稿列表，并可能反复跳转的问题",
+    ],
     improvements: [
       "居民房间在关系资料暂时无法读取时继续保留关注中与关注者，并移除容易造成误解的刷新按钮",
+      "日记与文章草稿现在分别留在我的日记和我的文章中管理",
+      "统一手机与桌面居民菜单的图标、间距和文字对齐",
     ],
   },
   {

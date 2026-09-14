@@ -11,6 +11,7 @@ import MobileVisibilityDialog from "@/components/editor/MobileVisibilityDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { uploadEditorImage } from "@/components/editor/editorImageUpload";
 import { insertEditorText } from "@/components/editor/editorTextUtils";
+import { trashPost } from "@/app/actions/trash";
 
 type DiaryVisibility = "private" | "public" | "hidden" | "unlisted";
 
@@ -120,7 +121,7 @@ export default function EditDiaryPage() {
         .single();
 
       if (error || !data) {
-        router.push("/diary");
+        router.push("/trash");
         return;
       }
 
@@ -160,8 +161,8 @@ export default function EditDiaryPage() {
     router.push(`/diary/${id}`);
   }
 
-  function goToDrafts() {
-    router.push("/drafts");
+  function goToDiaryList() {
+    router.push("/diary");
   }
 
   function insertTextAtCursor(beforeText: string, afterText = "") {
@@ -241,7 +242,7 @@ export default function EditDiaryPage() {
       return;
     }
 
-    goToDrafts();
+    goToDiaryList();
   }
 
   async function publishDraft() {
@@ -318,30 +319,18 @@ export default function EditDiaryPage() {
   async function deleteDiary() {
     setDeleting(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        deleted_at: new Date().toISOString(),
-        deleted_by: user?.id || null,
-        delete_reason: "author_soft_delete",
-        edited_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+    const result = await trashPost(Number(id));
 
     setDeleting(false);
 
-    if (error) {
-      setEditorMessage(error.message);
+    if (!result.ok) {
+      setEditorMessage(result.error);
       setShowDeleteDialog(false);
       return;
     }
 
     setShowDeleteDialog(false);
-    router.push(isDraft ? "/drafts" : "/diary");
+    router.push("/trash");
   }
 
   function leaveWithoutSaving() {
@@ -351,7 +340,7 @@ export default function EditDiaryPage() {
     }
 
     if (isDraft) {
-      goToDrafts();
+      goToDiaryList();
       return;
     }
 
@@ -413,7 +402,7 @@ export default function EditDiaryPage() {
             onClick={leaveWithoutSaving}
             className="text-sm text-white/35 transition hover:text-white/70"
           >
-            ← {isDraft ? "回到草稿箱" : "回到这一天的日记阅读"}
+            ← {isDraft ? "回到我的日记" : "回到这一天的日记阅读"}
           </button>
 
           <div className="relative rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:p-8">

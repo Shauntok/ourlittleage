@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { getOwnedPostDestination } from "@/lib/posts/ownedPostRoutes";
 
 type Article = {
   id: number;
@@ -266,7 +267,12 @@ export default function ArticlesPage() {
             return (
               <Link
                 key={article.id}
-                href={`/articles/${article.slug}`}
+                href={getOwnedPostDestination({
+                  id: article.id,
+                  slug: article.slug,
+                  type: "article",
+                  status: article.status,
+                })}
                 className="group min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]"
               >
                 {image && (

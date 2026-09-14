@@ -1,6 +1,6 @@
 # HANDOFF
 
-更新时间：2026-09-13
+更新时间：2026-09-14
 
 ## Product Rules / Long-term Architecture
 
@@ -203,6 +203,36 @@ Mixed feature:
 ```
 
 后续 Codex 完成实际开发任务时，最终报告必须包含 `CHANGELOG SYNC`，分别说明 HANDOFF、Public Changelog 与 Admin Changelog 是否更新以及分类原因。公开版本号继续按开发阶段累计，不因每个小修复频繁递增。
+
+## 2026-09-13 Draft / Trash Lifecycle Fix
+
+当前状态：**implementation complete、local verification complete。没有数据库 schema 变更，不需要 Production migration；尚未 commit、push 或 deploy。**
+
+### 行为与实现
+
+* `/drafts` 不再维护独立草稿列表，旧地址会转到 `/trash`。居民菜单在桌面与手机端统一将「草稿箱」替换为「垃圾桶」。
+* 桌面居民账号菜单与手机居民菜单已将操作 Emoji 全部替换为统一的 Lucide 线性图标。每行使用固定 20px 图标轨道、18px 图标和独立尾部状态栏，文字起点保持一致，未读徽章不会挤动标签。
+* 日记草稿继续由 `/diary` 的「草稿」分类管理，点击草稿直接进入 `/diary/[id]/edit`；文章草稿继续由 `/articles` 的「草稿」分类管理，点击草稿直接进入 `/articles/edit/[id]`。
+* 新增 `/trash`，只读取当前登录居民自己的 `posts` 软删除记录，并仅显示 `diary` / `article`。已发布内容和草稿均保留原 `status`，恢复时不会改变原来的草稿或发布状态。
+* 删除与恢复统一通过 `app/actions/trash.ts` 的 Server Action，actor 来自可信 Cookie Session；不接受客户端传入居民身份。删除时间、恢复时间与保留期限均使用服务器时间。
+* `lib/server/postTrash.ts` 统一提供本人垃圾桶读取、软删除、恢复及过期清理。读取与 mutation 均限制 owner、内容类型和生命周期状态；过期内容不能再恢复。
+* 复用现有每日 Vercel Cron `/api/cron/publish-announcements`，每天清理删除时间达到 15 天的日记与文章。清理使用既有 service-role 服务端环境，不新增 scheduler，也不提供手动永久删除入口。
+* 日记新建页的每日额度查询继续只统计 `deleted_at IS NULL` 的有效日记；进入垃圾桶的日记不占用当前有效额度，恢复后会重新计入。
+* `/trash` 已加入 robots 禁止抓取列表。垃圾桶加载失败时显示独立错误状态，不把数据库失败误报为空垃圾桶。
+
+### Scope 与部署边界
+
+* 没有修改 `posts` schema、RLS、Auth、Relationship、Notifications、Security Center、VIP 或 Admin 权限。
+* 没有新增 migration，Production 数据未被读取或写入。
+* Public Changelog 已在现有 Alpha 0.9.8 阶段累计居民可见的垃圾桶、草稿入口与循环修复说明；Admin Changelog 不适用。
+### 本地验证
+
+* 定向 Vitest：13 个文件、30/30 tests，通过。覆盖正常列表排除删除内容、草稿编辑路由、旧 `/drafts` redirect、删除链接循环、本人权限、恢复、保留期限边界、Cron 清理条件及桌面/手机菜单入口与统一图标栅格。
+* TypeScript：`npx tsc --noEmit` 通过。
+* Focused ESLint：新文件与直接支持模块通过；涉及的既有编辑器、列表及 Navbar 在排除其原有 `no-explicit-any`、React Compiler 与 `<img>` 基线规则后为 0 errors。没有在本任务扩大清理旧 lint 债务。
+* Production build：通过，46/46 static pages，`/trash` 为动态 server-rendered route，`/drafts` 保留为旧地址兼容入口。
+* 桌面 1440x900 与手机 375x812 实际渲染通过。手机恢复按钮宽 330px，页面 `scrollWidth 370 <= viewport 375`，无横向溢出；菜单图标均为 18px，手机 7 个标签的起点统一为 x=86，桌面 7 个标签的起点统一为 x=1025.5。视觉检查用临时预览逻辑已删除，未进入最终工作区。
+* `git diff --check`：通过。仅有 Windows 工作区既有 LF -> CRLF 提示，没有 whitespace error。
 
 ## 2026-09-12 Security Center Phase 1
 

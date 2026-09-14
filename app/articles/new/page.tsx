@@ -342,7 +342,7 @@ export default function NewArticlePage() {
     }
 
     resetForm();
-    router.push("/drafts");
+    router.push("/articles");
   }
 
   function discardArticle() {

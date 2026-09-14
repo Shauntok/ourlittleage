@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "node:crypto";
 import { cleanupExpiredDeletedComments } from "@/lib/server/commentCleanup";
+import { cleanupExpiredDeletedPosts } from "@/lib/server/postTrash";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
     let broadcastsSent = 0;
     let trashedNotificationsDeleted = 0;
     let expiredCommentsDeleted = 0;
+    let expiredPostsDeleted = 0;
 
     try {
       broadcastsSent = await publishScheduledBroadcasts(now);
@@ -57,6 +59,15 @@ export async function GET(request: Request) {
       console.error("cleanup expired comments skipped:", error);
     }
 
+    try {
+      expiredPostsDeleted = await cleanupExpiredDeletedPosts(
+        supabaseAdmin,
+        new Date(now)
+      );
+    } catch (error) {
+      console.error("cleanup expired posts skipped:", error);
+    }
+
     return NextResponse.json(
       {
         ok: true,
@@ -64,6 +75,7 @@ export async function GET(request: Request) {
         broadcastsSent,
         trashedNotificationsDeleted,
         expiredCommentsDeleted,
+        expiredPostsDeleted,
         now,
       },
       { headers: { "Cache-Control": "no-store" } }
