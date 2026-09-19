@@ -1,6 +1,6 @@
 # HANDOFF
 
-更新时间：2026-09-14
+更新时间：2026-09-19
 
 ## Product Rules / Long-term Architecture
 
@@ -171,9 +171,9 @@ committed
 merged to main
 pushed
 Production migration applied
-Relationship Auth hotfix committed and pushed
-latest Vercel deployment verification pending
-production test-account flow paused pending password recovery hotfix deployment and verification
+Relationship Auth hotfix deployed and production verified
+latest Vercel deployment verified
+two-account Production test flow verified and closed
 ```
 
 ### 10. CHANGELOG POLICY
@@ -334,7 +334,7 @@ Mixed feature:
 
 ## 2026-09-09 Relationship System V1 Phase 2
 
-当前状态：**implementation complete、committed、已合并到 `main`、已 push，Production migration 已应用。** Production smoke test 已发现并修复 Browser/Server Auth Session 不同步问题；Auth hotfix commit `1960e7038b47fa672cedbe3fceb6c8fc1381ad34` 已 push。最新 Vercel deployment verification 与完整 production test-account flow 仍待完成，不得只因为 push 就标记为 production verified。
+当前状态：**implementation complete、committed、已合并到 `main`、已 push、Production migration 已应用、Vercel deployment 已验证，并于 2026-09-19 完成双测试账号 Production 闭环。Relationship System V1 Phase 2 已 Production verified / closed。** Browser/Server Auth Session 不同步问题已由 Auth hotfix commit `1960e7038b47fa672cedbe3fceb6c8fc1381ad34` 修复并完成 Production 验证。
 
 ### 居民房间
 
@@ -361,20 +361,24 @@ Mixed feature:
 * 所有关系写操作仍由 Server Action 从登录 Session 取得 actor id，再调用仅授权 `service_role` 的状态转换 RPC；前端不能代表其他居民操作。
 * `active` / `warned` 与减少关系的既有 Phase 1 规则保持不变；没有新增 Block、Friend、Mention、内容权限或「文案」行为。
 
-### 本地验证与上线边界
+### 验证与 Production 闭环
 
-* PGlite PostgreSQL 17 兼容隔离环境通过 Phase 1 核心回归与 Phase 2 通知事务测试；因本机没有 Docker/native PostgreSQL，上 Production 前仍必须在完整 disposable Supabase/PostgreSQL 环境再跑一次。
-* Vitest：60 个测试文件、542 项测试全部通过；TypeScript、Phase 2 改动范围 ESLint、production build 与 `git diff --check` 通过。
+* 开发阶段 PGlite PostgreSQL 17 兼容隔离环境通过 Phase 1 核心回归与 Phase 2 通知事务测试；随后两阶段 migration 均已受控应用 Production，并完成真实双账号验证。
+* 原完整回归记录为 Vitest 60 个测试文件、542 项测试全部通过；2026-09-19 最终闭环再次执行 8 个 Relationship 直接相关测试文件，共 60 项全部通过。
 * 全仓库 ESLint 仍有历史问题：本分支 183 errors / 50 warnings；对比基线 185 errors / 49 warnings，本阶段没有新增错误，新增警告为沿用现有运行时头像 `<img>` 方式。
-* 本阶段最初的浏览器只读检查确认居民房间在 1280px 视口无横向溢出，关系读取失败状态不会拖垮房间；当时尚未进行 Production 写入测试。
-* Phase 2 原开发分支：`codex/relationship-phase-2`；提交范围 `ba7ccef` 至 `b2fe365`，已通过提交 `2cece34` 合并到 `main` 并 push。Production migration 后续已受控应用；Auth hotfix 已 push，最新 Vercel 部署与完整测试账号闭环仍需单独核实。
+* 使用 `QA_Relationship_A` 与 `QA_Relationship_B` 在正式站完成 open follow、unfollow、approval request、cancel pending、reject、accept、mutual、break mutual 与 remove follower。所有状态在刷新及登出/重新登录后保持正确。
+* `approval_required` 不计入 accepted 数量；接受后 Followers / Following 正确增加。Mutual 只由两条 accepted 关系动态推导；解除一个方向后反方向保留，Mutual 立即消失。
+* `follow`、`follow_request`、`follow_accepted` 分类正确；取消、拒绝、取消关注与移除关注者不产生额外通知。同一关系动作未产生 duplicate row 或 duplicate notification。
+* 普通居民直接访问 `/admin/users/[id]` 被服务器权限守卫送回 `/home`；Server Action actor 继续只取可信 Cookie Session，浏览器不能代表另一居民操作。
+* 手机 390x844 与桌面 1440x900 视口均正确显示关注计数、按钮与“互相关注”，没有关系控件重叠或溢出；刷新后状态保持。
+* 测试窗口内相关 Vercel routes 没有 runtime error，浏览器控制台没有 Relationship / Auth / RLS error，也没有 redirect loop。
+* QA 清理完成：两个账号之间 `user_follows = 0`，QA B 的 `follow_mode` 已恢复为 `open`，活动测试通知为 0。六条本轮关系通知按正常信箱删除流程保留在垃圾桶，没有硬删除或影响旧通知。
+* Phase 2 原开发分支：`codex/relationship-phase-2`；提交范围 `ba7ccef` 至 `b2fe365`，已通过提交 `2cece34` 合并到 `main` 并 push。Auth hotfix、Production deployment 与完整测试账号闭环现均已验证。
 
 ### 后续
 
-1. 核实 Auth hotfix commit `1960e7038b47fa672cedbe3fceb6c8fc1381ad34` 已由 Vercel 成功部署，不以 push 结果代替 deployment verification。
-2. 用两个专用测试账号重新完成 login/refresh/session persistence，并继续 open、approval、accept、reject、cancel、unfollow、remove follower、隐私保存与通知实时更新 smoke test。
-3. 测试完成后清理两个测试账号之间的关系资料，并单独记录 production verified 状态。
-4. Block System 优先于 Mention 与 Friend；Mention 与 Friend 继续作为相互独立的后续阶段。
+1. Relationship System V1 已关闭，不再保留 Phase 2 Production 验证待办。
+2. Block System 仍优先于 Mention 与 Friend；Mention 与 Friend 继续作为相互独立的后续阶段，不得把 Mutual Follow 当作 Friendship。
 
 ## 2026-09-08 Relationship System V1 Phase 1
 
@@ -416,7 +420,7 @@ Mixed feature:
 * 截至 2026-09-09，本地 `main` 与 `origin/main` 已同步至 `5628cf1`。这只确认 Git pushed 状态，不代表最新 Vercel deployment 或 Production verification 已完成。
 * 居民后台详情的「作品累计有效阅读」已在提交 `a1d64d1` 中完成并推送，不再属于未提交工作区。
 * Relationship System V1 Phase 1 已 commit、push、deploy，Production Supabase migration 已应用。
-* Relationship System V1 Phase 2 已 implementation complete、committed、合并并 push，Production migration 已应用；Auth hotfix `1960e7038b47fa672cedbe3fceb6c8fc1381ad34` 已 push，最新 Vercel deployment verification 与完整 production test-account flow 待完成。
+* Relationship System V1 Phase 2 已 implementation complete、committed、合并并 push，Production migration 已应用；Auth hotfix `1960e7038b47fa672cedbe3fceb6c8fc1381ad34` 已部署并验证，双测试账号 Production 闭环于 2026-09-19 完成，Relationship V1 已关闭。
 * Alpha 0.9.8 已记录后台居民年龄分布、居民房间关系读取失败状态简化，以及信箱旧数据库结构兼容修复。
 * 正式域名：`https://www.ourlittleage.com`。
 

@@ -23,14 +23,24 @@ export type AdminChangelogEntry = {
 
 const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
+    date: "2026-09-19",
+    phase: "Relationship System V1 Production Closure",
+    title: "完成居民关系系统双账号生产闭环",
+    category: "Operations",
+    scope: "关注、申请审批、互相关注、通知与权限",
+    status: "已完成",
+    summary:
+      "使用两个专用 QA 居民完成开放关注、审批、取消、拒绝、接受、互相关注、解除互关与移除关注者的 Production 验证；权限、通知去重、刷新与重新登录状态、手机及桌面显示均符合预期，测试关系和活动通知已清理。",
+  },
+  {
     date: "2026-09-14",
     phase: "P0 Password Recovery Identity Isolation Hotfix",
     title: "隔离密码恢复身份与现有登录状态",
     category: "Auth",
     scope: "密码恢复、居民身份与浏览器会话",
-    status: "待部署",
+    status: "已完成",
     summary:
-      "密码重设现在只允许经过邮件恢复流程确认的居民继续，并在提交前再次核对身份。无效或过期链接会持续显示错误说明，不再影响浏览器原本登录的其他居民。",
+      "密码重设现在只允许经过邮件恢复流程确认的居民继续，并在提交前再次核对身份。无效或过期链接会持续显示错误说明，不再影响浏览器原本登录的其他居民；双 QA 邮箱恢复流程已完成 Production 验证。",
   },
   {
     date: "2026-09-13",
