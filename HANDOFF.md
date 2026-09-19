@@ -206,7 +206,7 @@ Mixed feature:
 
 ## 2026-09-14 P0 Password Recovery Identity Isolation Hotfix
 
-当前状态：**implementation complete、local verification complete、尚未 commit、尚未 push、尚未 deploy、Production verification pending。** 在本修复完成部署与线上验证前，Draft / Trash Production smoke test 暂停。
+当前状态：**implementation complete、committed、pushed、deployed、Production verified。** 修复提交 `9ee3396093a8addf9b27dd3bfd375bf86b8cf4b3` 已部署至 Vercel Production；两封重新签发的 QA 恢复邮件均完成跨浏览器密码重设，QA A / QA B 均可使用各自的新密码登录，未再修改浏览器原先登录的其他居民身份。Draft / Trash Production smoke test 已恢复并完成。
 
 ### Root cause 与影响
 
@@ -231,7 +231,7 @@ Mixed feature:
 
 ## 2026-09-13 Draft / Trash Lifecycle Fix
 
-当前状态：**implementation complete、committed、pushed、deployed。功能提交 `1f2e3426fedcbc7e425cc2a4e1f5e07eab7f8652` 已由 Vercel 自动部署至 Production；没有数据库 schema 变更，不需要 Production migration。Production 匿名访问保护已验证，登录居民的删除、恢复与 15 天生命周期 smoke test 仍待可用的专用测试账号会话。**
+当前状态：**implementation complete、committed、pushed、deployed、Production verified。** 功能提交 `1f2e3426fedcbc7e425cc2a4e1f5e07eab7f8652` 已由 Vercel 自动部署至 Production；没有数据库 schema 变更，不需要 Production migration。专用 QA 居民已完成日记与文章的草稿、发布、删除、恢复、状态保留、数量、每日额度、所有权隔离、旧链接和 15 天清理规则验证。
 
 ### 行为与实现
 
@@ -248,7 +248,7 @@ Mixed feature:
 ### Scope 与部署边界
 
 * 没有修改 `posts` schema、RLS、Auth、Relationship、Notifications、Security Center、VIP 或 Admin 权限。
-* 没有新增 migration，Production 数据未被读取或写入。
+* 没有新增 migration；功能实现与部署本身不要求 Production schema 写入。最终 smoke test 只创建和操作明确标记的 QA 内容，没有触碰普通居民资料。
 * Public Changelog 已在现有 Alpha 0.9.8 阶段累计居民可见的垃圾桶、草稿入口与循环修复说明；Admin Changelog 不适用。
 ### 本地验证
 
@@ -259,7 +259,16 @@ Mixed feature:
 * 桌面 1440x900 与手机 375x812 实际渲染通过。手机恢复按钮宽 330px，页面 `scrollWidth 370 <= viewport 375`，无横向溢出；菜单图标均为 18px，手机 7 个标签的起点统一为 x=86，桌面 7 个标签的起点统一为 x=1025.5。视觉检查用临时预览逻辑已删除，未进入最终工作区。
 * `git diff --check`：通过。仅有 Windows 工作区既有 LF -> CRLF 提示，没有 whitespace error。
 * Production deployment：Vercel deployment `dpl_6ZLRsSSiptiKHWkvrFQqkDQEozGJ` 为 `READY`，目标为 `production`，Git ref 为 `main`，正式域名 `ourlittleage.com` 与 `www.ourlittleage.com` 已指向该部署。
-* Production smoke boundary：未登录访问 `/trash` 以及兼容入口 `/drafts` 均返回居民入口，私人垃圾桶内容没有泄漏。本轮没有可用的专用测试居民登录会话，因此没有在 Production 创建、删除或恢复任何内容；认证后的完整生命周期验证明确保留为待办，不能据此写成 production fully verified。
+### Production 最终验证（2026-09-14）
+
+* QA B 完成日记草稿、已发布日记、文章草稿与已发布文章的 Create -> Delete -> Trash -> Restore 闭环；恢复后四类内容均保留原 `draft` / `published` 状态。
+* All / Published / Draft 数量在删除后减少、恢复后增加。已发布日记进入垃圾桶后当日可用额度由 2 恢复为 3，恢复内容后回到 2，确认已删除日记不占有效额度。
+* 已删除日记 `/diary/[id]/edit` 与文章 `/articles/edit/[id]` 均只跳转一次至 `/trash`，没有继续编辑入口或 redirect loop；旧 `/drafts` 同样只跳转一次至 `/trash`。
+* QA A 的垃圾桶保持空白，不能看到 QA B 的删除内容；直接访问 QA B 已删除文章的旧编辑地址仍回到 QA A 自己的空垃圾桶，QA B 记录未被修改。Server Action owner 条件与既有 RLS 定向测试继续通过。
+* Production 桌面页面无横向溢出；部署前同一提交的 375x812 与 1440x900 实际渲染结果继续适用。定向回归 9 个文件、19/19 tests 通过。
+* Production Vercel Cron 继续使用 `/api/cron/publish-announcements`，部署配置为每日 `0 0 * * *`。无授权请求返回 401；handler 使用服务器时间，只清理 `deleted_at <= now - 15 days` 的 `diary` / `article`，因此 `<15 days` 保留、`>=15 days` 可清理。边界由 handler-level 定向测试验证，没有篡改 Production `deleted_at` 制造 aged fixture。
+* 最终部署 `dpl_Bg6ZhnexGJhPXQ4JZygo8Q8x1d5J` 为 `READY`，Production 运行密码恢复 hotfix 提交 `9ee3396093a8addf9b27dd3bfd375bf86b8cf4b3`；相关路由最近一小时没有 Vercel runtime error。
+* QA cleanup：测试内容 ID 147-150 已全部软删除并保留原状态，普通内容列表无残留；四条 QA-only 记录按产品生命周期在垃圾桶保留 15 天，之后由现有 Cron 清理。没有对普通居民数据执行操作。
 
 ## 2026-09-12 Security Center Phase 1
 
