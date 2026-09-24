@@ -272,7 +272,7 @@ Mixed feature:
 
 ## 2026-09-12 Security Center Phase 1
 
-当前状态：**implementation complete、committed、pushed、deployed，并已通过 Production 验证。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration、Profile lifecycle forward repair 与 Moderation review lifecycle forward repair 均已受控应用至 Production。最终数据库权限矩阵、完整账号生命周期与线上健康检查通过；自动风险判断与自动处置保持关闭，Security Phase 2 不得开始。**
+当前状态：**implementation complete、committed、pushed、deployed，并已通过 Production 验证。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration、Profile lifecycle forward repair 与 Moderation review lifecycle forward repair 均已受控应用至 Production。最终数据库权限矩阵、完整账号生命周期与线上健康检查通过；自动风险判断与自动处置保持关闭。Phase 2A 已于 2026-09-24 完成设计批准，但尚未实施。**
 
 ### 已实现
 
@@ -319,7 +319,16 @@ Mixed feature:
 * Production 测试全部在事务中回滚；QA auth、profile、通知、安全事件、后台日志、VIP 事件与审核 flag 残留均为 0。先前已记录的六条 QA Security Event 与六条 Admin Log 继续按 append-only 审计规则保留。
 * Vercel Production deployment `dpl_69yoh77dNtjXDzx3mLRsdKkQ2Rdf` 已部署提交 `115bcca0b14edfe215a4322677fe96040faf337e`，状态 `READY`，正式域名 alias 正常；检查窗口内没有 runtime error。
 * 当前没有可用的 Owner/Admin 浏览器登录 session，因此后台 Security Center 与 Resident Detail 的最终视觉点击验证标记为 deferred；未绕过认证。数据库权限、事务、审计、匿名访问守卫与 Production 页面响应已经验证。
-* **结论：`PROFILE LIFECYCLE REPAIR PRODUCTION VERIFIED`，并且 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`。** 自动风险判断与自动处置仍关闭；不得自行开始 Security Phase 2。
+* **结论：`PROFILE LIFECYCLE REPAIR PRODUCTION VERIFIED`，并且 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`。** 自动风险判断与自动处置仍关闭。
+
+### Phase 2A 设计状态（2026-09-24）
+
+* **设计已批准，尚未实施。** 设计文档：`docs/superpowers/specs/2026-09-24-security-center-phase-2a-design.md`。
+* Phase 2A 仅建立人工流量防护流程：IP/CIDR 防护单、解除防护、Rate Limit 观察方案、Owner 人工确认、不可变审计与结束记录 90 天后匿名化。
+* 采用受控混合模式：Vercel Firewall 继续作为实际规则与实时流量的 source of truth；小时代只保存内部意图、原因、状态和审计。Production 发布仍由 Owner 在 Vercel 独立确认。
+* 本阶段不把 Vercel Access Token 放进应用；Owner 可看完整 IP/CIDR，Admin 只读且只看遮罩值，Moderator / resident / anonymous 无权访问。
+* `Ban Resident != Block IP`；防护单不得修改居民账号状态或风险等级。`risk_evaluation_enabled = false` 与 `automatic_enforcement_enabled = false` 继续保持关闭。
+* 当前仅完成设计 checkpoint：没有新增 migration、没有修改功能代码、没有触碰 Production 数据或 Vercel Firewall 规则。下一步必须先完成独立实施计划并再次确认，才能开始本地实现。
 
 ## 2026-09-10 Admin Changelog Foundation
 
