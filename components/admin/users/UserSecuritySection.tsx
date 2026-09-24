@@ -38,6 +38,12 @@ const eventLabels: Record<SecurityEvent["eventType"], string> = {
   review_marked_pending: "标记待复核",
   review_marked_complete: "完成复核",
   internal_note_updated: "更新内部备注",
+  firewall_request_created: "建立流量防护单",
+  firewall_request_confirmed: "确认外部规则",
+  firewall_request_resolved: "结束流量防护单",
+  firewall_request_cancelled: "取消流量防护单",
+  firewall_request_failed: "流量防护执行失败",
+  firewall_target_anonymized: "防护目标已匿名化",
 };
 
 export default function UserSecuritySection({

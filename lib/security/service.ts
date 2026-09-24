@@ -22,7 +22,13 @@ export type SecurityEvent = {
     | "risk_level_changed"
     | "review_marked_pending"
     | "review_marked_complete"
-    | "internal_note_updated";
+    | "internal_note_updated"
+    | "firewall_request_created"
+    | "firewall_request_confirmed"
+    | "firewall_request_resolved"
+    | "firewall_request_cancelled"
+    | "firewall_request_failed"
+    | "firewall_target_anonymized";
   userId: string | null;
   username: string | null;
   actorId: string | null;
@@ -104,6 +110,7 @@ export class SecurityServiceError extends Error {
       | "invalid_input"
       | "forbidden"
       | "not_found"
+      | "conflict"
       | "internal",
     message: string
   ) {
@@ -166,6 +173,26 @@ const eventTypes = new Set<SecurityEvent["eventType"]>([
   "review_marked_pending",
   "review_marked_complete",
   "internal_note_updated",
+  "firewall_request_created",
+  "firewall_request_confirmed",
+  "firewall_request_resolved",
+  "firewall_request_cancelled",
+  "firewall_request_failed",
+  "firewall_target_anonymized",
+]);
+const eventCategories = new Set([
+  "auth",
+  "account",
+  "admin",
+  "moderation",
+  "permission",
+  "relationship",
+  "vip",
+  "system",
+]);
+const eventSources = new Set([
+  "security_center_manual",
+  "security_center_firewall",
 ]);
 
 export async function getSecurityOverview(
@@ -410,12 +437,14 @@ function mapSecurityEvent(value: unknown): SecurityEvent {
     typeof value.id !== "string" ||
     typeof eventType !== "string" ||
     !eventTypes.has(eventType as SecurityEvent["eventType"]) ||
-    value.category !== "admin" ||
+    typeof value.category !== "string" ||
+    !eventCategories.has(value.category) ||
     typeof value.reason !== "string" ||
     !value.reason.trim() ||
     typeof severity !== "string" ||
     !riskLevels.has(severity as SecurityRiskLevel) ||
-    value.source !== "security_center_manual" ||
+    typeof value.source !== "string" ||
+    !eventSources.has(value.source) ||
     !isRecord(value.metadata)
   ) {
     throw internalError();

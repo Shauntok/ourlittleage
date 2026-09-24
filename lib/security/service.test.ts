@@ -36,6 +36,18 @@ const eventRow = {
   occurred_at: "2026-09-12T10:00:00.000Z",
 };
 
+const firewallEventRow = {
+  ...eventRow,
+  id: "42000000-0000-4000-8000-000000000002",
+  event_type: "firewall_request_created",
+  user_id: null,
+  username: null,
+  reason: "Prepare a Firewall request",
+  severity: "medium",
+  source: "security_center_firewall",
+  metadata: { target_masked: "8.8.x.x/32" },
+};
+
 const overviewRow = {
   flags: {
     security_center_enabled: true,
@@ -45,7 +57,7 @@ const overviewRow = {
   },
   pending_review_count: 2,
   risk_counts: { low: 8, medium: 2, high: 1, critical: 0 },
-  events: { items: [eventRow], total: 1, page: 1, page_size: 20 },
+  events: { items: [eventRow, firewallEventRow], total: 2, page: 1, page_size: 20 },
 };
 
 const residentRow = {
@@ -207,8 +219,20 @@ describe("Security Center service", () => {
             occurredAt: eventRow.occurred_at,
             metadata: eventRow.metadata,
           },
+          {
+            id: firewallEventRow.id,
+            eventType: "firewall_request_created",
+            userId: null,
+            username: null,
+            actorId: owner.id,
+            actorUsername: "owner-a",
+            reason: "Prepare a Firewall request",
+            severity: "medium",
+            occurredAt: eventRow.occurred_at,
+            metadata: { target_masked: "8.8.x.x/32" },
+          },
         ],
-        total: 1,
+        total: 2,
         page: 1,
         pageSize: 20,
       },
@@ -263,7 +287,7 @@ describe("Security Center service", () => {
 
     const result = await getSecurityOverview(1, client as never);
 
-    expect(result.events.total).toBe(1);
+    expect(result.events.total).toBe(2);
     expect(result.wordDetection).toEqual({ available: false });
   });
 
@@ -392,6 +416,22 @@ describe("Security Center service", () => {
 
     await expect(getResidentSecurity(residentId, 1, client as never)).rejects.toMatchObject({
       kind,
+    });
+  });
+
+  it("rejects unknown Security Event sources", async () => {
+    const client = createClient({
+      overview: {
+        ...overviewRow,
+        events: {
+          ...overviewRow.events,
+          items: [{ ...firewallEventRow, source: "untrusted_source" }],
+        },
+      },
+    });
+
+    await expect(getSecurityOverview(1, client as never)).rejects.toMatchObject({
+      kind: "internal",
     });
   });
 });
