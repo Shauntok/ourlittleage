@@ -175,9 +175,10 @@ select security_firewall_test.assert_true(
   (select count(*)
    from public.admin_logs
    where action = 'security_firewall_request_created'
-     and target_type = 'security_firewall_request'
-     and not details::jsonb ? 'target_masked') = 1,
-  'Create atomically writes safe immutable audit records'
+      and admin_id = '50000000-0000-4000-8000-000000000001'
+      and target_type = 'security_firewall_request'
+      and not details::jsonb ? 'target_masked') = 1,
+  'Human Owner create writes safe immutable audit records with the real actor'
 );
 
 select security_firewall_test.assert_true(
@@ -631,6 +632,34 @@ select security_firewall_test.assert_true(
      '51000000-0000-4000-8000-000000000034'
    )),
   'Retention removes every request-table target-derived value'
+);
+
+select security_firewall_test.assert_true(
+  not exists (
+    select 1
+    from public.admin_logs
+    where action = 'security_firewall_target_anonymized'
+  ),
+  'System retention cleanup does not impersonate a human admin log actor'
+);
+
+select security_firewall_test.assert_true(
+  (select count(*) = 4
+   from public.security_events as event
+   where event.event_type = 'firewall_target_anonymized'
+     and event.source = 'security_center_firewall'
+     and event.actor_id is null
+     and event.reason = 'firewall_target_anonymized'
+     and event.metadata ? 'firewall_request_id'
+     and event.metadata ? 'previous_status'
+     and event.metadata ? 'anonymized_at'
+     and event.metadata ? 'retention_action'
+     and not event.metadata ? 'target_network'
+     and not event.metadata ? 'target_masked'
+     and not event.metadata ? 'target_reference'
+     and not event.metadata ? 'external_rule_id'
+     and not event.metadata ? 'reason'),
+  'System retention cleanup writes one actorless non-target security event per row'
 );
 
 select security_firewall_test.assert_true(

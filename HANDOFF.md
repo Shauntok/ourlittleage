@@ -343,8 +343,10 @@ production verified: no
 * 新增负向重识别与历史关联回归：匿名化后原候选与替代候选都无法通过保留资料验证；两个不同时间的同目标历史记录不共享目标衍生指纹。Owner/Admin API 与后台 UI 都只显示「目标已匿名化」。
 * Vercel Firewall 继续作为实际规则与实时流量的 source of truth；应用没有 Vercel Access Token，也不会调用 Vercel mutation API。Production 规则必须由 Owner 在 Vercel 独立完成后，再回到安全中心确认。
 * `Ban Resident != Block IP`；防护单不会修改 `profiles.status` 或 `security_risk_profiles`。`risk_evaluation_enabled = false` 与 `automatic_enforcement_enabled = false` 持续关闭。
-* 本地使用完全隔离的 PostgreSQL 17 临时集群验证 Phase 1 与 Phase 2A SQL suites；没有连接或写入 Production。Privacy repair 完成后必须重新执行 TypeScript、focused ESLint、聚焦 Vitest、Production build 与 `git diff --check`。
-* 下一步必须重新进行 Production Readiness Review；在独立明确批准前，不得 push/deploy、应用 migration、激活 Cron 或发布任何 Vercel Firewall 规则。
+* 本地使用完全隔离的 PostgreSQL 17 临时集群验证 Phase 1 与 Phase 2A SQL suites；没有连接或写入 Production。Privacy repair 完成后已重新通过 TypeScript、focused ESLint、154 项聚焦 Vitest、Production build 与 `git diff --check`。
+* 2026-09-24 Final Production Readiness Review 的只读 Production catalog 检查确认 Phase 2A 尚未应用且无同名对象冲突，但发现 Production `admin_logs.admin_id` 为 `NOT NULL`，而原 `security_cleanup_firewall_targets()` 会尝试写入 `admin_id = null`，导致 90 天匿名化事务回滚。该版本结论为 `NOT SAFE`。
+* System Retention Audit Compatibility Fix 已在尚未应用的 Phase 2A migration 内完成：自动保留期清理不再写 `admin_logs`，只写一条 actorless、append-only、无目标衍生资料的 `security_events` 系统事件；人工 Owner 创建与生命周期操作继续以真实 Owner UUID 写入 Admin Log 与 Security Event。没有修改 Production `admin_logs` schema。
+* SQL fixture 已对齐 Production，固定 `admin_logs.admin_id NOT NULL`。隔离 PostgreSQL 17 按 Production 真实约束重新通过 Phase 1 与 Phase 2A SQL suites，覆盖系统事件、人工审计、90 天边界、幂等、候选重识别与历史关联。下一步必须重新执行 Final Production Readiness Review；在独立明确批准前，不得 push/deploy、应用 migration、激活 Cron 或发布任何 Vercel Firewall 规则。
 
 ## 2026-09-10 Admin Changelog Foundation
 

@@ -1152,32 +1152,11 @@ begin
       'security_center_firewall',
       pg_catalog.jsonb_build_object(
         'firewall_request_id', v_request.id,
-        'target_reference', v_request.target_reference,
-        'request_type', v_request.request_type,
-        'status', v_request.status,
-        'hostname_scope', v_request.hostname_scope
+        'previous_status', v_request.status,
+        'anonymized_at', v_now,
+        'retention_action', 'target_anonymized'
       ),
       v_now
-    );
-
-    insert into public.admin_logs (
-      admin_id,
-      action,
-      target_type,
-      target_id,
-      details
-    )
-    values (
-      null,
-      'security_firewall_target_anonymized',
-      'security_firewall_request',
-      v_request.id::pg_catalog.text,
-      pg_catalog.jsonb_build_object(
-        'event_request_id', v_event_request_id,
-        'target_reference', v_request.target_reference,
-        'request_type', v_request.request_type,
-        'status', v_request.status
-      )::pg_catalog.text
     );
 
     v_count := v_count + 1;
