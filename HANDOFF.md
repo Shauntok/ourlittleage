@@ -1,6 +1,6 @@
 # HANDOFF
 
-更新时间：2026-09-19
+更新时间：2026-09-24
 
 ## Product Rules / Long-term Architecture
 
@@ -121,7 +121,7 @@ API Secret
 
 Security Center Phase 1 已完成基础实现并通过 Production 验证，包含受保护的后台概览、居民人工风险与复核记录、不可变安全事件，以及现有评论词语检测入口。Phase 1 不包含自动风险判断或自动处罚。
 
-以下进阶方向仍仅为未来规划，目前不开发：
+Phase 2A 人工流量防护已于 2026-09-24 在隔离 worktree 完成本地实现，但尚未合并、push、deploy 或应用 Production migration。以下自动化与更深层整合仍属于未来规划：
 
 ```text
 Admin
@@ -272,7 +272,7 @@ Mixed feature:
 
 ## 2026-09-12 Security Center Phase 1
 
-当前状态：**implementation complete、committed、pushed、deployed，并已通过 Production 验证。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration、Profile lifecycle forward repair 与 Moderation review lifecycle forward repair 均已受控应用至 Production。最终数据库权限矩阵、完整账号生命周期与线上健康检查通过；自动风险判断与自动处置保持关闭。Phase 2A 已于 2026-09-24 完成设计批准，但尚未实施。**
+当前状态：**Phase 1 implementation complete、committed、pushed、deployed，并已通过 Production 验证。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration、Profile lifecycle forward repair 与 Moderation review lifecycle forward repair 均已受控应用至 Production。最终数据库权限矩阵、完整账号生命周期与线上健康检查通过；自动风险判断与自动处置保持关闭。Phase 2A 已于 2026-09-24 完成本地实现，但尚未进入 Production。**
 
 ### 已实现
 
@@ -321,14 +321,28 @@ Mixed feature:
 * 当前没有可用的 Owner/Admin 浏览器登录 session，因此后台 Security Center 与 Resident Detail 的最终视觉点击验证标记为 deferred；未绕过认证。数据库权限、事务、审计、匿名访问守卫与 Production 页面响应已经验证。
 * **结论：`PROFILE LIFECYCLE REPAIR PRODUCTION VERIFIED`，并且 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`。** 自动风险判断与自动处置仍关闭。
 
-### Phase 2A 设计状态（2026-09-24）
+### Phase 2A 本地实现状态（2026-09-24）
 
-* **设计已批准，尚未实施。** 设计文档：`docs/superpowers/specs/2026-09-24-security-center-phase-2a-design.md`。
-* Phase 2A 仅建立人工流量防护流程：IP/CIDR 防护单、解除防护、Rate Limit 观察方案、Owner 人工确认、不可变审计与结束记录 90 天后匿名化。
-* 采用受控混合模式：Vercel Firewall 继续作为实际规则与实时流量的 source of truth；小时代只保存内部意图、原因、状态和审计。Production 发布仍由 Owner 在 Vercel 独立确认。
-* 本阶段不把 Vercel Access Token 放进应用；Owner 可看完整 IP/CIDR，Admin 只读且只看遮罩值，Moderator / resident / anonymous 无权访问。
-* `Ban Resident != Block IP`；防护单不得修改居民账号状态或风险等级。`risk_evaluation_enabled = false` 与 `automatic_enforcement_enabled = false` 继续保持关闭。
-* 当前仅完成设计与实施计划 checkpoint：没有新增 migration、没有修改功能代码、没有触碰 Production 数据或 Vercel Firewall 规则。实施计划位于 `docs/superpowers/plans/2026-09-24-security-center-phase-2a.md`；下一步必须明确选择执行方式，才能开始本地实现。
+```text
+implemented: yes
+committed: yes, isolated local worktree
+pushed: no
+migration applied: no
+deployed: no
+production verified: no
+```
+
+* 设计文档：`docs/superpowers/specs/2026-09-24-security-center-phase-2a-design.md`；实施计划：`docs/superpowers/plans/2026-09-24-security-center-phase-2a.md`。
+* 新增 forward migration `supabase/migrations/20260924130000_security_firewall_operations.sql`，建立受保护的 `security_firewall_requests` 生命周期、严格约束、RLS、索引、事件词汇扩展与 service-role-only RPC。没有修改历史 migration。
+* 新增 RPC：`security_admin_get_firewall_requests`、`security_owner_create_firewall_request`、`security_owner_transition_firewall_request`、`security_cleanup_firewall_targets`。创建、转换、Security Event 与 Admin Log 保持同一事务，request ID 支持幂等重试。
+* Phase 2A 仅建立人工流程：IP/CIDR 防护单、解除防护、Rate Limit 观察方案、Owner 人工确认、不可变审计与结束记录 90 天后匿名化。数据库重新验证公开网络、最小 CIDR 范围与合法状态转换。
+* Owner 可读取仍在保留期内的完整目标并执行生命周期操作；Admin 只读且只收到遮罩目标；Moderator、resident 与 anonymous 在页面、API、RPC、grant 和 RLS 边界均无权访问。
+* 新增受保护 API `/api/admin/security/firewall`、`/api/admin/security/firewall/[id]`，以及 `/admin/security` 内独立「流量防护」区域。区块有自己的 loading、error、retry、筛选与分页，不会因失败隐藏 Phase 1 或词语检测。
+* 新增每日 retention route `/api/cron/security-firewall-retention`，由 `CRON_SECRET` 保护；数据库使用可信时间，只匿名化 `resolved / cancelled / failed` 且已满 90 天的完整 `target_network`，保留遮罩值与不透明 `target_reference` 审计。当前 Cron 尚未部署或激活。
+* Vercel Firewall 继续作为实际规则与实时流量的 source of truth；应用没有 Vercel Access Token，也不会调用 Vercel mutation API。Production 规则必须由 Owner 在 Vercel 独立完成后，再回到安全中心确认。
+* `Ban Resident != Block IP`；防护单不会修改 `profiles.status` 或 `security_risk_profiles`。`risk_evaluation_enabled = false` 与 `automatic_enforcement_enabled = false` 持续关闭。
+* 本地使用完全隔离的 PostgreSQL 17 临时集群验证 Phase 1 与 Phase 2A SQL suites；没有连接或写入 Production。TypeScript、focused ESLint、聚焦 Vitest 与 `git diff --check` 已通过，完整 build 与最终视觉复核仍属于交付闸门。
+* 下一步必须先完成最终本地 gate 与 Production Readiness Review；在独立明确批准前，不得 push/deploy、应用 migration、激活 Cron 或发布任何 Vercel Firewall 规则。
 
 ## 2026-09-10 Admin Changelog Foundation
 

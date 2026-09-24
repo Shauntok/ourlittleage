@@ -23,6 +23,16 @@ export type AdminChangelogEntry = {
 
 const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
+    date: "2026-09-24",
+    phase: "Security Center Phase 2A",
+    title: "建立人工流量防护与审计流程",
+    category: "Security",
+    scope: "IP/CIDR 防护单、流量限制观察与内部审计",
+    status: "待部署",
+    summary:
+      "安全中心新增受控的人工流量防护流程，Owner 可准备并记录网络防护操作，Admin 可查看遮罩后的状态；实际规则仍由 Vercel 独立发布，自动判断与自动处置继续关闭。",
+  },
+  {
     date: "2026-09-19",
     phase: "Relationship System V1 Production Closure",
     title: "完成居民关系系统双账号生产闭环",
