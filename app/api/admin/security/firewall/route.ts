@@ -15,6 +15,7 @@ import { SecurityServiceError } from "@/lib/security/service";
 const pageSchema = z.coerce.number().int().min(1).max(1_000_000);
 const statusSchema = z.enum([
   "all",
+  "ended",
   "awaiting_external_publish",
   "active",
   "resolved",

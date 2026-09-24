@@ -54,6 +54,8 @@ export type PagedFirewallRequests = {
   pageSize: number;
 };
 
+export type FirewallRequestFilter = FirewallRequestStatus | "all" | "ended";
+
 export type FirewallRequestMutationResult = {
   idempotent: boolean;
   request: FirewallRequest;
@@ -220,13 +222,15 @@ const followupActions = new Set<
 
 export async function getFirewallRequests(
   page: number,
-  status: FirewallRequestStatus | "all",
+  status: FirewallRequestFilter,
   client: SecurityFirewallClient = supabaseAdmin as unknown as SecurityFirewallClient
 ): Promise<PagedFirewallRequests> {
   if (!Number.isSafeInteger(page) || page < 1 || page > 1_000_000) {
     throw invalidInput();
   }
-  if (status !== "all" && !statuses.has(status)) throw invalidInput();
+  if (status !== "all" && status !== "ended" && !statuses.has(status)) {
+    throw invalidInput();
+  }
 
   const actor = await requireActor(["owner", "admin"]);
   const { data, error } = await client.rpc("security_admin_get_firewall_requests", {

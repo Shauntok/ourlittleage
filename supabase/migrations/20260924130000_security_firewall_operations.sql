@@ -363,6 +363,7 @@ begin
     or p_status is null
     or p_status not in (
       'all',
+      'ended',
       'awaiting_external_publish',
       'active',
       'resolved',
@@ -389,7 +390,12 @@ begin
   select pg_catalog.count(*)
   into v_total
   from public.security_firewall_requests as request
-  where p_status = 'all' or request.status = p_status;
+  where p_status = 'all'
+    or request.status = p_status
+    or (
+      p_status = 'ended'
+      and request.status in ('resolved', 'cancelled', 'failed')
+    );
 
   select coalesce(
     pg_catalog.jsonb_agg(
@@ -407,7 +413,12 @@ begin
       request.created_at,
       request.id
     from public.security_firewall_requests as request
-    where p_status = 'all' or request.status = p_status
+    where p_status = 'all'
+      or request.status = p_status
+      or (
+        p_status = 'ended'
+        and request.status in ('resolved', 'cancelled', 'failed')
+      )
     order by request.created_at desc, request.id desc
     limit p_page_size
     offset ((p_page - 1) * p_page_size)

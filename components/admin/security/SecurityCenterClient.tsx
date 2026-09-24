@@ -9,6 +9,7 @@ import type {
   SecurityRiskLevel,
 } from "@/lib/security/service";
 import WordDetectionSection from "./WordDetectionSection";
+import TrafficProtectionSection from "./TrafficProtectionSection";
 
 type Props = {
   currentRole: string | null;
@@ -145,6 +146,8 @@ export default function SecurityCenterClient({ currentRole }: Props) {
           ))}
         </div>
       </section>
+
+      <TrafficProtectionSection currentRole={currentRole} />
 
       <WordDetectionSection
         summary={overview.wordDetection}

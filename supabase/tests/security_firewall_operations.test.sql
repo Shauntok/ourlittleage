@@ -583,6 +583,13 @@ select security_firewall_test.assert_true(
 );
 
 select security_firewall_test.assert_true(
+  (public.security_admin_get_firewall_requests(
+    '50000000-0000-4000-8000-000000000001', 1, 20, 'ended'
+  ) ->> 'total')::integer >= 5,
+  'Ended filter is counted and paged by the database'
+);
+
+select security_firewall_test.assert_true(
   (select not risk_evaluation_enabled and not automatic_enforcement_enabled
    from public.security_feature_flags where id = 1)
   and

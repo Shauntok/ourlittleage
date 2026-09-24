@@ -2,9 +2,16 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const wordDetectionSection = vi.hoisted(() => vi.fn(() => <div>词语检测区块</div>));
+const trafficProtectionSection = vi.hoisted(() =>
+  vi.fn(() => <div>流量防护区块</div>)
+);
 
 vi.mock("./WordDetectionSection", () => ({
   default: wordDetectionSection,
+}));
+
+vi.mock("./TrafficProtectionSection", () => ({
+  default: trafficProtectionSection,
 }));
 
 import SecurityCenterClient from "./SecurityCenterClient";
@@ -72,6 +79,11 @@ describe("SecurityCenterClient", () => {
     expect(screen.getAllByText("已启用")).toHaveLength(2);
     expect(screen.getAllByText("未启用")).toHaveLength(2);
     expect(screen.getByText("词语检测区块")).toBeInTheDocument();
+    expect(screen.getByText("流量防护区块")).toBeInTheDocument();
+    expect(trafficProtectionSection).toHaveBeenCalledWith(
+      expect.objectContaining({ currentRole: "owner" }),
+      undefined
+    );
     expect(wordDetectionSection).toHaveBeenCalledWith(
       expect.objectContaining({ canManage: true, summary: overview.wordDetection }),
       undefined
