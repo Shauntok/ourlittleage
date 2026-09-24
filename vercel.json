@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/publish-announcements",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/security-firewall-retention",
+      "schedule": "30 0 * * *"
     }
   ]
 }
