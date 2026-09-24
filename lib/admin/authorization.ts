@@ -38,6 +38,10 @@ export function canManageSecurityRisk(role: unknown): boolean {
   return role === "owner";
 }
 
+export function canManageSecurityFirewall(role: unknown): boolean {
+  return role === "owner";
+}
+
 export async function getAdminActor(
   request?: Request
 ): Promise<AdminActor | null> {

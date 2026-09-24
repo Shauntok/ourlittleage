@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   canManageSecurityRisk,
+  canManageSecurityFirewall,
   canManageVipMembership,
   canViewSecurityCenter,
   canViewVipMembership,
@@ -150,6 +151,16 @@ describe("Security Center permissions", () => {
     [null, false],
   ])("allows Security Center writes for role %s: %s", (role, expected) => {
     expect(canManageSecurityRisk(role)).toBe(expected);
+  });
+
+  it.each([
+    ["owner", true],
+    ["admin", false],
+    ["moderator", false],
+    ["user", false],
+    [null, false],
+  ])("allows Firewall lifecycle writes for role %s: %s", (role, expected) => {
+    expect(canManageSecurityFirewall(role)).toBe(expected);
   });
 });
 
