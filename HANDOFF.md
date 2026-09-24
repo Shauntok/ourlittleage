@@ -328,7 +328,7 @@ Mixed feature:
 * 采用受控混合模式：Vercel Firewall 继续作为实际规则与实时流量的 source of truth；小时代只保存内部意图、原因、状态和审计。Production 发布仍由 Owner 在 Vercel 独立确认。
 * 本阶段不把 Vercel Access Token 放进应用；Owner 可看完整 IP/CIDR，Admin 只读且只看遮罩值，Moderator / resident / anonymous 无权访问。
 * `Ban Resident != Block IP`；防护单不得修改居民账号状态或风险等级。`risk_evaluation_enabled = false` 与 `automatic_enforcement_enabled = false` 继续保持关闭。
-* 当前仅完成设计 checkpoint：没有新增 migration、没有修改功能代码、没有触碰 Production 数据或 Vercel Firewall 规则。下一步必须先完成独立实施计划并再次确认，才能开始本地实现。
+* 当前仅完成设计与实施计划 checkpoint：没有新增 migration、没有修改功能代码、没有触碰 Production 数据或 Vercel Firewall 规则。实施计划位于 `docs/superpowers/plans/2026-09-24-security-center-phase-2a.md`；下一步必须明确选择执行方式，才能开始本地实现。
 
 ## 2026-09-10 Admin Changelog Foundation
 
