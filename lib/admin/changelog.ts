@@ -30,7 +30,7 @@ const adminChangelogEntries: readonly AdminChangelogEntry[] = [
     scope: "IP/CIDR 防护单、流量限制观察与内部审计",
     status: "待部署",
     summary:
-      "安全中心新增受控的人工流量防护流程，Owner 可准备并记录网络防护操作，Admin 可查看遮罩后的状态；实际规则仍由 Vercel 独立发布，自动判断与自动处置继续关闭。",
+      "安全中心新增受控的人工流量防护流程，Owner 可准备并记录网络防护操作，Admin 可查看遮罩后的状态；已结束记录超过保留期后会移除敏感目标资料，仅保留必要操作历史。实际规则仍由 Vercel 独立发布，自动判断与自动处置继续关闭。",
   },
   {
     date: "2026-09-19",

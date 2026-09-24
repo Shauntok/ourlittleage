@@ -28,7 +28,7 @@ alter table public.security_events
 create table public.security_firewall_requests (
   id uuid primary key default gen_random_uuid(),
   request_id uuid not null unique,
-  request_fingerprint text not null,
+  request_fingerprint text,
   target_reference uuid not null default gen_random_uuid(),
   request_type text not null,
   status text not null default 'awaiting_external_publish',
@@ -53,8 +53,11 @@ create table public.security_firewall_requests (
   updated_at timestamptz not null default now(),
   constraint security_firewall_requests_fingerprint_check
     check (
-      char_length(request_fingerprint) = 64
-      and request_fingerprint ~ '^[0-9a-f]{64}$'
+      request_fingerprint is null
+      or (
+        char_length(request_fingerprint) = 64
+        and request_fingerprint ~ '^[0-9a-f]{64}$'
+      )
     ),
   constraint security_firewall_requests_type_check
     check (request_type in (
@@ -107,7 +110,7 @@ create table public.security_firewall_requests (
       (
         request_type in ('block_ip', 'block_cidr')
         and (target_network is not null or anonymized_at is not null)
-        and target_masked is not null
+        and (target_masked is not null or anonymized_at is not null)
         and hostname_scope is not null
         and related_request_id is null
         and path_match_mode is null
@@ -120,7 +123,7 @@ create table public.security_firewall_requests (
       or (
         request_type = 'unblock'
         and (target_network is not null or anonymized_at is not null)
-        and target_masked is not null
+        and (target_masked is not null or anonymized_at is not null)
         and hostname_scope is not null
         and related_request_id is not null
         and path_match_mode is null
@@ -185,10 +188,17 @@ create table public.security_firewall_requests (
     ),
   constraint security_firewall_requests_anonymized_check
     check (
-      anonymized_at is null
+      (
+        anonymized_at is null
+        and request_fingerprint is not null
+      )
       or (
         status in ('resolved', 'cancelled', 'failed')
         and target_network is null
+        and target_masked is null
+        and request_fingerprint is null
+        and reason = 'retention_period_completed'
+        and external_rule_id is null
       )
     )
 );
@@ -465,6 +475,7 @@ declare
   v_related public.security_firewall_requests%rowtype;
   v_payload jsonb;
   v_fingerprint text;
+  v_event_fingerprint text;
   v_existing public.security_firewall_requests%rowtype;
   v_request public.security_firewall_requests%rowtype;
 begin
@@ -632,6 +643,17 @@ begin
     extensions.digest(v_payload::pg_catalog.text, 'sha256'),
     'hex'
   );
+  v_event_fingerprint := pg_catalog.encode(
+    extensions.digest(
+      pg_catalog.jsonb_build_object(
+        'actor_id', p_actor_id,
+        'request_id', p_request_id,
+        'event_type', 'firewall_request_created'
+      )::pg_catalog.text,
+      'sha256'
+    ),
+    'hex'
+  );
 
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(p_request_id::pg_catalog.text, 0)
@@ -644,7 +666,10 @@ begin
 
   if found then
     if v_existing.requested_by is distinct from p_actor_id
-      or v_existing.request_fingerprint <> v_fingerprint
+      or (
+        v_existing.anonymized_at is null
+        and v_existing.request_fingerprint <> v_fingerprint
+      )
     then
       raise exception 'Firewall request id was already used for a different request'
         using errcode = '22023';
@@ -729,17 +754,16 @@ begin
   )
   values (
     p_request_id,
-    v_fingerprint,
+    v_event_fingerprint,
     'firewall_request_created',
     'admin',
     p_actor_id,
-    v_reason,
+    'firewall_request_created',
     'medium',
     'security_center_firewall',
     pg_catalog.jsonb_build_object(
       'firewall_request_id', v_request.id,
       'target_reference', v_request.target_reference,
-      'target_masked', v_request.target_masked,
       'request_type', v_request.request_type,
       'status', v_request.status,
       'hostname_scope', v_request.hostname_scope
@@ -762,7 +786,6 @@ begin
     pg_catalog.jsonb_build_object(
       'request_id', p_request_id,
       'target_reference', v_request.target_reference,
-      'target_masked', v_request.target_masked,
       'request_type', v_request.request_type,
       'hostname_scope', v_request.hostname_scope
     )::pg_catalog.text
@@ -851,9 +874,7 @@ begin
   v_payload := pg_catalog.jsonb_build_object(
     'actor_id', p_actor_id,
     'firewall_request_id', p_firewall_request_id,
-    'action', p_action,
-    'external_rule_id', v_external_rule_id,
-    'reason', v_reason
+    'action', p_action
   );
   v_fingerprint := pg_catalog.encode(
     extensions.digest(v_payload::pg_catalog.text, 'sha256'),
@@ -1012,17 +1033,15 @@ begin
     v_event_type,
     'admin',
     p_actor_id,
-    v_reason,
+    v_event_type,
     'medium',
     'security_center_firewall',
     pg_catalog.jsonb_build_object(
       'firewall_request_id', v_request.id,
       'target_reference', v_request.target_reference,
-      'target_masked', v_request.target_masked,
       'request_type', v_request.request_type,
       'status', v_status,
       'hostname_scope', v_request.hostname_scope,
-      'external_rule_id', v_request.external_rule_id,
       'related_request_id', v_request.related_request_id
     ),
     v_now
@@ -1043,10 +1062,8 @@ begin
     pg_catalog.jsonb_build_object(
       'request_id', p_request_id,
       'target_reference', v_request.target_reference,
-      'target_masked', v_request.target_masked,
       'request_type', v_request.request_type,
       'status', v_status,
-      'external_rule_id', v_request.external_rule_id,
       'related_request_id', v_request.related_request_id
     )::pg_catalog.text
   );
@@ -1092,6 +1109,10 @@ begin
     )
     update public.security_firewall_requests as request
     set target_network = null,
+        target_masked = null,
+        request_fingerprint = null,
+        reason = 'retention_period_completed',
+        external_rule_id = null,
         anonymized_at = v_now,
         updated_at = v_now
     from due
@@ -1126,13 +1147,12 @@ begin
       v_fingerprint,
       'firewall_target_anonymized',
       'system',
-      'Firewall target retention period completed',
+      'firewall_target_anonymized',
       'low',
       'security_center_firewall',
       pg_catalog.jsonb_build_object(
         'firewall_request_id', v_request.id,
         'target_reference', v_request.target_reference,
-        'target_masked', v_request.target_masked,
         'request_type', v_request.request_type,
         'status', v_request.status,
         'hostname_scope', v_request.hostname_scope
@@ -1155,7 +1175,6 @@ begin
       pg_catalog.jsonb_build_object(
         'event_request_id', v_event_request_id,
         'target_reference', v_request.target_reference,
-        'target_masked', v_request.target_masked,
         'request_type', v_request.request_type,
         'status', v_request.status
       )::pg_catalog.text

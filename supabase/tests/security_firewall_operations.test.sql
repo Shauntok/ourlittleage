@@ -167,14 +167,16 @@ select security_firewall_test.assert_true(
    where request_id = '51000000-0000-4000-8000-000000000010'
      and event_type = 'firewall_request_created'
      and source = 'security_center_firewall'
+     and reason = 'firewall_request_created'
      and metadata ? 'target_reference'
-     and metadata ->> 'target_masked' = '8.8.x.x/32'
+     and not metadata ? 'target_masked'
      and not metadata ? 'target_network') = 1
   and
   (select count(*)
    from public.admin_logs
    where action = 'security_firewall_request_created'
-     and target_type = 'security_firewall_request') = 1,
+     and target_type = 'security_firewall_request'
+     and not details::jsonb ? 'target_masked') = 1,
   'Create atomically writes safe immutable audit records'
 );
 
@@ -421,6 +423,48 @@ select security_firewall_test.assert_true(
 
 select public.security_owner_create_firewall_request(
   '50000000-0000-4000-8000-000000000001',
+  '51000000-0000-4000-8000-000000000032',
+  'block_ip', '8.8.8.8/32', 'www.ourlittleage.com', null,
+  null, null, null, null, null, null, 'Second historical request for same target'
+);
+
+select public.security_owner_transition_firewall_request(
+  '50000000-0000-4000-8000-000000000001',
+  (select id from public.security_firewall_requests
+   where request_id = '51000000-0000-4000-8000-000000000032'),
+  '51000000-0000-4000-8000-000000000033',
+  'confirm_external', 'ip_rule_456', 'Second external publish'
+);
+
+select public.security_owner_create_firewall_request(
+  '50000000-0000-4000-8000-000000000001',
+  '51000000-0000-4000-8000-000000000034',
+  'unblock', null, null,
+  (select id from public.security_firewall_requests
+   where request_id = '51000000-0000-4000-8000-000000000032'),
+  null, null, null, null, null, null, 'End second historical request'
+);
+
+select public.security_owner_transition_firewall_request(
+  '50000000-0000-4000-8000-000000000001',
+  (select id from public.security_firewall_requests
+   where request_id = '51000000-0000-4000-8000-000000000034'),
+  '51000000-0000-4000-8000-000000000035',
+  'confirm_external', 'ip_rule_456', 'Second external removal'
+);
+
+select security_firewall_test.assert_true(
+  (select count(distinct target_reference) = 2
+   from public.security_firewall_requests
+   where request_id in (
+     '51000000-0000-4000-8000-000000000010',
+     '51000000-0000-4000-8000-000000000032'
+   )),
+  'Separate same-target histories use unrelated opaque references'
+);
+
+select public.security_owner_create_firewall_request(
+  '50000000-0000-4000-8000-000000000001',
   '51000000-0000-4000-8000-000000000040',
   'rate_limit_observation', null, null, null,
   'prefix', '/api/auth', 'POST', 60, 500, 'rate_limit',
@@ -533,7 +577,7 @@ reset role;
 
 update public.security_firewall_requests
 set resolved_at = clock_timestamp() - interval '89 days'
-where request_id = '51000000-0000-4000-8000-000000000040';
+where request_id = '51000000-0000-4000-8000-000000000018';
 
 set role service_role;
 
@@ -542,19 +586,31 @@ select security_firewall_test.assert_true(
   'Ended records younger than 90 days are retained'
 );
 
+select security_firewall_test.assert_true(
+  (select target_network = '1.1.1.0/24'::inet
+     and target_masked = '1.1.x.x/24'
+     and request_fingerprint is not null
+     and reason = 'Validate an IPv4 CIDR request'
+   from public.security_firewall_requests
+   where request_id = '51000000-0000-4000-8000-000000000018'),
+  'Target-derived operational data remains available before 90 days'
+);
+
 reset role;
 
 update public.security_firewall_requests
-set resolved_at = clock_timestamp() - interval '90 days 1 second'
+set resolved_at = clock_timestamp() - interval '90 days'
 where request_id in (
   '51000000-0000-4000-8000-000000000010',
-  '51000000-0000-4000-8000-000000000030'
+  '51000000-0000-4000-8000-000000000030',
+  '51000000-0000-4000-8000-000000000032',
+  '51000000-0000-4000-8000-000000000034'
 );
 
 set role service_role;
 
 select security_firewall_test.assert_true(
-  public.security_cleanup_firewall_targets(100) = 2,
+  public.security_cleanup_firewall_targets(100) = 4,
   'Ended records at the retention boundary are anonymized'
 );
 
@@ -562,18 +618,186 @@ select security_firewall_test.assert_true(
   (select bool_and(
      target_network is null
      and anonymized_at is not null
-     and target_masked = '8.8.x.x/32'
+     and target_masked is null
+     and request_fingerprint is null
+     and reason = 'retention_period_completed'
+     and external_rule_id is null
    )
    from public.security_firewall_requests
    where request_id in (
      '51000000-0000-4000-8000-000000000010',
-     '51000000-0000-4000-8000-000000000030'
+     '51000000-0000-4000-8000-000000000030',
+     '51000000-0000-4000-8000-000000000032',
+     '51000000-0000-4000-8000-000000000034'
    )),
-  'Retention removes only full targets and preserves safe history'
+  'Retention removes every request-table target-derived value'
 );
 
 select security_firewall_test.assert_true(
-  (select bool_and(target_network is not null and anonymized_at is null)
+  not exists (
+    select 1
+    from public.security_events as event
+    where event.metadata ->> 'firewall_request_id' in (
+      select id::text
+      from public.security_firewall_requests
+      where request_id in (
+        '51000000-0000-4000-8000-000000000010',
+        '51000000-0000-4000-8000-000000000030',
+        '51000000-0000-4000-8000-000000000032',
+        '51000000-0000-4000-8000-000000000034'
+      )
+    )
+    and (
+      event.metadata ? 'target_masked'
+      or event.metadata ? 'target_network'
+      or event.reason like '%8.8.8.8%'
+      or event.reason like '%8.8.x.x%'
+    )
+  )
+  and not exists (
+    select 1
+    from public.admin_logs as log
+    where log.target_id in (
+      select id::text
+      from public.security_firewall_requests
+      where request_id in (
+        '51000000-0000-4000-8000-000000000010',
+        '51000000-0000-4000-8000-000000000030',
+        '51000000-0000-4000-8000-000000000032',
+        '51000000-0000-4000-8000-000000000034'
+      )
+    )
+    and (
+      log.details like '%8.8.8.8%'
+      or log.details like '%8.8.x.x%'
+    )
+  ),
+  'Permanent event and admin audit contain no target-derived values'
+);
+
+reset role;
+
+select security_firewall_test.assert_true(
+  not exists (
+    select 1
+    from public.security_events as event
+    cross join (values
+      ('8.8.8.8/32'::text, 'Block repeated abusive traffic'::text),
+      ('8.8.4.4/32'::text, 'Block repeated abusive traffic'::text)
+    ) as guesses(candidate, reason)
+    where event.request_fingerprint = pg_catalog.encode(
+        extensions.digest(
+          pg_catalog.jsonb_build_object(
+            'actor_id', '50000000-0000-4000-8000-000000000001'::uuid,
+            'request_type', 'block_ip',
+            'target', guesses.candidate,
+            'hostname', 'www.ourlittleage.com',
+            'related_request_id', null,
+            'path_match_mode', null,
+            'path_pattern', null,
+            'http_method', null,
+            'window_seconds', null,
+            'request_threshold', null,
+            'proposed_followup_action', null,
+            'reason', guesses.reason
+          )::text,
+          'sha256'
+        ),
+        'hex'
+      )
+  ),
+  'Retained fingerprints cannot validate the original or alternate candidate'
+);
+
+set role service_role;
+
+select security_firewall_test.assert_true(
+  (select bool_and(
+     item ->> 'target_network' is null
+     and item ->> 'target_masked' is null
+     and item ->> 'reason' = 'retention_period_completed'
+     and item ->> 'external_rule_id' is null
+   )
+   from pg_catalog.jsonb_array_elements(
+     public.security_admin_get_firewall_requests(
+       '50000000-0000-4000-8000-000000000001', 1, 20, 'ended'
+     ) -> 'items'
+   ) as item
+   where item ->> 'id' in (
+     select id::text
+     from public.security_firewall_requests
+     where request_id in (
+       '51000000-0000-4000-8000-000000000010',
+       '51000000-0000-4000-8000-000000000032'
+     )
+   ))
+  and
+  (select bool_and(
+     item ->> 'target_network' is null
+     and item ->> 'target_masked' is null
+     and item ->> 'reason' = 'retention_period_completed'
+     and item ->> 'external_rule_id' is null
+   )
+   from pg_catalog.jsonb_array_elements(
+     public.security_admin_get_firewall_requests(
+       '50000000-0000-4000-8000-000000000002', 1, 20, 'ended'
+     ) -> 'items'
+   ) as item
+   where item ->> 'id' in (
+     select id::text
+     from public.security_firewall_requests
+     where request_id in (
+       '51000000-0000-4000-8000-000000000010',
+       '51000000-0000-4000-8000-000000000032'
+     )
+   )),
+  'Owner and Admin APIs return only the anonymized state'
+);
+
+select security_firewall_test.assert_true(
+  (public.security_owner_create_firewall_request(
+    '50000000-0000-4000-8000-000000000001',
+    '51000000-0000-4000-8000-000000000010',
+    'block_ip', '8.8.4.4/32', 'www.ourlittleage.com', null,
+    null, null, null, null, null, null, 'Try another candidate after retention'
+  ) ->> 'idempotent')::boolean
+  and
+  (public.security_owner_create_firewall_request(
+    '50000000-0000-4000-8000-000000000001',
+    '51000000-0000-4000-8000-000000000010',
+    'block_ip', '8.8.8.8/32', 'www.ourlittleage.com', null,
+    null, null, null, null, null, null, 'Try the original candidate after retention'
+  ) ->> 'idempotent')::boolean,
+  'Post-retention retries do not reveal which target was original'
+);
+
+select security_firewall_test.assert_true(
+  (select count(distinct event.request_fingerprint) = 2
+   from public.security_events as event
+   where event.event_type = 'firewall_request_created'
+     and event.metadata ->> 'firewall_request_id' in (
+       select id::text
+       from public.security_firewall_requests
+       where request_id in (
+         '51000000-0000-4000-8000-000000000010',
+         '51000000-0000-4000-8000-000000000032'
+       )
+     )),
+  'Separate same-target histories have unlinkable audit fingerprints'
+);
+
+select security_firewall_test.assert_true(
+  public.security_cleanup_firewall_targets(100) = 0,
+  'Repeated retention cleanup is idempotent'
+);
+
+select security_firewall_test.assert_true(
+  (select bool_and(
+     target_network is not null
+     and target_masked is not null
+     and request_fingerprint is not null
+     and anonymized_at is null
+   )
    from public.security_firewall_requests
    where request_id in (
      '51000000-0000-4000-8000-000000000050',

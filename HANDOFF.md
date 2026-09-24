@@ -338,11 +338,13 @@ production verified: no
 * Phase 2A 仅建立人工流程：IP/CIDR 防护单、解除防护、Rate Limit 观察方案、Owner 人工确认、不可变审计与结束记录 90 天后匿名化。数据库重新验证公开网络、最小 CIDR 范围与合法状态转换。
 * Owner 可读取仍在保留期内的完整目标并执行生命周期操作；Admin 只读且只收到遮罩目标；Moderator、resident 与 anonymous 在页面、API、RPC、grant 和 RLS 边界均无权访问。
 * 新增受保护 API `/api/admin/security/firewall`、`/api/admin/security/firewall/[id]`，以及 `/admin/security` 内独立「流量防护」区域。区块有自己的 loading、error、retry、筛选与分页，不会因失败隐藏 Phase 1 或词语检测。
-* 新增每日 retention route `/api/cron/security-firewall-retention`，由 `CRON_SECRET` 保护；数据库使用可信时间，只匿名化 `resolved / cancelled / failed` 且已满 90 天的完整 `target_network`，保留遮罩值与不透明 `target_reference` 审计。当前 Cron 尚未部署或激活。
+* 新增每日 retention route `/api/cron/security-firewall-retention`，由 `CRON_SECRET` 保护；数据库使用可信时间，只处理 `resolved / cancelled / failed` 且已满 90 天的记录。匿名化会销毁完整目标、遮罩目标、目标衍生指纹、自由备注与外部规则标识，只保留随机对象 ID、状态、actor 与时间等非目标审计资料。当前 Cron 尚未部署或激活。
+* 首轮 Production Readiness Review 发现旧保留设计仍可用遮罩目标与确定性指纹验证原 IPv4，因此判定 `NOT SAFE`。本地 privacy repair 已改为活动期保留重复检测，结束满 90 天后销毁所有持久目标衍生值；Phase 2A Security Event 与 Admin Log 从写入时起只记录随机请求/对象 ID、状态和结构化事件，不复制目标、遮罩值或自由备注。
+* 新增负向重识别与历史关联回归：匿名化后原候选与替代候选都无法通过保留资料验证；两个不同时间的同目标历史记录不共享目标衍生指纹。Owner/Admin API 与后台 UI 都只显示「目标已匿名化」。
 * Vercel Firewall 继续作为实际规则与实时流量的 source of truth；应用没有 Vercel Access Token，也不会调用 Vercel mutation API。Production 规则必须由 Owner 在 Vercel 独立完成后，再回到安全中心确认。
 * `Ban Resident != Block IP`；防护单不会修改 `profiles.status` 或 `security_risk_profiles`。`risk_evaluation_enabled = false` 与 `automatic_enforcement_enabled = false` 持续关闭。
-* 本地使用完全隔离的 PostgreSQL 17 临时集群验证 Phase 1 与 Phase 2A SQL suites；没有连接或写入 Production。TypeScript、focused ESLint、聚焦 Vitest 与 `git diff --check` 已通过，完整 build 与最终视觉复核仍属于交付闸门。
-* 下一步必须先完成最终本地 gate 与 Production Readiness Review；在独立明确批准前，不得 push/deploy、应用 migration、激活 Cron 或发布任何 Vercel Firewall 规则。
+* 本地使用完全隔离的 PostgreSQL 17 临时集群验证 Phase 1 与 Phase 2A SQL suites；没有连接或写入 Production。Privacy repair 完成后必须重新执行 TypeScript、focused ESLint、聚焦 Vitest、Production build 与 `git diff --check`。
+* 下一步必须重新进行 Production Readiness Review；在独立明确批准前，不得 push/deploy、应用 migration、激活 Cron 或发布任何 Vercel Firewall 规则。
 
 ## 2026-09-10 Admin Changelog Foundation
 

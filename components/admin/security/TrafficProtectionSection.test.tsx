@@ -82,6 +82,39 @@ describe("TrafficProtectionSection", () => {
     expect(screen.queryByRole("button", { name: "确认已发布" })).not.toBeInTheDocument();
   });
 
+  it.each(["owner", "admin"] as const)(
+    "shows only the anonymized state to %s after retention cleanup",
+    async (currentRole) => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          requests: {
+            items: [
+              {
+                ...waitingRequest,
+                status: "resolved",
+                targetNetwork: null,
+                targetMasked: null,
+                reason: "retention_period_completed",
+                resolvedAt: "2026-06-24T02:00:00.000Z",
+                anonymizedAt: "2026-09-24T02:00:00.000Z",
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          },
+        }),
+      } as Response);
+
+      render(<TrafficProtectionSection currentRole={currentRole} />);
+
+      expect(await screen.findByText("目标已匿名化")).toBeInTheDocument();
+      expect(screen.queryByText("8.8.8.8/32")).not.toBeInTheDocument();
+      expect(screen.queryByText("8.8.x.x/32")).not.toBeInTheDocument();
+    }
+  );
+
   it("loads each visible filter without a page-level refresh control", async () => {
     render(<TrafficProtectionSection currentRole="owner" />);
     await screen.findByText("8.8.8.8/32");

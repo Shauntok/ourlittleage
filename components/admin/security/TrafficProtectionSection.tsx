@@ -176,7 +176,12 @@ export default function TrafficProtectionSection({ currentRole }: Props) {
               <div className="min-w-0">
                 <p className="text-sm text-zinc-200">{requestTypeLabel(request)}</p>
                 <p className="mt-1 break-all text-xs text-zinc-500">
-                  {request.targetNetwork || request.targetMasked || request.pathPattern || "无网络目标"}
+                  {request.anonymizedAt
+                    ? "目标已匿名化"
+                    : request.targetNetwork ||
+                      request.targetMasked ||
+                      request.pathPattern ||
+                      "无网络目标"}
                 </p>
                 {request.hostnameScope && (
                   <p className="mt-1 text-xs text-zinc-600">{request.hostnameScope}</p>
@@ -184,7 +189,11 @@ export default function TrafficProtectionSection({ currentRole }: Props) {
               </div>
               <div className="min-w-0">
                 <p className={statusTone(request.status)}>{statusLabel(request.status)}</p>
-                <p className="mt-1 text-xs leading-5 text-zinc-600">{request.reason}</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-600">
+                  {request.anonymizedAt
+                    ? "保留期结束，敏感目标资料已移除。"
+                    : request.reason}
+                </p>
               </div>
               {isOwner && request.status === "awaiting_external_publish" && (
                 <div className="flex flex-wrap gap-2 lg:justify-end">
