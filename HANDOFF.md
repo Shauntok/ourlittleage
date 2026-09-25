@@ -119,9 +119,9 @@ API Secret
 
 ### 7. Security Center 长期方向
 
-Security Center Phase 1 已完成基础实现并通过 Production 验证，包含受保护的后台概览、居民人工风险与复核记录、不可变安全事件，以及现有评论词语检测入口。Phase 1 不包含自动风险判断或自动处罚。
+Security Center Phase 1 已完成基础实现并通过 Production 验证，包含受保护的后台概览、居民人工风险与复核记录、不可变安全事件，以及现有评论词语检测入口。Phase 2A 人工流量防护也已完成 Production rollout 与 Owner/Admin 桌面、手机版验证。自动风险判断与自动处罚仍未启用。
 
-Phase 2A 人工流量防护已于 2026-09-24 在隔离 worktree 完成本地实现，但尚未合并、push、deploy 或应用 Production migration。以下自动化与更深层整合仍属于未来规划：
+Phase 2A 人工流量防护已于 2026-09-25 完成合并、push、Production migration、部署与线上验证。以下自动化与更深层整合仍属于未来规划：
 
 ```text
 Admin
@@ -272,7 +272,7 @@ Mixed feature:
 
 ## 2026-09-12 Security Center Phase 1
 
-当前状态：**Phase 1 implementation complete、committed、pushed、deployed，并已通过 Production 验证。离站逻辑备份已于 2026-09-13 11:34（Malaysia Time）完成并验证；Security Center migration、Profile lifecycle forward repair 与 Moderation review lifecycle forward repair 均已受控应用至 Production。最终数据库权限矩阵、完整账号生命周期与线上健康检查通过；自动风险判断与自动处置保持关闭。Phase 2A 已于 2026-09-24 完成本地实现，但尚未进入 Production。**
+当前状态：**Phase 1 与 Phase 2A 均已 implementation complete、committed、pushed、deployed，并通过 Production 验证。Phase 2A 上线前离站逻辑备份已于 2026-09-24 完成并验证；Security Center、Profile lifecycle、Moderation review lifecycle 与 Phase 2A migrations 均已受控应用至 Production。最终数据库权限矩阵、保留期隐私、Owner/Admin 线上页面与健康检查通过；自动风险判断与自动处置保持关闭。**
 
 ### 已实现
 
@@ -321,15 +321,15 @@ Mixed feature:
 * 当前没有可用的 Owner/Admin 浏览器登录 session，因此后台 Security Center 与 Resident Detail 的最终视觉点击验证标记为 deferred；未绕过认证。数据库权限、事务、审计、匿名访问守卫与 Production 页面响应已经验证。
 * **结论：`PROFILE LIFECYCLE REPAIR PRODUCTION VERIFIED`，并且 `SECURITY CENTER PHASE 1 PRODUCTION VERIFIED`。** 自动风险判断与自动处置仍关闭。
 
-### Phase 2A 本地实现状态（2026-09-24）
+### Phase 2A Production 状态（2026-09-25）
 
 ```text
 implemented: yes
-committed: yes, isolated local worktree
-pushed: no
-migration applied: no
-deployed: no
-production verified: no
+committed: yes
+pushed: yes, main
+migration applied: yes
+deployed: yes
+production verified: yes
 ```
 
 * 设计文档：`docs/superpowers/specs/2026-09-24-security-center-phase-2a-design.md`；实施计划：`docs/superpowers/plans/2026-09-24-security-center-phase-2a.md`。
@@ -338,7 +338,7 @@ production verified: no
 * Phase 2A 仅建立人工流程：IP/CIDR 防护单、解除防护、Rate Limit 观察方案、Owner 人工确认、不可变审计与结束记录 90 天后匿名化。数据库重新验证公开网络、最小 CIDR 范围与合法状态转换。
 * Owner 可读取仍在保留期内的完整目标并执行生命周期操作；Admin 只读且只收到遮罩目标；Moderator、resident 与 anonymous 在页面、API、RPC、grant 和 RLS 边界均无权访问。
 * 新增受保护 API `/api/admin/security/firewall`、`/api/admin/security/firewall/[id]`，以及 `/admin/security` 内独立「流量防护」区域。区块有自己的 loading、error、retry、筛选与分页，不会因失败隐藏 Phase 1 或词语检测。
-* 新增每日 retention route `/api/cron/security-firewall-retention`，由 `CRON_SECRET` 保护；数据库使用可信时间，只处理 `resolved / cancelled / failed` 且已满 90 天的记录。匿名化会销毁完整目标、遮罩目标、目标衍生指纹、自由备注与外部规则标识，只保留随机对象 ID、状态、actor 与时间等非目标审计资料。当前 Cron 尚未部署或激活。
+* 新增每日 retention route `/api/cron/security-firewall-retention`，由 `CRON_SECRET` 保护；数据库使用可信时间，只处理 `resolved / cancelled / failed` 且已满 90 天的记录。匿名化会销毁完整目标、遮罩目标、目标衍生指纹、自由备注与外部规则标识，只保留随机对象 ID、状态、actor 与时间等非目标审计资料。Production 已部署每日 `00:30 UTC` 的 Cron，未授权请求返回 401，重复执行安全。
 * 首轮 Production Readiness Review 发现旧保留设计仍可用遮罩目标与确定性指纹验证原 IPv4，因此判定 `NOT SAFE`。本地 privacy repair 已改为活动期保留重复检测，结束满 90 天后销毁所有持久目标衍生值；Phase 2A Security Event 与 Admin Log 从写入时起只记录随机请求/对象 ID、状态和结构化事件，不复制目标、遮罩值或自由备注。
 * 新增负向重识别与历史关联回归：匿名化后原候选与替代候选都无法通过保留资料验证；两个不同时间的同目标历史记录不共享目标衍生指纹。Owner/Admin API 与后台 UI 都只显示「目标已匿名化」。
 * Vercel Firewall 继续作为实际规则与实时流量的 source of truth；应用没有 Vercel Access Token，也不会调用 Vercel mutation API。Production 规则必须由 Owner 在 Vercel 独立完成后，再回到安全中心确认。
@@ -346,7 +346,19 @@ production verified: no
 * 本地使用完全隔离的 PostgreSQL 17 临时集群验证 Phase 1 与 Phase 2A SQL suites；没有连接或写入 Production。Privacy repair 完成后已重新通过 TypeScript、focused ESLint、154 项聚焦 Vitest、Production build 与 `git diff --check`。
 * 2026-09-24 Final Production Readiness Review 的只读 Production catalog 检查确认 Phase 2A 尚未应用且无同名对象冲突，但发现 Production `admin_logs.admin_id` 为 `NOT NULL`，而原 `security_cleanup_firewall_targets()` 会尝试写入 `admin_id = null`，导致 90 天匿名化事务回滚。该版本结论为 `NOT SAFE`。
 * System Retention Audit Compatibility Fix 已在尚未应用的 Phase 2A migration 内完成：自动保留期清理不再写 `admin_logs`，只写一条 actorless、append-only、无目标衍生资料的 `security_events` 系统事件；人工 Owner 创建与生命周期操作继续以真实 Owner UUID 写入 Admin Log 与 Security Event。没有修改 Production `admin_logs` schema。
-* SQL fixture 已对齐 Production，固定 `admin_logs.admin_id NOT NULL`。隔离 PostgreSQL 17 按 Production 真实约束重新通过 Phase 1 与 Phase 2A SQL suites，覆盖系统事件、人工审计、90 天边界、幂等、候选重识别与历史关联。下一步必须重新执行 Final Production Readiness Review；在独立明确批准前，不得 push/deploy、应用 migration、激活 Cron 或发布任何 Vercel Firewall 规则。
+* SQL fixture 已对齐 Production，固定 `admin_logs.admin_id NOT NULL`。隔离 PostgreSQL 17 按 Production 真实约束重新通过 Phase 1 与 Phase 2A SQL suites，覆盖系统事件、人工审计、90 天边界、幂等、候选重识别与历史关联。后续 Final Production Readiness Review 已通过，并在独立明确批准后执行 rollout；没有发布或自动修改任何 Vercel Firewall 规则。
+
+#### Phase 2A Production rollout 与验证
+
+* 上线前备份位于仓库外 `C:\Backups\ourlittleage\20260924T155342Z`；roles、schema、完整 logical dump、migration history、restore list 与 SHA-256 manifest 均已验证，未保存数据库密码或进入 Git。
+* 已按批准范围将 `b727ccd^..94efe38` 合并至 `main`，最终功能提交为 `a4b2c27292d58745bc99bd63f16e1f12ea81bd6c`，无冲突并已 push。隔离 PostgreSQL 17 的 Phase 1 + Phase 2A SQL suites 通过；12 个定向 Vitest 文件共 150/150 tests、TypeScript、focused ESLint、Production build 与 `git diff --check` 全部通过。
+* 仅应用 `20260924130000_security_firewall_operations.sql`；Production migration history 记录为 `20260924160220 security_firewall_operations`。`security_firewall_requests`、约束、索引、RLS 与四个 service-role-only RPC 均存在；普通 authenticated / anon 没有表权限或 RPC 执行权限。
+* Production 事务化 smoke test 验证 Owner 写入、Admin 遮罩只读、Moderator/resident 拒绝、request ID 幂等、人工双审计与系统单一 actorless Security Event。90 天匿名化会清除所有目标衍生资料，重复清理保持幂等；测试事务全部回滚，`security_firewall_requests` 无残留，既有 6 条安全事件与 26 条后台日志未改变。
+* `risk_evaluation_enabled = false`、`automatic_enforcement_enabled = false` 持续关闭。应用未加入 Vercel token，也没有 Vercel mutation API 或自动处罚路径；实际 Firewall 规则继续由 Owner 在 Vercel 独立人工操作。
+* Vercel Production deployment `dpl_J9hd7Fs1nutZjufpPB5EhKoeZCFx` 状态为 `READY`，正式域名运行提交 `a4b2c27292d58745bc99bd63f16e1f12ea81bd6c`。部署后的未授权 Cron 请求返回 401，Production 检查窗口内没有 Vercel runtime error 或 Security Firewall 相关 Supabase error。
+* Owner 在 1440x900 与 390x844 实际验证安全中心、流量防护、人工操作说明、词语检测与安全事件；页面无横向溢出或浏览器错误。Admin 使用临时提升的专用 QA A 在相同桌面与手机视口验证遮罩只读：没有网络目标输入、建立防护单或确认写入入口，HTML 不含完整网络目标。测试结束后 QA A 已恢复为 `user / active`，刷新 `/admin/security` 会立即回到 `/home`。
+* 普通居民浏览器访问被拒绝；Moderator、resident 与 anonymous 的数据库/API/RPC 权限边界由 Production 事务测试和定向回归确认。没有创建真实防护单、没有修改普通居民资料，也没有遗留 Phase 2A QA operational row。
+* Public Changelog 不适用；本阶段只同步 HANDOFF 与 Admin Changelog。结论：`SECURITY CENTER PHASE 2A PRODUCTION VERIFIED`。
 
 ## 2026-09-10 Admin Changelog Foundation
 
