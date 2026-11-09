@@ -17,6 +17,10 @@ type Announcement = {
   created_at: string;
 };
 
+type AnnouncementInsert = Pick<Announcement, "title" | "content" | "is_active" | "publish_mode" | "scheduled_for" | "published_at" | "sent_at"> & {
+  created_by: string;
+};
+
 type ScheduleMode = "quick" | "custom";
 type QuickDelay = "15" | "30" | "60";
 type DatePreset = "today" | "tomorrow" | "afterTomorrow" | "custom";
@@ -276,13 +280,24 @@ export default function AdminAnnouncementsPage() {
     setSubmitting(true);
 
     try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        showMessage("登录已失效，请重新登录后再发布公告。");
+        return;
+      }
+
       const now = new Date().toISOString();
 
-      const payload: any =
+      const payload: AnnouncementInsert =
         publishMode === "now"
           ? {
               title: title.trim(),
               content: content.trim(),
+              created_by: user.id,
               is_active: true,
               publish_mode: "now",
               scheduled_for: null,
@@ -292,6 +307,7 @@ export default function AdminAnnouncementsPage() {
           : {
               title: title.trim(),
               content: content.trim(),
+              created_by: user.id,
               is_active: false,
               publish_mode: "scheduled",
               scheduled_for: scheduledDate!.toISOString(),
@@ -307,8 +323,14 @@ export default function AdminAnnouncementsPage() {
 
       if (error) throw error;
 
+      let notificationFailed = false;
       if (publishMode === "now") {
-        await sendNotificationsToAllProfiles(title.trim(), content.trim());
+        try {
+          await sendNotificationsToAllProfiles(title.trim(), content.trim());
+        } catch (notificationError) {
+          console.error("Announcement saved, but notification delivery failed:", notificationError);
+          notificationFailed = true;
+        }
 
         await writeLog(
           "create_announcement_now",
@@ -336,10 +358,16 @@ export default function AdminAnnouncementsPage() {
 
       setAnnouncements((prev) => [data as Announcement, ...prev]);
 
-      showMessage(publishMode === "now" ? "公告已发布。" : "预约公告已保存。");
+      showMessage(
+        notificationFailed
+          ? "公告已发布，但通知发送失败。请勿重复发布，请检查通知。"
+          : publishMode === "now"
+            ? "公告已发布。"
+            : "预约公告已保存。"
+      );
     } catch (error) {
       console.error(error);
-      showMessage("发布公告失败，请检查 Supabase 字段 / RLS / notifications 表结构。");
+      showMessage("公告保存失败，请稍后重试；如持续失败，请联系管理员。");
     } finally {
       setSubmitting(false);
     }
