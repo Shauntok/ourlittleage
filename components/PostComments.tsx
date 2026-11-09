@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import ReportButton from "@/components/ReportButton";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import reading from "@/components/reading/ReadingPage.module.css";
 import {
   buildCommentThreads,
   getReplyDepth,
@@ -12,6 +13,7 @@ import {
 
 type Props = {
   postId: number;
+  modernPixel?: boolean;
 };
 
 type SortMode = "oldest" | "newest";
@@ -193,7 +195,7 @@ function CommentRow({
   );
 }
 
-export default function PostComments({ postId }: Props) {
+export default function PostComments({ postId, modernPixel = false }: Props) {
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [content, setContent] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("oldest");
@@ -622,16 +624,16 @@ export default function PostComments({ postId }: Props) {
   }
 
   return (
-    <section className="mt-12 border-t border-white/10 pt-8 md:mt-24 md:pt-12">
+    <section className={`mt-12 border-t border-white/10 pt-8 md:mt-24 md:pt-12 ${modernPixel ? reading.comments : ""}`}>
       <div>
-        <p className="text-xs tracking-[0.35em] text-white/25">COMMENTS</p>
+        <p className="text-xs tracking-[0.35em] text-white/25">{modernPixel ? "COMMENTS / RESIDENT VOICES" : "COMMENTS"}</p>
 
         <h2 className="mt-3 text-2xl font-light md:mt-4 md:text-3xl">
           居民留言
         </h2>
 
         <p className="mt-3 text-sm leading-7 text-white/35 md:mt-4">
-          在这里留下温柔一点的回应。也许作者今晚刚好需要这一句话。
+          {modernPixel ? "把读完之后想说的话，留在这一页。" : "在这里留下温柔一点的回应。也许作者今晚刚好需要这一句话。"}
         </p>
       </div>
 
@@ -641,7 +643,7 @@ export default function PostComments({ postId }: Props) {
         </div>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl md:mt-8 md:rounded-[2rem]">
+      <div className={`mt-6 overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.035] backdrop-blur-2xl md:mt-8 md:rounded-[2rem] ${modernPixel ? reading.commentForm : ""}`}>
         <textarea
           rows={4}
           value={content}
@@ -661,7 +663,7 @@ export default function PostComments({ postId }: Props) {
         </div>
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 md:mt-14">
+      <div className={`mt-8 flex flex-wrap items-center justify-between gap-4 md:mt-14 ${modernPixel ? reading.commentSort : ""}`}>
         <p className="text-sm text-white/35">
           {fetching
             ? "正在翻看留言..."
@@ -697,7 +699,7 @@ export default function PostComments({ postId }: Props) {
         </div>
       </div>
 
-      <div className="mt-5 space-y-4 md:space-y-5">
+      <div className={`mt-5 space-y-4 md:space-y-5 ${modernPixel ? reading.commentList : ""}`}>
         {!fetching && comments.length === 0 && (
           <div className="rounded-[1.7rem] border border-white/10 bg-white/[0.03] p-8 text-center md:rounded-[2rem] md:p-10">
             <p className="text-sm text-white/35">这里暂时还没有留言。</p>
@@ -812,6 +814,7 @@ export default function PostComments({ postId }: Props) {
         }}
         onConfirm={deleteComment}
       />
+      {modernPixel && <><span aria-hidden="true" className={reading.commentsBottomLeft} /><span aria-hidden="true" className={reading.commentsBottomRight} /></>}
     </section>
   );
 }

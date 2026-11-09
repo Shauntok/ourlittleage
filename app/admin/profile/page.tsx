@@ -319,14 +319,14 @@ export default function AdminProfilePage() {
   return (
     <main className="max-w-2xl space-y-8">
       <div>
-        <h1 className="text-4xl font-bold">我的资料 👤</h1>
+        <h1 className="text-4xl font-bold">我的资料</h1>
 
         <p className="mt-2 text-zinc-500">
           上传头像、管理个人资料与今日状态。
         </p>
       </div>
 
-      <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/40">
+      <div data-admin-profile-preview className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/40">
         <div className="absolute inset-0 opacity-35">
           {profile?.banner_url ? (
             <img

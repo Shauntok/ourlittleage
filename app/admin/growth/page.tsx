@@ -111,7 +111,7 @@ export default function AdminGrowthPage() {
 
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
-          <h1 className="text-4xl font-bold">成长记录 ✨</h1>
+          <h1 className="text-4xl font-bold">成长记录</h1>
 
           <p className="mt-2 text-zinc-500">
             记录居民「留下的光」与「社区信任」的变化来源。

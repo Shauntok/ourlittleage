@@ -1,0 +1,323 @@
+.page {
+  --day-scene-image: url('/images/page-backgrounds/settings-skin-day.webp');
+  --day-scene-base: #fcfdff;
+  --day-scene-rgb: 252, 253, 255;
+  --day-scene-height: 680px;
+  --day-scene-top-opacity: .68;
+  --day-scene-middle-opacity: .87;
+  position: relative;
+  min-width: 0;
+  padding: 12px 18px 20px;
+  border: 1px solid #b4cce9;
+  background: #fcfdff;
+  color: #263653;
+  box-shadow: 0 3px 0 #d6e6f7;
+}
+
+.wardrobe {
+  width: min(100%, 960px);
+  margin: 0 auto;
+}
+
+.referenceArt { display: none; }
+.nightControlsArt { display: none; }
+
+.canopy {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  aspect-ratio: 1500 / 437;
+}
+
+.canopyArt { object-fit: contain; image-rendering: auto; pointer-events: none; }
+.canopyCopy {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  width: 40%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #2b456b;
+  text-shadow: 0 1px 0 #fff8ea;
+}
+.canopyCopy h1 { margin: 0; font-size: clamp(21px, 2.8vw, 37px); font-weight: 750; letter-spacing: .08em; line-height: 1.25; }
+.canopyCopy p { margin: 7px 0 0; font-size: clamp(9px, 1vw, 13px); line-height: 1.35; }
+
+.cabinet {
+  position: relative;
+  margin: -11% 3.4% 0;
+  padding: 18px 5.2% 0;
+  border: 9px solid #8a542f;
+  border-bottom-width: 12px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 45px, rgba(88, 45, 22, .17) 46px 48px),
+    linear-gradient(90deg, #925d37, #bc8254 9%, #a76c40 47%, #c18a5b 91%, #915832);
+  box-shadow: inset 0 0 0 4px #d8a272, inset 0 8px 14px rgba(71, 37, 17, .35), 0 10px 0 #d7b48d, 0 15px 20px rgba(82, 51, 35, .16);
+}
+
+.doors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; align-items: start; }
+.door {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 620 / 791;
+  background: url('/images/skin/wardrobe-door.webp') center / 100% 100% no-repeat;
+  filter: drop-shadow(2px 3px 1px rgba(84, 47, 23, .25));
+}
+.doorSelected { filter: drop-shadow(0 0 5px rgba(83, 135, 203, .55)) drop-shadow(2px 3px 1px rgba(84, 47, 23, .25)); }
+.doorSelect {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #263653;
+  cursor: pointer;
+  text-align: center;
+}
+.doorSelect:hover .preview { border-color: #568ac6; }
+.doorSelect:focus-visible, .timeChoices button:focus-visible, .saveButton:focus-visible { outline: 3px solid #496db0; outline-offset: 3px; }
+.preview {
+  position: absolute;
+  top: 13.6%;
+  left: 14.6%;
+  width: 70.8%;
+  height: 46.5%;
+  overflow: hidden;
+  border: 2px solid #c8a174;
+  background: #e8eff8;
+  box-shadow: inset 0 0 0 2px #fff7e4, 0 2px 5px rgba(74, 43, 20, .18);
+  transition: border-color .18s ease;
+}
+.glassPreview { background: #08080a; }
+.previewImage { object-fit: cover; object-position: center; }
+.previewSceneArt { display: none; }
+.glassPreview .previewImage { object-position: left center; }
+.doorCopy {
+  position: absolute;
+  top: 68.7%;
+  left: 15%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 70%;
+  min-width: 0;
+}
+.doorCopy strong { font-family: 'ArkPixelSettings', Arial, sans-serif; font-size: clamp(17px, 2.1vw, 27px); font-weight: 400; line-height: 1.15; font-synthesis: none; }
+.doorCopy small { color: #6f7d91; font-size: clamp(9px, .94vw, 12px); line-height: 1.35; }
+.realShot { color: #536c91; font-size: clamp(8px, .82vw, 11px); }
+.choiceMark {
+  position: absolute;
+  top: 10%;
+  right: 12.6%;
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 33px;
+  border: 2px solid #8c9bb4;
+  border-radius: 50%;
+  background: #fff9ea;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(65, 41, 23, .28);
+}
+.doorSelected .choiceMark { border-color: #5383c5; background: #5d8dcf; }
+.timeChoices {
+  position: absolute;
+  z-index: 1;
+  bottom: 11.8%;
+  left: 19%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  width: 62%;
+}
+.timeChoices button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 32px;
+  padding: 3px 5px;
+  border: 1px solid #b8c5d8;
+  background: #f7f9fc;
+  color: #52678d;
+  font-size: clamp(10px, 1.02vw, 13px);
+  font-weight: 700;
+  cursor: pointer;
+}
+.timeChoices button:hover { background: #eaf3ff; }
+.timeChoices .timeActive { border-color: #6196d7; background: #e4f1ff; color: #315f9a; box-shadow: inset 0 0 0 1px #fff; }
+.timeChoices button:first-child svg { color: #e8aa39; }
+.timeChoices button:last-child svg { color: #6b78b4; }
+
+.drawer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 5vw, 74px);
+  min-height: 72px;
+  margin: 12px -5.8% 0;
+  border-top: 7px solid #88512e;
+  background: linear-gradient(#c69261, #ad7549 54%, #85502e);
+  box-shadow: inset 0 3px 0 #dfb181;
+}
+.drawerHandle { width: 66px; height: 11px; border: 2px solid #8e5c2d; border-radius: 2px; background: linear-gradient(#ffe4a1, #b47626); box-shadow: 0 2px 2px rgba(77, 44, 20, .3); }
+.saveButton {
+  min-width: 210px;
+  min-height: 47px;
+  border: 2px solid #4775b6;
+  background: linear-gradient(#729de2, #547ec4);
+  color: #fff;
+  box-shadow: inset 0 0 0 2px #a9cbf8, 0 4px 0 #385e96;
+  font-size: 17px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.saveButton:hover { background: linear-gradient(#6491d6, #4b73b6); }
+.saveButton:disabled { cursor: wait; opacity: .7; }
+.saveButton span { color: #fff3be; }
+.status { min-height: 22px; margin: 19px 0 0; color: #567499; font-size: 12px; text-align: center; }
+.note { margin: 3px 0 0; color: #8293aa; font-size: 11px; text-align: center; }
+
+@media (max-width: 900px) {
+  .page { padding: 8px 10px 20px; }
+  .cabinet { margin-left: 1%; margin-right: 1%; }
+}
+@media (max-width: 650px) {
+  .page { background: transparent; box-shadow: none; }
+  .canopyCopy { top: 17%; width: 46%; }
+  .canopyCopy p { display: none; }
+  .cabinet { margin-top: -8%; padding: 12px 7% 0; border-width: 6px; }
+  .doors { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 6px; }
+  .door { width: min(100%, 390px); }
+  .doorCopy { top: 65%; left: 13%; width: 74%; gap: 2px; }
+  .doorCopy strong { font-size: clamp(18px, 4.7vw, 23px); line-height: 1.15; }
+  .doorCopy small { font-size: clamp(10px, 2.6vw, 11px); line-height: 1.35; }
+  .realShot { font-size: 10px; line-height: 1.25; }
+  .timeChoices { bottom: 7.5%; }
+  .timeChoices button { min-height: 33px; font-size: 12px; }
+  .drawer { min-height: 67px; margin: 8px -8% 0; gap: 10px; }
+  .drawerHandle { width: 35px; }
+  .saveButton { min-width: 170px; min-height: 42px; font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .preview { transition: none; }
+}
+
+/* The wardrobe is a transparent painting over the page's single room scene.
+   Live previews and controls sit over the corresponding door openings. */
+@media (min-width: 651px) {
+  .page { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .page > :first-child { display: none; }
+  .wardrobe { position: relative; width: 100%; max-width: none; aspect-ratio: 1208 / 863; overflow: hidden; }
+  .referenceArt {
+    position: absolute;
+    z-index: 0;
+    display: block;
+    width: 123.9%;
+    max-width: none;
+    height: 115.6%;
+    left: -20.2%;
+    top: -14.7%;
+    pointer-events: none;
+  }
+  .nightControlsArt {
+    position: absolute;
+    z-index: 1;
+    top: 70%;
+    left: 15.28%;
+    display: block;
+    width: 27.98%;
+    height: 8.57%;
+    pointer-events: none;
+  }
+  .canopy { display: none; }
+  .cabinet { position: absolute; inset: 0; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .doors { position: absolute; inset: 0; display: block; }
+  .door { position: absolute; top: 20.9%; height: 61.6%; aspect-ratio: auto; background: none; filter: none; }
+  .door:first-child { left: 9.1%; width: 39.4%; }
+  .door:nth-child(2) { left: 49.2%; width: 43.4%; }
+  .doorSelected { filter: none; }
+  .door:first-child:not(.doorSelected)::after,
+  .door:nth-child(2).doorSelected::after {
+    position: absolute;
+    z-index: 1;
+    inset: 2.6% 2.5% 1.5%;
+    border: clamp(3px, .4vw, 5px) solid #e4c59e;
+    border-radius: 14px;
+    content: "";
+    pointer-events: none;
+  }
+  .door:nth-child(2).doorSelected::after { border-color: #5598e7; }
+  .doorSelect:hover .preview { border-color: #80aee9; }
+  .preview {
+    top: 10.6%;
+    left: 8.6%;
+    width: 83.3%;
+    height: 54.2%;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .mobilePreviewImage { display: none; }
+  .previewSceneArt {
+    position: absolute;
+    display: block;
+    width: 387.4%;
+    max-width: none;
+    height: 355.7%;
+    left: -114.2%;
+    top: -128.7%;
+    pointer-events: none;
+  }
+  .door:nth-child(2) .preview { top: 10.6%; left: 10.2%; width: 76%; height: 54.2%; }
+  .door:nth-child(2) .preview { clip-path: polygon(3% 0, 97% 0, 100% 4%, 100% 96%, 97% 100%, 3% 100%, 0 96%, 0 4%); }
+  .glassPreview .previewImage { object-position: left center; }
+  .doorCopy { display: none; }
+  .choiceMark { top: 6.1%; right: 7%; width: clamp(21px, 2.5vw, 34px); height: clamp(21px, 2.5vw, 34px); }
+  .door:nth-child(2) .choiceMark { right: 11.5%; }
+  .timeChoices { bottom: 7.9%; left: 17%; width: 67%; height: 10.5%; gap: 2px; }
+  .timeChoices button {
+    position: relative;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: transparent;
+    font-size: 0;
+    box-shadow: none;
+  }
+  .timeChoices .timeActive { border: 0; background: transparent; color: transparent; box-shadow: none; }
+  .timeChoices button svg { display: none; }
+  .timeChoices button:hover { background: rgba(255, 255, 255, .1); }
+  .drawer { position: absolute; top: 84%; left: 31.3%; display: block; width: 36.1%; height: 7.5%; min-height: 0; margin: 0; border: 0; background: transparent; box-shadow: none; }
+  .drawerHandle { display: none; }
+  .saveButton { width: 100%; height: 100%; min-width: 0; min-height: 0; border: 0; background: transparent; color: transparent; box-shadow: none; font-size: 0; }
+  .saveButton:hover { background: rgba(215, 233, 255, .16); }
+  .saveButton:disabled { opacity: 1; }
+  .saveButton span { opacity: 0; }
+  .status { position: absolute; z-index: 2; left: 30%; right: 30%; bottom: 2.5%; min-height: 0; margin: 0; padding: 5px; border: 1px solid #b8c9e7; background: #fbfdff; }
+  .status[data-visible="false"], .note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+:global(body[data-pixel-time="evening"]) .page { --moon-scene-image: url('/images/page-backgrounds/settings-skin-evening.webp'); --moon-scene-base: #2b3858; --moon-scene-height: 680px; --moon-scene-top-opacity: .68; --moon-scene-middle-opacity: .87; background: #2b3858; border-color: #7b91b8; color: #f5eddf; box-shadow: 0 3px 0 #18233e; }
+:global(body[data-pixel-time="evening"]) .status { color: #e2e9f7; }
+:global(body[data-pixel-time="evening"]) .note { color: #c7d5ee; }
+
+@media (max-width: 650px) {
+  :global(body[data-pixel-time="evening"]) .page {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@media (min-width: 651px) {
+  :global(body[data-pixel-time="evening"]) .page {
+    background: transparent;
+    box-shadow: none;
+  }
+}

@@ -56,4 +56,4 @@ describe("ArticlesPage draft lifecycle", () => {
   });
 });
 
-import ArticlesPage from "./page";
+import ArticlesPage from "@/components/room-skins/classic/ClassicArticlesClient";

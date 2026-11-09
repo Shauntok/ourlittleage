@@ -398,7 +398,7 @@ export default function AdminCommentsPage() {
     <div className="space-y-8">
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
-          <h1 className="text-4xl font-bold">评论管理 💬</h1>
+          <h1 className="text-4xl font-bold">评论管理</h1>
           <p className="mt-2 text-zinc-500">
             查看今日留言，并温和地处理需要人工确认的评论。
           </p>

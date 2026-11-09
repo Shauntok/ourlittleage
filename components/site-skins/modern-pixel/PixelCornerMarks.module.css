@@ -1,0 +1,19 @@
+.marks {
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+  inset: -2px;
+}
+
+.marks i {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background: url("/images/settings-painted-corner.png") center / 28px 28px no-repeat;
+  image-rendering: pixelated;
+}
+
+.marks i:nth-child(1) { top: 0; left: 0; }
+.marks i:nth-child(2) { top: 0; right: 0; transform: rotate(90deg); }
+.marks i:nth-child(3) { right: 0; bottom: 0; transform: rotate(180deg); }
+.marks i:nth-child(4) { left: 0; bottom: 0; transform: rotate(270deg); }

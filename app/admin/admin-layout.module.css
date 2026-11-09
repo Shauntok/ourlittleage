@@ -1,0 +1,7 @@
+.root{min-height:100vh;background:#f3f6fa;color:#193557}
+.grid{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr)}
+.body{min-width:0;max-width:100%}
+.pageCanvas{min-width:0;max-width:1500px;margin:auto;padding:26px 28px 35px}
+.pageCanvas:has([data-admin-dashboard]){max-width:none;padding:0}
+@media(min-width:1024px){.grid{grid-template-columns:210px minmax(0,1fr)}.pageCanvas{padding:30px 36px 42px}}
+@media(max-width:700px){.pageCanvas{padding:22px 14px 30px}.pageCanvas:has([data-admin-dashboard]){padding:0}}

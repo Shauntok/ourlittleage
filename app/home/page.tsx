@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -10,13 +11,22 @@ import FloatingParticles from "@/components/FloatingParticles";
 import PageTransition from "@/components/PageTransition";
 import MouseGlow from "@/components/MouseGlow";
 import RoomStatusButton from "@/components/RoomStatusButton";
+import SkinReleasePrompt from "@/components/SkinReleasePrompt";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import type { ModernHomeProps } from "@/components/site-skins/modern-pixel/ModernHomeClient";
+
+const ModernHomeClient = dynamic(
+  () => import("@/components/site-skins/modern-pixel/ModernHomeClient"),
+  { ssr: false }
+);
 
 export default function HomePage() {
   const router = useRouter();
   const atmosphere = getHomeAtmosphere();
+  const { skin } = useRoomViewSkin();
 
   const [onlineCount, setOnlineCount] = useState(0);
-  const [onlineResidents, setOnlineResidents] = useState<any[]>([]);
+  const [onlineResidents, setOnlineResidents] = useState<ModernHomeProps["onlineResidents"]>([]);
   const [loading, setLoading] = useState(true);
 
   const [currentUserId, setCurrentUserId] = useState("");
@@ -26,14 +36,16 @@ export default function HomePage() {
   const [latestArticle, setLatestArticle] = useState("还没有新的故事。");
 
   const [latestDiaryId, setLatestDiaryId] = useState<number | null>(null);
+  const [latestDiaryDate, setLatestDiaryDate] = useState<string | null>(null);
   const [latestArticleSlug, setLatestArticleSlug] = useState<string | null>(
     null
   );
+  const [latestArticleDate, setLatestArticleDate] = useState<string | null>(null);
 
   const [nightBroadcast, setNightBroadcast] = useState(
     "今晚似乎有很多人睡不着。"
   );
-  const [announcement, setAnnouncement] = useState<any>(null);
+  const [announcement, setAnnouncement] = useState<ModernHomeProps["announcement"]>(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [moodEmoji, setMoodEmoji] = useState("");
@@ -113,7 +125,7 @@ export default function HomePage() {
 
       const { data: latestDiaryPost } = await supabase
         .from("posts")
-        .select("id, content")
+        .select("id, content, published_at")
         .eq("type", "diary")
         .eq("visibility", "public")
         .eq("status", "published")
@@ -125,11 +137,12 @@ export default function HomePage() {
       if (latestDiaryPost?.content) {
         setLatestDiary(latestDiaryPost.content.slice(0, 28));
         setLatestDiaryId(latestDiaryPost.id);
+        setLatestDiaryDate(latestDiaryPost.published_at);
       }
 
       const { data: latestArticlePost } = await supabase
         .from("posts")
-        .select("id, slug, title")
+        .select("id, slug, title, published_at")
         .eq("type", "article")
         .eq("visibility", "public")
         .eq("status", "published")
@@ -141,6 +154,7 @@ export default function HomePage() {
       if (latestArticlePost?.title) {
         setLatestArticle(latestArticlePost.title);
         setLatestArticleSlug(latestArticlePost.slug);
+        setLatestArticleDate(latestArticlePost.published_at);
       }
 
       const broadcasts: string[] = [];
@@ -166,6 +180,13 @@ export default function HomePage() {
   }, [router]);
 
   if (loading) {
+    if (skin === "modern_pixel") {
+      return (
+        <main className="min-h-screen bg-[#eef0fa] px-5 py-12 text-sm text-[#68738f]">
+          正在打开街区首页...
+        </main>
+      );
+    }
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-black text-white">
         <FloatingParticles />
@@ -180,6 +201,30 @@ export default function HomePage() {
     displayName && displayName !== "居民"
       ? `/u/${encodeURIComponent(displayName)}`
       : "/settings/profile";
+
+  if (skin === "modern_pixel") {
+    return (
+      <>
+      <ModernHomeClient
+        currentUserId={currentUserId}
+        displayName={displayName}
+        onlineCount={onlineCount}
+        onlineResidents={onlineResidents}
+        latestDiary={latestDiary}
+        latestDiaryId={latestDiaryId}
+        latestDiaryDate={latestDiaryDate}
+        latestArticle={latestArticle}
+        latestArticleSlug={latestArticleSlug}
+        latestArticleDate={latestArticleDate}
+        announcement={announcement}
+        unreadCount={unreadCount}
+        initialMoodEmoji={moodEmoji}
+        initialStatusMessage={statusMessage}
+      />
+      <SkinReleasePrompt userId={currentUserId} />
+      </>
+    );
+  }
 
   const quickCards = [
     {
@@ -230,6 +275,7 @@ export default function HomePage() {
 
   return (
     <PageTransition>
+      <SkinReleasePrompt userId={currentUserId} />
       <main className="relative min-h-screen overflow-x-hidden bg-black text-white">
         <div className="hidden md:block">
           <MouseGlow />

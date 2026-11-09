@@ -168,9 +168,9 @@ export default function ReportButton({
       )}
 
       {open && (
-        <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/75 px-6 py-28 backdrop-blur-xl">
-          <div className="mx-auto w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl shadow-black">
-            <div className="border-b border-white/10 p-6">
+        <div data-report-overlay className="fixed inset-0 z-[100] overflow-y-auto bg-black/75 px-6 py-28 backdrop-blur-xl">
+          <div data-report-dialog className="mx-auto w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl shadow-black">
+            <div data-report-heading className="border-b border-white/10 p-6">
               <p className="text-xs tracking-[0.35em] text-red-200/35">
                 REPORT
               </p>
@@ -184,14 +184,14 @@ export default function ReportButton({
               </p>
             </div>
 
-            <div className="space-y-5 p-6">
+            <div data-report-content className="space-y-5 p-6">
               {message && (
                 <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
                   {message}
                 </div>
               )}
 
-              <div className="grid gap-2">
+              <div data-report-reasons className="grid gap-2">
                 {reasonOptions.map((item) => (
                   <button
                     key={item}
@@ -208,7 +208,7 @@ export default function ReportButton({
                 ))}
               </div>
 
-              <textarea
+              <textarea data-report-details
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
                 rows={4}
@@ -222,7 +222,7 @@ export default function ReportButton({
               </p>
             </div>
 
-            <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 p-6">
+            <div data-report-actions className="flex flex-wrap justify-end gap-3 border-t border-white/10 p-6">
               <button
                 type="button"
                 onClick={() => {

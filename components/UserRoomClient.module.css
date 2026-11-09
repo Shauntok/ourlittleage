@@ -1,0 +1,1368 @@
+.page {
+  position: relative;
+  isolation: isolate;
+}
+
+.sceneBackdrop {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 1050px;
+  background: #e8eef9 url("/images/page-backgrounds/resident-room-day.webp") center top / cover no-repeat;
+}
+
+.sceneBackdrop::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(232, 238, 249, .34), rgba(232, 238, 249, .48) 37%, rgba(232, 238, 249, .82) 71%, #e8eef9 100%);
+  content: "";
+}
+
+.page[data-pixel-room-time="evening"] .sceneBackdrop {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1050px;
+  background-color: #202943;
+  background-image: url("/images/page-backgrounds/resident-room-evening.webp");
+}
+
+.page[data-pixel-room-time="evening"] {
+  background-color: #202943;
+}
+
+.page[data-pixel-room-time="day"] {
+  background-color: #e8eef9;
+}
+
+.page[data-pixel-room-time="evening"] .sceneBackdrop::after {
+  background: linear-gradient(180deg, rgba(13, 19, 34, .34), rgba(32, 41, 67, .48) 37%, rgba(32, 41, 67, .82) 71%, #202943 100%);
+}
+
+@media (max-width: 640px) {
+  .sceneBackdrop { height: 880px; }
+}
+
+.page[data-pixel-room-time="day"] .roomBackdrop {
+  background-color: #d9eafa;
+  background-image: url("/images/pixel-room-day.webp");
+}
+
+.page[data-pixel-room-time="evening"] .roomBackdrop {
+  background-color: #172747;
+  background-image: url("/images/pixel-room-evening.webp");
+}
+
+.page[data-pixel-room-time="day"] .profileBody {
+  border: 1px solid #b8adcf;
+  border-top: 0;
+  background: rgba(251, 252, 255, .96);
+  box-shadow: 0 3px 0 #e7bd75;
+}
+
+.page[data-pixel-room-time="day"] .profileDetails h1,
+.page[data-pixel-room-time="day"] .profileDetails p,
+.page[data-pixel-room-time="day"] .growthHeading,
+.page[data-pixel-room-time="day"] .badgeSection h2,
+.page[data-pixel-room-time="day"] [id="public-writings"] h2,
+.page[data-pixel-room-time="day"] [id="public-writings"] > div > h3 {
+  color: #263351;
+}
+
+.page[data-pixel-room-time="day"] .joinedLine,
+.page[data-pixel-room-time="day"] .growthHeading span,
+.page[data-pixel-room-time="day"] .progressPercent,
+.page[data-pixel-room-time="day"] .sectionEyebrow {
+  color: #667798;
+}
+
+.page[data-pixel-room-time="day"] .profileIntro [data-room-relationship-count] { color: #50607e; }
+.page[data-pixel-room-time="day"] .profileIntro [data-room-relationship-count]:hover { color: #263351; background: #eeeafa; }
+.page[data-pixel-room-time="day"] .profileIntro [data-room-relationship-label] { color: #61718f; }
+.page[data-pixel-room-time="day"] .profileIntro [data-room-relationship-value] { color: #263351; }
+
+.page[data-pixel-room-time="day"] .storyCard,
+.page[data-pixel-room-time="day"] .emptyState {
+  border-color: #b8adcf;
+  background: rgba(251, 252, 255, .96);
+  color: #263351;
+  box-shadow: 0 3px 0 #e7bd75;
+}
+
+.page[data-pixel-room-time="day"] .storyCard:hover {
+  border-color: #7868a3;
+  background: #fff;
+}
+
+.page[data-pixel-room-time="day"] .storyMeta,
+.page[data-pixel-room-time="day"] .storyExcerpt,
+.page[data-pixel-room-time="day"] .postAction {
+  color: #61718f;
+}
+
+.page[data-pixel-room-time="day"] .storyTitle { color: #263351; }
+.page[data-pixel-room-time="day"] .metaPill { border-color: #c8bfdc; background: #f4f2fa; color: #52617f; }
+.page[data-pixel-room-time="day"] .tab,
+.page[data-pixel-room-time="day"] .loadMore { border-color: #b8adcf; background: #fbfcff; color: #394a70; }
+.page[data-pixel-room-time="day"] .tabActive { border-color: #7868a3; background: #7868a3; color: #fff; }
+
+.profilePanel,
+.storyCard,
+.emptyState,
+.badgePill,
+.statPill,
+.tab,
+.loadMore {
+  --pixel-cut: 7px;
+  clip-path: polygon(
+    0 var(--pixel-cut),
+    var(--pixel-cut) var(--pixel-cut),
+    var(--pixel-cut) 0,
+    calc(100% - var(--pixel-cut)) 0,
+    calc(100% - var(--pixel-cut)) var(--pixel-cut),
+    100% var(--pixel-cut),
+    100% calc(100% - var(--pixel-cut)),
+    calc(100% - var(--pixel-cut)) calc(100% - var(--pixel-cut)),
+    calc(100% - var(--pixel-cut)) 100%,
+    var(--pixel-cut) 100%,
+    var(--pixel-cut) calc(100% - var(--pixel-cut)),
+    0 calc(100% - var(--pixel-cut))
+  );
+}
+
+.profilePanel {
+  border: 1px solid rgba(166, 160, 198, 0.35);
+  background: rgba(7, 8, 10, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.cover {
+  position: relative;
+  border-bottom: 1px solid rgba(166, 160, 198, 0.38);
+}
+
+.roomBackdrop {
+  background-color: #0b0c10;
+  background-image:
+    linear-gradient(rgba(4, 7, 13, 0.12), rgba(4, 7, 13, 0.12)),
+    url("/images/resident-room-pixel-night.png");
+  background-position: center, center 54%;
+  background-size: cover;
+}
+
+.statusChip {
+  border: 1px solid rgba(123, 187, 164, 0.45);
+  border-radius: 2px;
+  background: rgba(4, 10, 9, 0.8);
+  color: #b8dfd0;
+}
+
+.residentTitle {
+  color: #f0eee8;
+}
+
+.statPill {
+  border: 1px solid rgba(166, 160, 198, 0.42);
+  border-radius: 2px;
+  background: rgba(8, 10, 12, 0.78);
+  color: #d9d7df;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.progressTrack {
+  height: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(166, 160, 198, 0.42);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.progressFill {
+  height: 100%;
+  background: #83bfae;
+}
+
+.badgePill {
+  border: 1px solid rgba(166, 160, 198, 0.4);
+  border-radius: 2px;
+  background: rgba(9, 10, 13, 0.82);
+  color: #e2e0e8;
+}
+
+.badgePill[data-tone="gold"] {
+  border-color: rgba(207, 177, 126, 0.55);
+  color: #e8d8b8;
+}
+
+.badgePill[data-tone="emerald"] {
+  border-color: rgba(123, 187, 164, 0.55);
+  color: #c3e4d7;
+}
+
+.badgePill[data-tone="rose"] {
+  border-color: rgba(199, 139, 151, 0.55);
+  color: #e4c5cb;
+}
+
+.badgePill[data-tone="sky"] {
+  border-color: rgba(139, 171, 193, 0.55);
+  color: #cad9e2;
+}
+
+.badgePill[data-tone="violet"] {
+  border-color: rgba(166, 160, 198, 0.55);
+  color: #dad5ed;
+}
+
+.sectionEyebrow {
+  color: rgba(197, 190, 218, 0.55);
+  letter-spacing: 0;
+}
+
+.tab {
+  min-height: 44px;
+  border: 1px solid rgba(166, 160, 198, 0.32);
+  border-radius: 2px;
+  background: rgba(8, 10, 12, 0.7);
+  color: rgba(235, 232, 240, 0.72);
+}
+
+.tab:hover {
+  border-color: rgba(190, 184, 220, 0.68);
+  color: #fff;
+}
+
+.tabActive {
+  border-color: #c4bdde;
+  background: #c4bdde;
+  color: #0b0b0f;
+}
+
+.emptyState {
+  border: 1px solid rgba(166, 160, 198, 0.32);
+  border-radius: 2px;
+  background: rgba(7, 8, 10, 0.75);
+  color: rgba(235, 232, 240, 0.68);
+}
+
+.storyCard {
+  border: 1px solid rgba(166, 160, 198, 0.34);
+  border-radius: 2px;
+  background: rgba(7, 8, 10, 0.8);
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.storyCard:hover {
+  border-color: rgba(190, 184, 220, 0.7);
+  background: rgba(12, 13, 17, 0.92);
+}
+
+.storyMeta {
+  color: rgba(205, 199, 218, 0.62);
+}
+
+.storyTitle {
+  color: rgba(250, 248, 252, 0.94);
+}
+
+.storyExcerpt {
+  color: rgba(229, 225, 235, 0.68);
+}
+
+.metaPill {
+  border: 1px solid rgba(166, 160, 198, 0.3);
+  border-radius: 2px;
+  background: rgba(9, 10, 13, 0.72);
+  color: rgba(235, 232, 240, 0.75);
+}
+
+.postAction {
+  color: rgba(204, 198, 218, 0.72);
+}
+
+.loadMore {
+  min-height: 44px;
+  border: 1px solid rgba(166, 160, 198, 0.42);
+  border-radius: 2px;
+  background: rgba(8, 10, 12, 0.8);
+  color: rgba(242, 240, 246, 0.82);
+}
+
+.loadMore:hover {
+  border-color: rgba(190, 184, 220, 0.8);
+  background: rgba(18, 18, 23, 0.95);
+}
+
+.avatarFrame {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  flex: 0 0 auto;
+  padding: 6px;
+  background: #b6afd0;
+  clip-path: polygon(
+    25% 0, 75% 0, 75% 4%, 85% 4%, 85% 8%, 92% 8%, 92% 15%, 96% 15%,
+    96% 25%, 100% 25%, 100% 75%, 96% 75%, 96% 85%, 92% 85%, 92% 92%,
+    85% 92%, 85% 96%, 75% 96%, 75% 100%, 25% 100%, 25% 96%, 15% 96%,
+    15% 92%, 8% 92%, 8% 85%, 4% 85%, 4% 75%, 0 75%, 0 25%, 4% 25%,
+    4% 15%, 8% 15%, 8% 8%, 15% 8%, 15% 4%, 25% 4%
+  );
+}
+
+.avatarButton {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 3px solid #08090b;
+  border-radius: 50%;
+  background: #15161b;
+}
+
+.avatarButton:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px #c4bdde;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+@media (min-width: 768px) {
+  .avatarFrame {
+    width: 196px;
+    height: 196px;
+    padding: 8px;
+  }
+}
+
+.pageShell {
+  color: #efedf6;
+}
+
+.profilePanel {
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cover {
+  overflow: hidden;
+  border: 1px solid rgba(175, 171, 210, 0.55);
+  background: #090c12;
+  clip-path: polygon(0 8px, 8px 8px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 8px, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 8px calc(100% - 8px), 0 calc(100% - 8px));
+}
+
+.profileBody {
+  padding: 0 10px 0;
+}
+
+.profileIntro {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  grid-template-areas: "avatar details" "relationship relationship";
+  align-items: center;
+  gap: 14px 16px;
+  margin-top: -44px;
+  padding-bottom: 22px;
+}
+
+.profileIntro > :first-child {
+  grid-area: avatar;
+}
+
+.profileDetails {
+  grid-area: details;
+  padding-top: 42px;
+}
+
+.profileIntro [data-room-relationship-controls] {
+  grid-area: relationship;
+  width: 100%;
+  max-width: none;
+}
+
+.profileIntro [data-room-relationship-count] {
+  position: relative;
+  top: 8px;
+}
+
+.joinedLine {
+  color: rgba(188, 192, 216, 0.84);
+}
+
+.profileStats {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  background-image: linear-gradient(
+    to right,
+    transparent 9px,
+    rgba(166, 160, 198, 0.7) 9px calc(100% - 9px),
+    transparent calc(100% - 9px)
+  );
+  background-repeat: no-repeat;
+  background-position: top;
+  background-size: 100% 1px;
+  padding: 18px 0;
+}
+
+.profileStatCard {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  min-width: 0;
+  min-height: 68px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 10px 8px;
+  border: 1px solid rgba(166, 160, 198, 0.5);
+  background-color: rgba(12, 15, 22, 0.78);
+  box-shadow: inset 0 0 0 2px rgba(166, 160, 198, 0.2);
+  clip-path: polygon(
+    0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0,
+    calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+    100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+    8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px)
+  );
+  color: #eeeaf9;
+  font-size: 13px;
+}
+
+.pixelCorner {
+  position: absolute;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+}
+
+.pixelCorner[data-corner="top-left"] {
+  top: 0;
+  left: 0;
+}
+
+.pixelCorner[data-corner="top-right"] {
+  top: 0;
+  right: 0;
+  transform: rotate(90deg);
+}
+
+.pixelCorner[data-corner="bottom-right"] {
+  right: 0;
+  bottom: 0;
+  transform: rotate(180deg);
+}
+
+.pixelCorner[data-corner="bottom-left"] {
+  bottom: 0;
+  left: 0;
+  transform: rotate(270deg);
+}
+
+.profileStatCard[data-accent="teal"] {
+  --pixel-corner-highlight: rgba(126, 205, 190, 0.78);
+  --pixel-corner-shadow: rgba(35, 57, 53, 0.9);
+}
+
+.profileStatCard[data-accent="violet"] {
+  --pixel-corner-highlight: rgba(177, 154, 222, 0.78);
+  --pixel-corner-shadow: rgba(52, 43, 72, 0.9);
+}
+
+.profileStatCard[data-accent="rose"] {
+  --pixel-corner-highlight: rgba(216, 146, 163, 0.78);
+  --pixel-corner-shadow: rgba(74, 42, 50, 0.9);
+}
+
+.pixelCornerShadow {
+  fill: var(--pixel-corner-shadow);
+}
+
+.pixelCornerHighlight {
+  fill: var(--pixel-corner-highlight);
+}
+
+.profileStatCard > :not(.pixelCorner) {
+  position: relative;
+  z-index: 1;
+}
+
+.profileStatCard strong {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.profileStatCard[data-accent="teal"] { border-color: rgba(126, 205, 190, 0.78); color: #b9e9df; box-shadow: inset 0 0 0 2px rgba(126, 205, 190, 0.2); }
+.profileStatCard[data-accent="violet"] { border-color: rgba(177, 154, 222, 0.78); color: #d8c9f4; box-shadow: inset 0 0 0 2px rgba(177, 154, 222, 0.2); }
+.profileStatCard[data-accent="rose"] { border-color: rgba(216, 146, 163, 0.78); color: #edc1cc; box-shadow: inset 0 0 0 2px rgba(216, 146, 163, 0.2); }
+
+.growthSection,
+.badgeSection {
+  position: relative;
+  background-image: linear-gradient(
+    to right,
+    transparent 9px,
+    rgba(166, 160, 198, 0.7) 9px calc(100% - 9px),
+    transparent calc(100% - 9px)
+  );
+  background-repeat: no-repeat;
+  background-position: top;
+  background-size: 100% 1px;
+  padding: 18px 0;
+}
+
+.profileStats::before,
+.growthSection::before,
+.badgeSection::before,
+.profileStats::after,
+.growthSection::after,
+.badgeSection::after {
+  position: absolute;
+  top: -12px;
+  width: 3px;
+  height: 3px;
+  background: rgba(166, 160, 198, 0.82);
+  box-shadow:
+    3px 0 rgba(166, 160, 198, 0.82),
+    3px 3px rgba(166, 160, 198, 0.82),
+    6px 6px rgba(166, 160, 198, 0.82),
+    9px 6px rgba(166, 160, 198, 0.82),
+    9px 9px rgba(166, 160, 198, 0.82);
+  content: "";
+  pointer-events: none;
+}
+
+.profileStats::before,
+.growthSection::before,
+.badgeSection::before {
+  left: 0;
+}
+
+.profileStats::after,
+.growthSection::after,
+.badgeSection::after {
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.growthHeading,
+.growthBarRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.growthHeading {
+  margin-bottom: 10px;
+  color: rgba(239, 237, 246, 0.9);
+  font-size: 14px;
+}
+
+.growthHeading span {
+  overflow: hidden;
+  color: rgba(191, 191, 216, 0.78);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.growthBarRow {
+  gap: 12px;
+}
+
+.growthBarRow .progressTrack {
+  height: 18px;
+  flex: 1;
+  border: 2px solid #303b4c;
+  border-radius: 8px;
+  background: rgba(9, 14, 21, 0.9);
+}
+
+.growthBarRow .progressFill {
+  border-radius: 4px;
+  background: #83c9ba;
+}
+
+.progressPercent {
+  min-width: 42px;
+  color: #b5b9de;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.badgeSection h2 {
+  margin-bottom: 14px;
+  color: rgba(239, 237, 246, 0.92);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.badgePill {
+  display: inline-flex;
+  width: 76px;
+  min-height: 82px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  text-align: center;
+}
+
+.badgePill [data-badge-icon] {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+}
+
+@media (min-width: 768px) {
+  .profileBody {
+    padding: 0 30px;
+  }
+
+  .profileIntro {
+    grid-template-columns: 196px minmax(280px, 1fr) minmax(390px, 0.9fr);
+    grid-template-areas: "avatar details relationship";
+    gap: 22px;
+    margin-top: -64px;
+    padding-bottom: 28px;
+  }
+
+  .profileDetails {
+    padding-top: 64px;
+    transform: translateY(12px);
+  }
+
+  .profileStats {
+    gap: 22px;
+    padding: 24px 0;
+  }
+
+  .profileStatCard {
+    min-height: 76px;
+    gap: 22px;
+    padding: 12px 18px;
+    font-size: 18px;
+  }
+
+  .profileStatCard strong {
+    font-size: 24px;
+  }
+
+  .growthSection,
+  .badgeSection {
+    padding: 22px 0;
+  }
+
+  .growthHeading {
+    font-size: 17px;
+  }
+
+  .growthHeading span,
+  .progressPercent {
+    font-size: 16px;
+  }
+
+  .growthBarRow .progressTrack {
+    height: 28px;
+  }
+
+  .badgeSection h2 {
+    margin-bottom: 0;
+    align-self: center;
+    font-size: 18px;
+  }
+
+  .badgeSection {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .badgePill {
+    width: 92px;
+    min-height: 92px;
+  }
+}
+
+@media (max-width: 767px) {
+  .profileStatCard {
+    min-height: 82px;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  .profileStatCard :global(svg) {
+    width: 19px;
+    height: 19px;
+  }
+
+  .profileStatCard strong {
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storyCard {
+    transition: none;
+  }
+}
+
+/* Window and doorplate room: the resident's banner and writing remain the focus. */
+.pageShell {
+  max-width: 1380px;
+  display: grid;
+  gap: 10px;
+}
+
+.cover {
+  isolation: isolate;
+  background: #d8e5f0;
+  box-shadow: 0 5px 0 rgba(81, 107, 161, .18);
+}
+
+.coverBlur {
+  position: absolute;
+  inset: -22px;
+  z-index: -1;
+  background-position: center;
+  background-size: cover;
+  filter: blur(18px) brightness(.82);
+}
+
+.coverImage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.roomBackdrop {
+  background-position: center;
+  background-size: cover;
+}
+
+.profileBody,
+.page[data-pixel-room-time="day"] .profileBody {
+  margin-top: 14px;
+  padding: 20px;
+  border: 1px solid #abc4e8;
+  border-top: 1px solid #abc4e8;
+  background: rgba(255, 253, 248, .94);
+  box-shadow: 0 4px 0 rgba(116, 150, 198, .23);
+}
+
+.profileIntro {
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  grid-template-areas: "avatar details status" "relationship relationship relationship";
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 0;
+  padding-bottom: 18px;
+}
+
+.profileDetails {
+  padding-top: 0;
+  transform: none;
+}
+
+.statusSlot {
+  grid-area: status;
+  justify-self: end;
+}
+
+.profileIntro [data-room-relationship-controls] {
+  grid-area: relationship;
+}
+
+.avatarFrame {
+  width: 78px;
+  height: 78px;
+  padding: 4px;
+}
+
+.profileStats {
+  padding: 18px 0;
+}
+
+.profileStatCard,
+.page[data-pixel-room-time="day"] .profileStatCard {
+  min-height: 76px;
+  background: #f8f3e9;
+  color: #29436c;
+  box-shadow: inset 0 0 0 2px rgba(121, 153, 205, .15);
+}
+
+.profileStatCard[data-accent="teal"],
+.profileStatCard[data-accent="violet"],
+.profileStatCard[data-accent="rose"] {
+  border-color: #b2c9e9;
+  color: #29436c;
+  box-shadow: inset 0 0 0 2px rgba(121, 153, 205, .15);
+}
+
+.growthSection {
+  padding: 16px 0;
+}
+
+.growthBarRow .progressTrack {
+  border-color: #9ab7dd;
+  background: #e4ebf4;
+}
+
+.growthBarRow .progressFill {
+  background: #80bfaa;
+}
+
+.badgeSection {
+  display: grid;
+  gap: 16px;
+  padding: 20px 0 24px;
+  background-image: linear-gradient(#b4cbeb, #b4cbeb), linear-gradient(90deg, #ae8056, #d4a778 24%, #a6704b 75%, #82583e);
+  background-position: top, bottom;
+  background-repeat: no-repeat;
+  background-size: 100% 1px, 100% 12px;
+}
+
+.badgeSection h2 {
+  margin: 0;
+  color: #29436c;
+}
+
+.badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  max-width: 630px;
+}
+
+.badgePill,
+.badgeEmpty {
+  display: grid;
+  width: auto;
+  min-height: 54px;
+  place-items: center;
+  padding: 8px 10px;
+  border: 1px solid #d0ad82;
+  background: #fff9ec;
+  color: #284265;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.badgeEmpty {
+  border-color: #e1d2bb;
+  background: rgba(255, 250, 240, .5);
+}
+
+.storiesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.writingsPanel {
+  padding: 22px;
+  border: 1px solid #b4cbeb;
+  background: rgba(255, 253, 248, .93);
+  box-shadow: 0 4px 0 rgba(116, 150, 198, .23);
+}
+
+.page[data-pixel-room-time="day"] .writingsPanel h2,
+.page[data-pixel-room-time="day"] .writingsPanel h3 {
+  color: #263351;
+}
+
+.storiesGrid > h3,
+.storiesGrid > div {
+  grid-column: 1 / -1;
+}
+
+.page[data-pixel-room-time="day"] .storyCard {
+  border-color: #b4cbeb;
+  background: rgba(255, 253, 248, .96);
+  box-shadow: 0 3px 0 rgba(184, 154, 107, .48);
+}
+
+.storyCard img {
+  display: block;
+  width: 100%;
+  max-height: 250px;
+  object-fit: contain;
+  background: rgba(216, 228, 244, .42);
+}
+
+.page[data-pixel-room-time="evening"] .profileBody {
+  border: 1px solid #7187ba;
+  background: rgba(37, 51, 83, .94);
+  box-shadow: 0 4px 0 rgba(9, 17, 43, .48);
+}
+
+.page[data-pixel-room-time="evening"] .writingsPanel {
+  border-color: #7187ba;
+  background: rgba(37, 51, 83, .94);
+  box-shadow: 0 4px 0 rgba(9, 17, 43, .48);
+}
+
+.page[data-pixel-room-time="evening"] .storyCard {
+  border-color: #7088b5;
+  background: #334466;
+  box-shadow: 0 3px 0 rgba(11, 19, 40, .5);
+}
+
+.page[data-pixel-room-time="evening"] .storyCard:hover {
+  border-color: #a5bce1;
+  background: #3b4e74;
+}
+
+.page[data-pixel-room-time="evening"] .profileStatCard {
+  border-color: #6983b8;
+  background: #344771;
+  color: #f4eddc;
+}
+
+.page[data-pixel-room-time="evening"] .badgeSection h2 {
+  color: #f3eddf;
+}
+
+.page[data-pixel-room-time="evening"] .badgePill {
+  border-color: #8ea6cc;
+  background: #e9e5d8;
+  color: #263b61;
+}
+
+.page[data-pixel-room-time="evening"] .badgeEmpty {
+  border-color: #657aa2;
+  background: rgba(57, 74, 112, .55);
+}
+
+@media (min-width: 768px) {
+  .coverImage {
+    object-fit: contain;
+  }
+
+  .writingsPanel {
+    padding: 28px 32px;
+  }
+  .profileBody,
+  .page[data-pixel-room-time="day"] .profileBody {
+    padding: 24px 32px;
+  }
+
+  .profileIntro {
+    grid-template-columns: 116px minmax(0, 1fr) auto;
+    grid-template-areas: "avatar details status" "relationship relationship relationship";
+    margin-top: 0;
+    padding-bottom: 20px;
+  }
+
+  .avatarFrame {
+    width: 116px;
+    height: 116px;
+  }
+
+  .badgeSection {
+    grid-template-columns: 170px minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
+  }
+
+  .badgeGrid {
+    width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .profileIntro {
+    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-areas: "avatar details" "status status" "relationship relationship";
+  }
+
+  .statusSlot {
+    justify-self: start;
+  }
+
+  .storiesGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .badgePill,
+  .badgeEmpty {
+    min-height: 58px;
+    font-size: 12px;
+  }
+}
+
+/* The original Window Doorplate sketch: banner, nameplate, then two columns. */
+.pageShell {
+  max-width: 1380px;
+}
+
+.profilePanel {
+  overflow: visible;
+  border: 0;
+  clip-path: none;
+  background: none;
+  box-shadow: none;
+}
+
+.cover,
+.profileBody,
+.residentInfoPanel,
+.writingsPanel,
+.storyCard {
+  position: relative;
+  isolation: isolate;
+}
+
+.cover {
+  height: clamp(220px, 18.7vw, 292px);
+  overflow: visible;
+  border: 4px solid #fffdf7;
+  outline: 1px solid #97b8e9;
+  clip-path: none;
+  box-shadow: 0 5px 0 rgba(65, 93, 161, .26);
+}
+
+.coverBlur,
+.coverImage,
+.roomBackdrop {
+  border-radius: 0;
+}
+
+.coverBlur {
+  inset: 0;
+  overflow: hidden;
+}
+
+.coverImage {
+  object-fit: cover;
+  object-position: center;
+}
+
+.paintedCorner {
+  position: absolute;
+  z-index: 5;
+  width: 27px;
+  height: 27px;
+  background: url('/images/settings-painted-corner.png') left top / contain no-repeat;
+  pointer-events: none;
+}
+
+.paintedCorner[data-corner="top-left"] { top: -4px; left: -4px; }
+.paintedCorner[data-corner="top-right"] { top: -4px; right: -4px; transform: rotate(90deg); }
+.paintedCorner[data-corner="bottom-right"] { right: -4px; bottom: -4px; transform: rotate(180deg); }
+.paintedCorner[data-corner="bottom-left"] { bottom: -4px; left: -4px; transform: rotate(270deg); }
+
+.profileBody,
+.page[data-pixel-room-time="day"] .profileBody {
+  margin-top: 13px;
+  padding: 0 28px;
+  border: 3px solid #fffdf7;
+  outline: 1px solid #a5bee8;
+  background: rgba(255, 254, 249, .95);
+  box-shadow: 0 4px 0 rgba(96, 129, 192, .24);
+}
+
+.profileIntro {
+  grid-template-columns: 96px minmax(0, 1fr) 200px;
+  grid-template-areas: "avatar details relationship";
+  grid-template-rows: minmax(128px, auto);
+  gap: 2px 20px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.profileIntro [data-room-relationship-controls] {
+  grid-area: relationship;
+  justify-self: end;
+  align-self: center;
+  width: 200px;
+  max-width: 100%;
+}
+
+.profileIntro [data-room-relationship-controls] > div:not([aria-label]) {
+  justify-content: flex-end;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.page .profileIntro [data-room-relationship-count] {
+  top: 0;
+  width: 96px;
+  min-width: 96px;
+  height: 62px;
+  padding: 4px 10px;
+}
+
+.page .profileIntro [data-room-relationship-label] { font-size: 13px; }
+.page .profileIntro [data-room-relationship-value] { font-size: 20px; }
+
+.page .profileIntro [data-room-follow-trigger] {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 3px 12px;
+  font-size: 13px;
+}
+
+.statusSlot {
+  position: absolute;
+  z-index: 6;
+  top: 12px;
+  right: 14px;
+}
+
+.profileDetails {
+  align-self: center;
+}
+
+.profileDetails h1 {
+  margin-top: 0;
+  color: #17346b;
+}
+
+.profileDetails p { margin-top: 5px; }
+
+.bio {
+  max-width: 65ch;
+  margin-top: 8px;
+  color: #596b89;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.residenceLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: #607397;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.avatarFrame {
+  width: 96px;
+  height: 96px;
+  padding: 5px;
+}
+
+.roomColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.residentInfoPanel,
+.writingsPanel {
+  min-width: 0;
+  padding: 21px 24px 25px;
+  border: 3px solid #fffdf7;
+  outline: 1px solid #a5bee8;
+  background: rgba(255, 254, 250, .95);
+  box-shadow: 0 4px 0 rgba(96, 129, 192, .23);
+}
+
+.panelHeading {
+  margin: 0 0 12px;
+  color: #17346b;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.profileStats {
+  gap: 8px;
+  padding: 0;
+  background: none;
+}
+
+.profileStats::before,
+.profileStats::after,
+.growthSection::before,
+.growthSection::after,
+.badgeSection::before,
+.badgeSection::after { content: none; }
+
+.profileStatCard,
+.page[data-pixel-room-time="day"] .profileStatCard {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 5px;
+  row-gap: 3px;
+  min-height: 86px;
+  padding: 9px 7px;
+  border: 1px solid #e6d6c5;
+  clip-path: none;
+  background: #fffbf4;
+  color: #17346b;
+  font-size: 13px;
+  box-shadow: none;
+}
+
+.profileStatCard[data-accent="teal"],
+.profileStatCard[data-accent="violet"],
+.profileStatCard[data-accent="rose"] {
+  border-color: #e6d6c5;
+  box-shadow: none;
+}
+
+.profileStatCard > svg:not([data-room-skin-pixel-corner]) { width: 23px; height: 23px; }
+.profileStatCard strong { grid-column: 1 / -1; font-size: 24px; text-align: center; }
+.profileStatCard[data-accent="teal"] > svg:not([data-room-skin-pixel-corner]) { color: #2eaae8; }
+.profileStatCard[data-accent="violet"] > svg:not([data-room-skin-pixel-corner]) { color: #8969e6; }
+.profileStatCard[data-accent="rose"] > svg:not([data-room-skin-pixel-corner]) { color: #ec5a90; }
+
+.growthSection {
+  margin-top: 12px;
+  padding: 12px 0 14px;
+  background: none;
+}
+
+.growthBarRow .progressTrack { height: 18px; border-radius: 9px; }
+.growthBarRow .progressFill { border-radius: 7px; background: #6689e4; }
+
+.badgeSection {
+  display: block;
+  margin-top: 3px;
+  padding: 15px 0 0;
+  border-top: 1px solid #cfddf2;
+  background: none;
+}
+
+.badgeSection h2 {
+  margin: 0 0 11px;
+  color: #17346b;
+  font-size: 20px;
+}
+
+.badgeGrid { max-width: none; gap: 9px; }
+
+.badgePill,
+.badgeEmpty {
+  width: 100%;
+  min-height: 56px;
+  padding: 7px 8px;
+  border: 1px solid #d9b495;
+  clip-path: polygon(0 6px, 6px 6px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px));
+  background: #fffaf1;
+  color: #17346b;
+}
+
+.badgeEmpty { background: rgba(250, 246, 239, .57); color: #a7afc2; font-weight: 400; }
+.badgeExpand { display: none; }
+
+.writingsHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.writingsHeading .panelHeading { margin-bottom: 0; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.tabs .tab { min-height: 34px; padding: 6px 13px; }
+
+.storiesGrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 11px; }
+
+.storyCard,
+.page[data-pixel-room-time="day"] .storyCard {
+  min-height: 0;
+  padding: 16px 20px;
+  border-color: #dfcbb5;
+  clip-path: none;
+  background: rgba(255, 254, 250, .97);
+  box-shadow: 0 2px 0 rgba(185, 162, 136, .22);
+}
+
+.storyCard .paintedCorner { width: 19px; height: 19px; }
+.storyTitle { margin-top: 6px; font-size: 21px; font-weight: 600; }
+.storyExcerpt { margin-top: 8px; line-height: 1.7; }
+.storyCard img { max-height: 185px; }
+.storyCard .postAction { margin-top: 8px; }
+.loadMoreRow { display: flex; justify-content: center; padding-top: 10px; }
+
+.page[data-pixel-room-time="evening"] .profileBody,
+.page[data-pixel-room-time="evening"] .residentInfoPanel,
+.page[data-pixel-room-time="evening"] .writingsPanel {
+  border-color: #576e9a;
+  outline-color: #96add9;
+  background: rgba(37, 51, 83, .95);
+}
+
+.page[data-pixel-room-time="evening"] .panelHeading,
+.page[data-pixel-room-time="evening"] .badgeSection h2,
+.page[data-pixel-room-time="evening"] .profileDetails h1 { color: #fff4dc; }
+
+.page[data-pixel-room-time="evening"] .bio,
+.page[data-pixel-room-time="evening"] .residenceLine { color: #d4dff3; }
+
+.page[data-pixel-room-time="evening"] .profileStatCard,
+.page[data-pixel-room-time="evening"] .profileStatCard[data-accent] {
+  border-color: #6983b8;
+  background: #344771;
+}
+.page[data-pixel-room-time="evening"] .storyCard { background: #344771; border-color: #8498bd; }
+.page[data-pixel-room-time="evening"] .badgeSection { border-color: #7187ba; }
+
+@media (max-width: 900px) {
+  .roomColumns { grid-template-columns: minmax(0, 1fr); }
+  .profileIntro { grid-template-columns: 82px minmax(0, 1fr) 200px; }
+  .avatarFrame { width: 82px; height: 82px; }
+}
+
+@media (max-width: 640px) {
+  .cover { height: 210px; }
+  .profileBody,
+  .page[data-pixel-room-time="day"] .profileBody { padding: 15px; }
+  .profileIntro {
+    grid-template-columns: 75px minmax(0, 1fr);
+    grid-template-areas: "avatar details" "relationship relationship";
+    grid-template-rows: auto auto;
+    gap: 11px;
+  }
+  .avatarFrame { width: 75px; height: 75px; }
+  .statusSlot { top: 8px; right: 8px; }
+  .profileIntro [data-room-relationship-controls] { justify-self: end; width: 200px; }
+  .residentInfoPanel,
+  .writingsPanel { padding: 18px 14px; }
+  .panelHeading { font-size: 19px; }
+  .writingsHeading { flex-wrap: wrap; }
+  .profileStatCard,
+  .page[data-pixel-room-time="day"] .profileStatCard { min-height: 82px; font-size: 11px; }
+  .profileStatCard strong { font-size: 20px; }
+  .badgeGridCollapsed { max-height: 59px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent); mask-image: linear-gradient(to bottom, #000 70%, transparent); }
+  .badgeExpand { display: block; width: 100%; min-height: 40px; margin-top: 7px; border: 1px solid #a8bee2; background: #f7f9ff; color: #244774; font-size: 12px; font-weight: 700; }
+  .page[data-pixel-room-time="evening"] .badgeExpand { background: #354a70; border-color: #86a7d8; color: #fff5e7; }
+  .page .profileIntro [data-room-follow-trigger] { border: 1px solid #4c78bb; background: #d7e7ff; color: #1f437c; font-weight: 700; }
+  .page[data-pixel-room-time="evening"] .profileIntro [data-room-follow-trigger] { border-color: #9ab9e9; background: #456aab; color: #fffaf0; }
+}

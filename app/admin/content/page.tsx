@@ -365,7 +365,7 @@ export default function AdminContentPage() {
     <div className="space-y-8 overflow-hidden">
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
-          <h1 className="text-4xl font-bold">内容管理 📚</h1>
+          <h1 className="text-4xl font-bold">内容管理</h1>
 
           <p className="mt-2 text-zinc-500">
             搜索、筛选和管理全站文章与日记。

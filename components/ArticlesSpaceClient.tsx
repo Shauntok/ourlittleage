@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { articleTagHref, uniqueArticleTags } from "@/lib/posts/tags";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import PublicSquareModernClient from "@/components/PublicSquareModernClient";
 
 type ProfileInfo = {
   username: string | null;
@@ -39,21 +42,8 @@ function formatDateTime(date: string) {
   }).format(new Date(date));
 }
 
-function normalizeTags(tags: any) {
-  if (!tags) return [];
-  if (Array.isArray(tags)) return tags;
 
-  if (typeof tags === "string") {
-    return tags
-      .split(/[,，]/)
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-  }
-
-  return [];
-}
-
-export default function ArticlesSpaceClient({
+function ClassicArticlesSpaceClient({
   initialPosts,
 }: {
   initialPosts: ArticlePost[];
@@ -164,7 +154,7 @@ export default function ArticlesSpaceClient({
             <div className="grid gap-4 md:gap-7">
               {visiblePosts.map((post) => {
                 const excerpt = getExcerpt(post.content);
-                const tags = normalizeTags(post.tags);
+                const tags = uniqueArticleTags(post.tags);
                 const author = post.authorProfile;
                 const authorHref = author?.username
                   ? `/u/${encodeURIComponent(author.username)}`
@@ -242,12 +232,13 @@ export default function ArticlesSpaceClient({
                       {tags.length > 0 && (
                         <div className="mt-5 flex flex-wrap gap-2 md:mt-8 md:gap-3">
                           {tags.slice(0, 5).map((tag: string) => (
-                            <span
+                            <Link
                               key={tag}
+                              href={articleTagHref(tag)}
                               className="safe-text max-w-full rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/45 md:px-4 md:py-2"
                             >
                               #{tag}
-                            </span>
+                            </Link>
                           ))}
                         </div>
                       )}
@@ -287,4 +278,11 @@ export default function ArticlesSpaceClient({
       </div>
     </main>
   );
+}
+
+export default function ArticlesSpaceClient(props: { initialPosts: ArticlePost[] }) {
+  const { skin } = useRoomViewSkin();
+  return skin === "classic"
+    ? <ClassicArticlesSpaceClient {...props} />
+    : <PublicSquareModernClient kind="article" posts={props.initialPosts} />;
 }

@@ -384,7 +384,7 @@ export default function AdminLogsPage() {
 
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
-          <h1 className="text-4xl font-bold">操作日志 📜</h1>
+          <h1 className="text-4xl font-bold">操作日志</h1>
 
           <p className="mt-2 text-zinc-500">
             记录后台管理员的所有重要操作。仅 owner 可查看。

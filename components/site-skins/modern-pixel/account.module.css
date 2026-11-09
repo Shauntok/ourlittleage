@@ -1,0 +1,50 @@
+.page { --account-ink: #294b82; --account-muted: #7286a8; --account-edge: #a9c6ed; --day-scene-image: url('/images/page-backgrounds/settings-account-day.webp'); --day-scene-base: #fcfdff; --day-scene-rgb: 252, 253, 255; --day-scene-height: 690px; --day-scene-top-opacity: .62; --day-scene-middle-opacity: .84; position: relative; min-height: 690px; padding: 18px 21px 22px; border: 1px solid var(--account-edge); background: #fcfdff; color: var(--account-ink); box-shadow: 0 3px 0 #d5e5f8; }
+.hero { position: relative; display: flex; align-items: flex-start; min-height: 164px; padding: 27px 32px; border: 1px solid var(--account-edge); background: #eef7ff url('/images/account-security/sunny-banner.webp') center 55% / cover no-repeat; overflow: hidden; }
+.heroCopy { position: relative; z-index: 1; max-width: 58%; }
+.hero h1 { margin: 0 0 8px; color: #315a9a; font: 700 clamp(26px,2.7vw,38px)/1.2 Arial,'Microsoft YaHei',sans-serif; }
+.hero p { margin: 0; color: #536f9e; font-size: 13px; line-height: 1.6; font-weight: 550; }
+.columns { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,.98fr); gap: 17px; margin-top: 17px; }
+.passwordPanel,.emailPanel,.logoutPanel { position: relative; min-width: 0; border: 1px solid var(--account-edge); background: #fff; box-shadow: 0 3px 0 #e0edfb; }
+.passwordPanel { display: flex; flex-direction: column; min-height: 535px; padding: 22px 25px 24px; }
+.panelHeading { display: flex; align-items: center; gap: 13px; padding-bottom: 15px; border-bottom: 1px solid #d5e5f8; }
+.lockIcon { flex: none; width: 54px; height: 54px; object-fit: contain; image-rendering: auto; }
+.panelHeading h2,.emailPanel h2,.logoutPanel h2 { margin: 0 0 4px; color: #254c88; font-family: 'ArkPixelSettings',Arial,sans-serif; font-size: 23px; font-weight: 400; font-synthesis: none; line-height: 1.2; }
+.panelHeading p { margin: 0; color: var(--account-muted); font-size: 11.5px; line-height: 1.5; }
+.fields { display: grid; gap: 21px; padding: 22px 5px 0; }
+.field label { display: block; margin: 0 0 9px; font-size: 14px; font-weight: 750; }
+.inputWrap { position: relative; }
+.inputWrap input { display: block; width: 100%; height: 51px; padding: 0 52px 0 16px; border: 1px solid #b5cbee; border-radius: 8px; background: #fff; color: #25436f; font: 14px Arial,'Microsoft YaHei',sans-serif; outline: none; }
+.inputWrap input::placeholder { color: #90a3c1; }
+.inputWrap input:focus { border-color: #5c8ed6; box-shadow: 0 0 0 3px #dbeafc; }
+.reveal { position: absolute; right: 12px; top: 50%; display: grid; place-items: center; width: 30px; height: 30px; transform: translateY(-50%); border: 0; background: transparent; color: #6885b8; cursor: pointer; }
+.reveal:hover { color: #315fa2; }
+.passwordHint { margin: 15px 5px 20px; color: #8193af; font-size: 11.5px; line-height: 1.5; }
+.updateButton { display: block; width: calc(100% - 10px); min-height: 50px; margin: auto 5px 0; border: 1px solid #5687d3; border-radius: 8px; background: #568ee8; color: #fff; box-shadow: 0 3px 0 #acc7eb; font-size: 16px; font-weight: 750; cursor: pointer; }
+.updateButton:hover { background: #467ed8; }
+.updateButton:disabled { opacity: .65; cursor: wait; }
+.rightColumn { display: grid; grid-template-rows: minmax(180px,1fr) auto auto; gap: 17px; min-width: 0; }
+.cabinet { min-height: 210px; border: 1px solid #c6c6b5; background: #f3ddbb url('/images/account-security/key-cabinet.webp') center 45% / cover no-repeat; }
+.emailPanel { display: flex; align-items: flex-start; gap: 20px; min-height: 128px; padding: 22px 23px 20px; }
+.mailIcon { width: 62px; height: 62px; flex: none; object-fit: contain; image-rendering: auto; }
+.emailCopy { min-width: 0; }
+.emailValue { margin: 8px 0 6px; overflow-wrap: anywhere; color: #30578d; font-size: 15px; font-weight: 700; }
+.emailHint { margin: 0; color: #8193af; font-size: 11.5px; }
+.logoutPanel { display: flex; align-items: center; gap: 15px; min-height: 117px; padding: 17px 23px; border-color: #e8c99a; background: #fffaf0; box-shadow: 0 3px 0 #f3e4cb; }
+.logoutIcon { flex: none; width: 52px; height: 52px; object-fit: contain; image-rendering: auto; }
+.logoutCopy { min-width: 0; flex: 1; }
+.logoutCopy p { margin: 6px 0 0; color: #8b93a6; font-size: 11px; line-height: 1.55; }
+.logoutButton { flex: none; min-width: 93px; min-height: 45px; border: 1px solid #d35668; border-radius: 7px; background: #fffaf5; color: #c9445d; font-size: 15px; font-weight: 750; cursor: pointer; }
+.logoutButton:hover { background: #fff0ee; }
+.reveal:focus-visible,.updateButton:focus-visible,.logoutButton:focus-visible { outline: 2px solid #604b8c; outline-offset: 3px; }
+.toast { position: fixed; z-index: 50; bottom: 20px; left: 50%; max-width: min(90vw,430px); margin: 0; transform: translateX(-50%); padding: 12px 17px; border: 1px solid #8fb5e5; background: #fff; color: #294570; box-shadow: 4px 4px 0 #e6bd66; font-size: 13px; }
+@media (max-width: 1180px) { .passwordPanel { padding: 20px 18px; } .emailPanel,.logoutPanel { padding-left: 16px; padding-right: 16px; } .logoutPanel { gap: 9px; } .logoutButton { min-width: 70px; } }
+@media (max-width: 850px) { .columns { grid-template-columns: 1fr; } .rightColumn { grid-template-rows: auto auto auto; } .cabinet { min-height: 260px; } .passwordPanel { min-height: 0; } .updateButton { margin-top: 0; } }
+@media (max-width: 520px) { .page { padding: 14px; min-height: 0; } .hero { min-height: 145px; padding: 23px 20px; background-position: 61% center; } .heroCopy { max-width: 80%; } .hero h1 { font-size: 25px; } .hero p { font-size: 11px; } .columns { gap: 14px; margin-top: 14px; } .passwordPanel { padding: 17px 15px 20px; } .fields { gap: 18px; padding-left: 0; padding-right: 0; } .cabinet { min-height: 185px; } .emailPanel { min-height: 110px; } .mailIcon { width: 48px; height: 48px; } .logoutPanel { flex-wrap: wrap; } .logoutButton { margin-left: auto; } }
+
+:global(body[data-pixel-time="evening"]) .page { --account-edge: #8ba2ca; --moon-scene-image: url('/images/page-backgrounds/settings-account-evening.webp'); --moon-scene-base: #2b3858; --moon-scene-height: 690px; --moon-scene-top-opacity: .62; --moon-scene-middle-opacity: .84; background: #2b3858; color: #f5eddf; box-shadow: 0 3px 0 #18233e; }
+:global(body[data-pixel-time="evening"]) .hero { background-image: linear-gradient(90deg,rgba(31,43,76,.96),rgba(31,43,76,.75) 47%,rgba(31,43,76,.02) 95%),url('/images/account-security/evening-banner.webp'); background-color: #26365e; }
+:global(body[data-pixel-time="evening"]) .hero h1,
+:global(body[data-pixel-time="evening"]) .hero p { color: #fff1dc; }
+:global(body[data-pixel-time="evening"]) .passwordPanel,
+:global(body[data-pixel-time="evening"]) .emailPanel { background: #eef1fa; color: #253453; border-color: #8ba2ca; box-shadow: 0 3px 0 #17213c; }
+:global(body[data-pixel-time="evening"]) .cabinet { background-image: url('/images/account-security/key-cabinet-evening.webp'); border-color: #7b91b8; }

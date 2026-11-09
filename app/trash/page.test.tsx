@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   createSupabaseServerClient: vi.fn(),
   getUser: vi.fn(),
   listOwnedTrashPosts: vi.fn(),
+  trashSkinClient: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`redirect:${path}`);
   }),
@@ -22,6 +23,12 @@ vi.mock("next/navigation", async (importOriginal) => {
   return { ...actual, redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn() }) };
 });
 vi.mock("@/app/actions/trash", () => ({ restorePost: vi.fn() }));
+vi.mock("@/components/trash/TrashSkinClient", () => ({
+  default: (props: unknown) => {
+    mocks.trashSkinClient(props);
+    return <h1>垃圾桶</h1>;
+  },
+}));
 
 import TrashPage from "./page";
 
@@ -46,6 +53,15 @@ it("loads only the signed-in resident's trash on the server", async () => {
     "resident-a",
     expect.any(Date)
   );
+  expect(mocks.trashSkinClient).toHaveBeenCalledWith(expect.objectContaining({ items: [], loadError: false }));
+});
+
+it("keeps the resident's trash in the skin view when loading fails", async () => {
+  mocks.listOwnedTrashPosts.mockRejectedValue(new Error("unavailable"));
+
+  render(await TrashPage());
+
+  expect(mocks.trashSkinClient).toHaveBeenCalledWith(expect.objectContaining({ items: [], loadError: true }));
 });
 
 it("redirects anonymous visitors before reading trash", async () => {

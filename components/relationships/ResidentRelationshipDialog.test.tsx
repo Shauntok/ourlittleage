@@ -47,6 +47,7 @@ vi.mock("@/components/ui/ConfirmDialog", () => ({
 }));
 
 import ResidentRelationshipDialog from "./ResidentRelationshipDialog";
+import RoomViewSkinProvider from "@/components/RoomViewSkinProvider";
 import type { PublicRelationshipItem } from "@/lib/relationships/service";
 
 const residentId = "22222222-2222-4222-8222-222222222222";
@@ -73,16 +74,18 @@ function renderDialog(
   props: Partial<ComponentProps<typeof ResidentRelationshipDialog>> = {}
 ) {
   return render(
-    <ResidentRelationshipDialog
-      open
-      kind="followers"
-      residentId={residentId}
-      username="夜雨"
-      isOwner={false}
-      onClose={vi.fn()}
-      onChanged={vi.fn()}
-      {...props}
-    />
+    <RoomViewSkinProvider>
+      <ResidentRelationshipDialog
+        open
+        kind="followers"
+        residentId={residentId}
+        username="夜雨"
+        isOwner={false}
+        onClose={vi.fn()}
+        onChanged={vi.fn()}
+        {...props}
+      />
+    </RoomViewSkinProvider>
   );
 }
 
@@ -186,7 +189,7 @@ describe("ResidentRelationshipDialog", () => {
       );
     }
 
-    render(<Harness />);
+    render(<RoomViewSkinProvider><Harness /></RoomViewSkinProvider>);
     const trigger = screen.getByRole("button", { name: "打开关注者" });
     trigger.focus();
     fireEvent.click(trigger);

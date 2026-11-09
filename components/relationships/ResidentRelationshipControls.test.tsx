@@ -123,8 +123,8 @@ describe("ResidentRelationshipControls", () => {
     });
     renderControls();
 
-    expect(await screen.findByText("关注中 23")).toBeVisible();
-    expect(screen.getByText("关注者 41")).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("button", { name: "打开夜雨的关注中名单" })).toHaveTextContent(/关注中\s*23/));
+    expect(screen.getByRole("button", { name: "打开夜雨的关注者名单" })).toHaveTextContent(/关注者\s*41/);
     expect(screen.queryByRole("button", { name: /关注夜雨/ })).toBeNull();
     expect(mocks.getState).not.toHaveBeenCalled();
   });
@@ -233,8 +233,8 @@ describe("ResidentRelationshipControls", () => {
       });
       renderControls();
 
-      expect(await screen.findByText("关注中 --")).toBeVisible();
-      expect(screen.getByText("关注者 --")).toBeVisible();
+      await waitFor(() => expect(screen.getByRole("button", { name: "打开夜雨的关注中名单" })).toHaveTextContent(/关注中\s*--/));
+      expect(screen.getByRole("button", { name: "打开夜雨的关注者名单" })).toHaveTextContent(/关注者\s*--/);
       expect(screen.queryByText("关系资料暂时无法读取。")).toBeNull();
       expect(
         screen.queryByRole("button", { name: "重新读取关系资料" })
@@ -246,8 +246,8 @@ describe("ResidentRelationshipControls", () => {
     mocks.getSummary.mockRejectedValue(new Error("network details"));
     renderControls();
 
-    expect(await screen.findByText("关注中 --")).toBeVisible();
-    expect(screen.getByText("关注者 --")).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("button", { name: "打开夜雨的关注中名单" })).toHaveTextContent(/关注中\s*--/));
+    expect(screen.getByRole("button", { name: "打开夜雨的关注者名单" })).toHaveTextContent(/关注者\s*--/);
     expect(screen.queryByRole("button", { name: "重新读取关系资料" })).toBeNull();
   });
 

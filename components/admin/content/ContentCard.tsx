@@ -149,13 +149,6 @@ export default function ContentCard({
         </button>
 
         <button
-          onClick={() => updateVisibility(post.id, "unlisted")}
-          className="rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20"
-        >
-          链接可见
-        </button>
-
-        <button
           onClick={() => softDeletePost(post.id)}
           className="
             rounded-full

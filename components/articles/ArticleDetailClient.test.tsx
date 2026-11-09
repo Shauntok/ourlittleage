@@ -5,6 +5,10 @@ import ArticleDetailClient from "@/components/articles/ArticleDetailClient";
 
 const authState = vi.hoisted(() => ({ userId: "author" }));
 
+vi.mock("@/components/RoomViewSkinProvider", () => ({
+  useRoomViewSkin: () => ({ skin: "classic" }),
+}));
+
 vi.mock("next/navigation", () => ({
   useParams: () => ({ slug: "test-article" }),
   useRouter: () => ({ push: vi.fn() }),
@@ -224,5 +228,17 @@ describe("ArticleDetailClient mobile actions", () => {
       "true",
     );
     expect(within(actionGrid).queryByTestId("article-share")).not.toBeInTheDocument();
+  });
+  it("keeps a neighbor article readable without a public share action", async () => {
+    authState.userId = "visitor";
+    render(<ArticleDetailClient initialArticle={{ ...article, visibility: "neighbors" }} />);
+    expect(await screen.findByText("文章内容")).toBeInTheDocument();
+    expect(screen.queryByTestId("article-share")).not.toBeInTheDocument();
+    expect(screen.getByText("comments")).toBeInTheDocument();
+  });
+
+  it("keeps comments on a link-visible article", () => {
+    render(<ArticleDetailClient initialArticle={{ ...article, visibility: "unlisted" }} />);
+    expect(screen.getByText("comments")).toBeInTheDocument();
   });
 });

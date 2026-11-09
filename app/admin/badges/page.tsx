@@ -332,7 +332,7 @@ export default function AdminBadgesPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-4xl font-bold">
-          徽章管理 🎖️
+          徽章管理
         </h1>
 
         <p className="mt-2 text-zinc-500">

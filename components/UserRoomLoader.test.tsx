@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import RoomViewSkinProvider from "@/components/RoomViewSkinProvider";
 import UserRoomLoader from "@/components/UserRoomLoader";
 
 const profile = {
@@ -45,6 +46,7 @@ function queryResult(data: unknown) {
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
+    auth: { getUser: vi.fn(async () => ({ data: { user: null }, error: null })) },
     from: vi.fn((table: string) => {
       if (table === "profiles") return queryResult(profile);
       if (table === "posts") return queryResult(postRows);
@@ -53,17 +55,20 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 
-vi.mock("@/components/UserRoomClient", () => ({
+vi.mock("@/components/RoomSkinClient", () => ({
   default: ({
     activeTab,
     publicArticles,
+    skin,
   }: {
     activeTab: string;
     publicArticles: unknown[];
+    skin: string;
   }) => (
     <div>
       <div data-testid="active-tab">{activeTab}</div>
       <div data-testid="article-count">{publicArticles.length}</div>
+      <div data-testid="room-skin">{skin}</div>
     </div>
   ),
 }));
@@ -71,23 +76,47 @@ vi.mock("@/components/UserRoomClient", () => ({
 describe("UserRoomLoader", () => {
   it("uses the latest tab after the room data has loaded", async () => {
     const { rerender } = render(
-      <UserRoomLoader username="系小卓呀" activeTab="all" />
+      <RoomViewSkinProvider>
+        <UserRoomLoader username="系小卓呀" activeTab="all" />
+      </RoomViewSkinProvider>
     );
 
     await waitFor(() => {
       expect(screen.getByTestId("active-tab")).toHaveTextContent("all");
     });
 
-    rerender(<UserRoomLoader username="系小卓呀" activeTab="article" />);
+    rerender(
+      <RoomViewSkinProvider>
+        <UserRoomLoader username="系小卓呀" activeTab="article" />
+      </RoomViewSkinProvider>
+    );
 
     expect(screen.getByTestId("active-tab")).toHaveTextContent("article");
   });
 
   it("does not drop older articles when diaries fill the first page", async () => {
-    render(<UserRoomLoader username="系小卓呀" activeTab="article" />);
+    render(
+      <RoomViewSkinProvider>
+        <UserRoomLoader username="系小卓呀" activeTab="article" />
+      </RoomViewSkinProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("article-count")).toHaveTextContent("2");
+    });
+  });
+
+  it("uses the same globally selected skin as the site navigation", async () => {
+    window.localStorage.setItem("ourlittleage:room-view-skin", "classic");
+
+    render(
+      <RoomViewSkinProvider>
+        <UserRoomLoader username="系小卓呀" activeTab="all" />
+      </RoomViewSkinProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("room-skin")).toHaveTextContent("classic");
     });
   });
 });

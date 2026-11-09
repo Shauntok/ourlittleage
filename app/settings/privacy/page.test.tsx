@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  skin: "classic" as "classic" | "modern_pixel",
   getUser: vi.fn(),
   from: vi.fn(),
   select: vi.fn(),
@@ -23,6 +24,10 @@ vi.mock("@/app/actions/relationships", () => ({
   setFollowMode: mocks.setFollowMode,
 }));
 
+vi.mock("@/components/RoomViewSkinProvider", () => ({
+  useRoomViewSkin: () => ({ skin: mocks.skin }),
+}));
+
 import PrivacySettingsPage from "./page";
 
 const userId = "11111111-1111-4111-8111-111111111111";
@@ -38,6 +43,7 @@ const settings = {
 describe("PrivacySettingsPage follow privacy", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.skin = "classic";
     mocks.getUser.mockResolvedValue({
       data: { user: { id: userId } },
       error: null,
@@ -78,6 +84,23 @@ describe("PrivacySettingsPage follow privacy", () => {
     expect(screen.getAllByRole("radio")).toHaveLength(2);
     expect(screen.getByRole("radio", { name: "任何居民可关注" })).toBeVisible();
     expect(screen.getByRole("radio", { name: "关注需要批准" })).toBeVisible();
+  });
+
+  it("shows the approved pixel privacy layout while keeping its controls connected", async () => {
+    mocks.skin = "modern_pixel";
+    render(<PrivacySettingsPage />);
+
+    expect(await screen.findByRole("heading", { name: "成长足迹" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "房间展示" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "显示徽章" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "显示徽章" }));
+    fireEvent.click(screen.getByRole("radio", { name: "关注需要批准" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
+
+    await waitFor(() => {
+      expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ show_badges: false }));
+      expect(mocks.setFollowMode).toHaveBeenCalledWith("approval_required");
+    });
   });
 
   it.each([null, "legacy_mode"])(

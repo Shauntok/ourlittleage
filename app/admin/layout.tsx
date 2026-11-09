@@ -1,6 +1,9 @@
 import { ReactNode } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import AdminSidebar from "@/components/AdminSidebar";
+import AdminTopbar from "@/components/AdminTopbar";
+import styles from "./admin-layout.module.css";
+import "./admin-console.css";
 
 type Props = {
   children: ReactNode;
@@ -11,13 +14,10 @@ export default function AdminLayout({
 }: Props) {
   return (
     <AdminGuard>
-      <main className="min-h-screen bg-black text-white px-6 py-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8">
+      <main className={`${styles.root} admin-console`}>
+        <div className={styles.grid}>
           <AdminSidebar />
-
-          <section>
-            {children}
-          </section>
+          <section className={styles.body}><AdminTopbar /><div className={`${styles.pageCanvas} admin-page-canvas`}>{children}</div></section>
         </div>
       </main>
     </AdminGuard>

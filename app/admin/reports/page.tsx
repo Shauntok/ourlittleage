@@ -521,7 +521,7 @@ export default function AdminReportsPage() {
     <div className="space-y-10">
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
-          <h1 className="text-4xl font-bold">举报中心 🚩</h1>
+          <h1 className="text-4xl font-bold">举报中心</h1>
 
           <p className="mt-2 text-zinc-500">
             查看举报目标，并直接处理内容、评论或用户。

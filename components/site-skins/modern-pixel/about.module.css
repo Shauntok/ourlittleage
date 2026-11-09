@@ -1,0 +1,39 @@
+.page { --day-scene-image: url('/images/page-backgrounds/settings-about-day.webp'); --day-scene-base: #f8fbff; --day-scene-rgb: 248, 251, 255; --day-scene-height: 800px; --day-scene-top-opacity: .65; --day-scene-middle-opacity: .88; position: relative; min-width: 0; padding: 16px 16px 18px; border: 1px solid #acc6e9; background: #f8fbff; box-shadow: 0 3px 0 #d5e5f8; color: #253d66; }
+.book { position: relative; width: 100%; min-height: 840px; background: #f7dfb8 url('/images/about/archival-book.webp') center / 100% 100% no-repeat; }
+.pages { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 9.5%; min-height: 840px; padding: 15% 12.7% 26%; }
+.sheet { display: flex; flex-direction: column; min-width: 0; font-family: 'Noto Serif SC','Noto Serif CJK SC','Songti SC','STSong','SimSun',serif; font-synthesis: none; }
+.leftPage { padding: 3% 0 0 7%; }
+.rightPage { padding: 0 0 0 7%; }
+.sheet h1 { margin: 0 0 20px clamp(14px,3vw,44px); color: #183c72; font-size: clamp(28px,2.7vw,40px); font-weight: 700; line-height: 1.35; letter-spacing: .06em; }
+.greeting { margin: 0 0 17px; color: #42618a; font-size: clamp(14px,1.1vw,16px); font-weight: 500; line-height: 1.8; }
+.prose p { margin: 0 0 12px; color: #233f69; font-size: clamp(14px,1.1vw,16px); font-weight: 500; line-height: 1.8; letter-spacing: .018em; overflow-wrap: anywhere; }
+.quote { margin: 10px 0 0; padding: 6px 7px; border-top: 1px solid rgba(76,112,158,.45); border-bottom: 1px solid rgba(76,112,158,.45); text-align: center; }
+.quote p { margin: 0; color: #234773; font-size: clamp(16px,1.5vw,21px); font-weight: 700; line-height: 1.6; letter-spacing: .06em; }
+.links { display: flex; justify-content: center; gap: 15px; margin-top: 2px; }
+.links a { min-width: 122px; padding: 9px 18px; border: 1px solid #91afd5; background: #fffbef; color: #315784; box-shadow: 2px 3px 0 #cfdfef; font-size: 13px; font-weight: 700; text-align: center; text-decoration: none; }
+.links a:hover { background: #f2f8ff; border-color: #5d87bf; }
+.links a:focus-visible { outline: 2px solid #695195; outline-offset: 3px; }
+@media (max-width: 1050px) and (min-width: 761px) { .pages { padding: 15% 12.2% 27%; gap: 8%; } .prose p { font-size: 14px; } }
+@media (max-width: 760px) {
+  .page { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .book { min-height: 0; border: solid transparent; border-width: 76px 29px; background: none; border-image-source: url('/images/about/mobile-archival-scroll.webp'); border-image-slice: 210 100 210 100 fill; border-image-width: 76px 29px; border-image-repeat: stretch; }
+  .book::before, .book::after { content: none; }
+  .pages { min-height: 0; display: block; padding: 14px 18px 20px; }
+  .sheet { min-height: 0; padding: 0; border: 0; background: transparent; }
+  .rightPage { padding: 0; }
+  .sheet h1 { margin: 0 0 14px; font-size: 28px; }
+  .prose p { font-size: 14px; line-height: 1.85; margin-bottom: 12px; }
+  .greeting { font-size: 14px; }
+  .quote { margin-top: 24px; }
+  .links { margin-top: 14px; }
+}
+@media (max-width: 440px) { .sheet h1 { font-size: 26px; } .prose p { font-size: 13px; } .links { gap: 7px; } .links a { min-width: 0; flex: 1; padding: 9px 5px; font-size: 12px; } }
+
+:global(body[data-pixel-time="evening"]) .page { --moon-scene-image: url('/images/page-backgrounds/settings-about-evening.webp'); --moon-scene-base: #2b3858; --moon-scene-height: 800px; --moon-scene-top-opacity: .65; --moon-scene-middle-opacity: .88; background: #2b3858; border-color: #7b91b8; box-shadow: 0 3px 0 #18233e; }
+:global(body[data-pixel-time="evening"]) .book { filter: drop-shadow(0 7px 18px rgba(7,14,36,.38)); }
+:global(body[data-pixel-time="evening"]) .book { background-image: url('/images/about/archival-book-evening.webp'); }
+
+@media (max-width: 760px) {
+  :global(body[data-pixel-time="evening"]) .page { background: transparent; box-shadow: none; }
+  :global(body[data-pixel-time="evening"]) .book { background-image: none; }
+}

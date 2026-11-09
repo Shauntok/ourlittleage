@@ -8,7 +8,15 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import { getPixelRoomTime } from "@/lib/pixel-room-theme";
+
+const ModernProfileSettings = dynamic(
+  () => import("@/components/site-skins/modern-pixel/ModernProfileSettings"),
+  { ssr: false }
+);
 
 const BIO_LIMIT = 300;
 
@@ -62,6 +70,7 @@ async function getCroppedImage(imageSrc: string, crop: Area) {
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
+  const { skin, setPixelTime } = useRoomViewSkin();
 
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -230,6 +239,7 @@ export default function ProfileSettingsPage() {
     }));
 
     setHasUnsavedChanges(false);
+    if (skin === "modern_pixel") setPixelTime(getPixelRoomTime(theme));
     showToast("房间资料已更新。");
   }
 
@@ -386,6 +396,36 @@ export default function ProfileSettingsPage() {
         </p>
       </main>
     );
+  }
+
+  if (skin === "modern_pixel") {
+    return <ModernProfileSettings
+      profile={profile}
+      username={username}
+      bio={bio}
+      theme={theme}
+      saving={saving}
+      uploading={uploading}
+      bannerUploading={bannerUploading}
+      hasUnsavedChanges={hasUnsavedChanges}
+      message={message}
+      cropOpen={cropOpen}
+      bannerPreviewUrl={bannerPreviewUrl}
+      crop={crop}
+      zoom={zoom}
+      setCrop={setCrop}
+      setZoom={setZoom}
+      setCroppedAreaPixels={setCroppedAreaPixels}
+      setUsername={setUsername}
+      setBio={setBio}
+      setTheme={setTheme}
+      setHasUnsavedChanges={setHasUnsavedChanges}
+      chooseBannerFile={chooseBannerFile}
+      uploadAvatar={uploadAvatar}
+      closeCropModal={closeCropModal}
+      confirmCropAndUpload={confirmCropAndUpload}
+      saveProfile={saveProfile}
+    />;
   }
 
   const previewUsername = username || "居民";

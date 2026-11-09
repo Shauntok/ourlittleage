@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import {
   generateArticleSlug,
@@ -23,12 +24,18 @@ import {
   isBlockedFromWriting,
   getWritingBlockMessage,
 } from "@/lib/editor/writingGuard";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import { neighborVisibilityError, NEIGHBOR_IMAGE_MESSAGE } from "@/lib/visibility/neighbors";
+import { canSelectLinkVisibility } from "@/lib/visibility/link-visibility";
+import { serializeArticleTags, validateArticleTags } from "@/lib/posts/tags";
+
+const ModernWritingPage = dynamic(() => import("@/components/editor/ModernWritingPage"), { ssr: false });
 
 const DAILY_ARTICLE_LIMIT = 2;
 const MIN_ARTICLE_TITLE_LENGTH = 2;
 const MIN_ARTICLE_CONTENT_LENGTH = 500;
 
-type ArticleVisibility = "public" | "hidden" | "unlisted" | "private";
+type ArticleVisibility = "public" | "hidden" | "unlisted" | "private" | "neighbors";
 
 const visibilityOptions = [
   {
@@ -38,22 +45,23 @@ const visibilityOptions = [
     desc: "所有居民都可以看到。",
   },
   {
-    key: "hidden",
-    icon: "🙈",
-    title: "隐藏文章",
-    desc: "不会主动出现在公开列表。",
-  },
-  {
-    key: "unlisted",
-    icon: "🔗",
-    title: "仅链接可见",
-    desc: "有链接的人才能进入。",
-  },
-  {
     key: "private",
     icon: "🔒",
     title: "只给自己看",
     desc: "只有你自己能看到。",
+  },
+  {
+    key: "neighbors",
+    icon: "🏠",
+    title: "仅邻居可见",
+    desc: "互关居民可读，目前只支持纯文字。",
+  },
+  ...(canSelectLinkVisibility() ? [{ key: "unlisted", icon: "🔗", title: "仅链接可见", desc: "有链接的人才能进入。" }] : []),
+  {
+    key: "hidden",
+    icon: "🙈",
+    title: "隐藏文章",
+    desc: "不会主动出现在公开列表。",
   },
 ];
 
@@ -87,6 +95,7 @@ async function getTodayArticleCount(userId: string) {
 
 export default function NewArticlePage() {
   const router = useRouter();
+  const { skin } = useRoomViewSkin();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -183,8 +192,11 @@ export default function NewArticlePage() {
     });
   }
 
-  function validateArticleForPublish() {
+  function validateArticleForPublish(skipVisibilityCheck = false) {
     setEditorMessage("");
+
+    const tagError = validateArticleTags(tags);
+    if (tagError) { setEditorMessage(tagError); return false; }
 
     if (cleanTitle.length < MIN_ARTICLE_TITLE_LENGTH) {
       setEditorMessage("给这篇故事起个名字吧，哪怕只是短短几个字。");
@@ -197,12 +209,20 @@ export default function NewArticlePage() {
       );
       return false;
     }
+    const imageError = skipVisibilityCheck ? null : neighborVisibilityError(visibility, cleanContent);
+    if (imageError) {
+      setEditorMessage(imageError);
+      return false;
+    }
 
     return true;
   }
 
   function validateArticleForDraft() {
     setEditorMessage("");
+
+    const tagError = validateArticleTags(tags);
+    if (tagError) { setEditorMessage(tagError); return false; }
 
     if (cleanTitle.length < MIN_ARTICLE_TITLE_LENGTH) {
       setEditorMessage("先给草稿起个名字吧，之后回来才找得到它。");
@@ -211,6 +231,11 @@ export default function NewArticlePage() {
 
     if (!cleanContent) {
       setEditorMessage("写一点点就好，我帮你先收进草稿箱。");
+      return false;
+    }
+    const imageError = neighborVisibilityError(visibility, cleanContent);
+    if (imageError) {
+      setEditorMessage(imageError);
       return false;
     }
 
@@ -222,6 +247,10 @@ export default function NewArticlePage() {
 
     const file = e.target.files?.[0];
     if (!file) return;
+    if (visibility === "neighbors") {
+      setEditorMessage(NEIGHBOR_IMAGE_MESSAGE);
+      return;
+    }
 
     setUploading(true);
 
@@ -280,7 +309,7 @@ export default function NewArticlePage() {
           status: "published",
           visibility,
           author_id: currentUser.id,
-          tags,
+          tags: serializeArticleTags(tags),
           notes,
           published_at: new Date().toISOString(),
         },
@@ -329,7 +358,7 @@ export default function NewArticlePage() {
         status: "draft",
         visibility,
         author_id: currentUser.id,
-        tags,
+        tags: serializeArticleTags(tags),
         notes,
       },
     ]);
@@ -351,14 +380,40 @@ export default function NewArticlePage() {
   }
 
   function handlePublishClick() {
-    if (!validateArticleForPublish()) return;
+    const modernMobile = skin === "modern_pixel" && window.innerWidth <= 560;
+    if (!validateArticleForPublish(modernMobile)) return;
 
-    if (window.innerWidth < 1024) {
+    if ((skin !== "modern_pixel" && window.innerWidth < 1024) || modernMobile) {
       setShowVisibilityDialog(true);
       return;
     }
 
     publishArticle();
+  }
+
+  if (skin === "modern_pixel") {
+    return <ModernWritingPage
+      kind="article"
+      content={content}
+      setContent={setContent}
+      textareaRef={textareaRef}
+      insertTextAtCursor={insertTextAtCursor}
+      uploadImage={uploadImage}
+      uploading={uploading}
+      visibility={visibility}
+      setVisibility={setVisibility}
+      remainingCount={remainingArticleCount}
+      message={editorMessage}
+      saving={loading}
+      publishing={loading}
+      saveDraft={saveDraft}
+      publish={handlePublishClick}
+      confirmPublish={publishArticle}
+      visibilityDialogOpen={showVisibilityDialog}
+      closeVisibilityDialog={() => setShowVisibilityDialog(false)}
+      discard={discardArticle}
+      article={{ title, setTitle, slug, setSlug, tags, setTags, notes, setNotes, generateSlug: generateArticleSlug }}
+    />;
   }
 
   return (

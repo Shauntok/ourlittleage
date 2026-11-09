@@ -8,6 +8,7 @@ const { query, refresh } = vi.hoisted(() => ({
 
 vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn(() => query) } }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+vi.mock("@/components/RoomViewSkinProvider", () => ({ useRoomViewSkin: () => ({ skin: "classic" }) }));
 
 import PublicDiaryPage from "./page";
 

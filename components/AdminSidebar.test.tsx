@@ -47,15 +47,15 @@ beforeEach(() => {
 });
 
 describe("AdminSidebar desktop layout", () => {
-  it("stays compact and scrollable inside the viewport", () => {
+  it("keeps a dedicated desktop navigation and a way back to the resident home", () => {
     render(<AdminSidebar />);
 
     const sidebar = screen.getByTestId("admin-sidebar-desktop");
     const panel = screen.getByTestId("admin-sidebar-desktop-panel");
 
-    expect(sidebar).toHaveClass("lg:top-4");
-    expect(panel).toHaveClass("max-h-[calc(100vh-2rem)]", "overflow-y-auto", "w-52");
-    expect(screen.getAllByText("回首页").length).toBeGreaterThan(0);
+    expect(sidebar).toBeInTheDocument();
+    expect(panel).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /回居民首页/ })[0]).toHaveAttribute("href", "/home");
   });
 
   it("shows a separate sponsorship inquiry destination for admins", async () => {
@@ -77,7 +77,7 @@ describe("AdminSidebar desktop layout", () => {
     mocks.role = "moderator";
     render(<AdminSidebar />);
 
-    expect(await screen.findAllByText("回首页")).not.toHaveLength(0);
+    expect(await screen.findAllByText("回居民首页")).not.toHaveLength(0);
     expect(screen.queryByRole("link", { name: /后台更新日志/ })).not.toBeInTheDocument();
   });
 
@@ -87,14 +87,14 @@ describe("AdminSidebar desktop layout", () => {
 
     const links = await screen.findAllByRole("link", { name: /安全中心/ });
     expect(links[0]).toHaveAttribute("href", "/admin/security");
-    expect(links[0]).toHaveClass("bg-white");
+    expect(links[0]).toHaveAttribute("aria-current", "page");
   });
 
   it("does not show the Security Center to moderators", async () => {
     mocks.role = "moderator";
     render(<AdminSidebar />);
 
-    expect(await screen.findAllByText("回首页")).not.toHaveLength(0);
+    expect(await screen.findAllByText("回居民首页")).not.toHaveLength(0);
     expect(screen.queryByRole("link", { name: /安全中心/ })).not.toBeInTheDocument();
   });
 });

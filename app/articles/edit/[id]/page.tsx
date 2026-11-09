@@ -13,10 +13,13 @@ import EditorTextarea from "@/components/editor/EditorTextarea";
 import MobileVisibilityDialog from "@/components/editor/MobileVisibilityDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { uploadEditorImage } from "@/components/editor/editorImageUpload";
+import { neighborVisibilityError, NEIGHBOR_IMAGE_MESSAGE } from "@/lib/visibility/neighbors";
+import { canSelectLinkVisibility } from "@/lib/visibility/link-visibility";
 import { insertEditorText } from "@/components/editor/editorTextUtils";
 import { trashPost } from "@/app/actions/trash";
+import { serializeArticleTags, validateArticleTags } from "@/lib/posts/tags";
 
-type ArticleVisibility = "public" | "hidden" | "unlisted" | "private";
+type ArticleVisibility = "public" | "hidden" | "unlisted" | "private" | "neighbors";
 
 const MIN_ARTICLE_CONTENT_LENGTH = 500;
 
@@ -28,24 +31,31 @@ const visibilityOptions = [
     desc: "所有居民都可以看到。",
   },
   {
-    key: "hidden",
-    icon: "🙈",
-    title: "隐藏文章",
-    desc: "不会主动出现在公开列表。",
-  },
-  {
-    key: "unlisted",
-    icon: "🔗",
-    title: "仅链接可见",
-    desc: "有链接的人才能进入。",
-  },
-  {
     key: "private",
     icon: "🔒",
     title: "只给自己看",
     desc: "只有你自己能看到。",
   },
+  {
+    key: "neighbors",
+    icon: "🏠",
+    title: "仅邻居可见",
+    desc: "互关居民可读，目前只支持纯文字。",
+  },
+  {
+    key: "hidden",
+    icon: "🙈",
+    title: "隐藏文章",
+    desc: "不会主动出现在公开列表。",
+  },
 ];
+
+const legacyUnlistedOption = {
+  key: "unlisted",
+  icon: "🔗",
+  title: "仅链接可见（旧作品）",
+  desc: "保留原有链接访问。",
+};
 
 export default function EditArticlePage() {
   const params = useParams();
@@ -190,6 +200,11 @@ export default function EditArticlePage() {
       );
       return false;
     }
+    const imageError = neighborVisibilityError(visibility, cleanContent);
+    if (imageError) {
+      setEditorMessage(imageError);
+      return false;
+    }
 
     return true;
   }
@@ -199,6 +214,11 @@ export default function EditArticlePage() {
 
     if (!cleanContent) {
       setEditorMessage("写一点点就好，我帮你先收进草稿箱。");
+      return false;
+    }
+    const imageError = neighborVisibilityError(visibility, cleanContent);
+    if (imageError) {
+      setEditorMessage(imageError);
       return false;
     }
 
@@ -217,6 +237,10 @@ export default function EditArticlePage() {
   async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (visibility === "neighbors") {
+      setEditorMessage(NEIGHBOR_IMAGE_MESSAGE);
+      return;
+    }
 
     setUploading(true);
 
@@ -244,6 +268,8 @@ export default function EditArticlePage() {
   async function saveDraft() {
     if (!validateTitle()) return;
     if (!validateContentForDraft()) return;
+    const tagError = validateArticleTags(tags);
+    if (tagError) { setEditorMessage(tagError); return; }
 
     const finalSlug =
       generateSlug(slug.trim()) || generateSlug(cleanTitle) || `article-${id}`;
@@ -264,7 +290,7 @@ export default function EditArticlePage() {
         title: cleanTitle,
         slug: finalSlug,
         content: cleanContent,
-        tags,
+        tags: serializeArticleTags(tags),
         notes,
         visibility,
         status: "draft",
@@ -285,6 +311,8 @@ export default function EditArticlePage() {
   async function publishDraft() {
     if (!validateTitle()) return;
     if (!validateContentForPublish()) return;
+    const tagError = validateArticleTags(tags);
+    if (tagError) { setEditorMessage(tagError); return; }
 
     const finalSlug = generateSlug(slug.trim()) || generateSlug(cleanTitle);
 
@@ -309,7 +337,7 @@ export default function EditArticlePage() {
         title: cleanTitle,
         slug: finalSlug,
         content: cleanContent,
-        tags,
+        tags: serializeArticleTags(tags),
         notes,
         visibility,
         status: "published",
@@ -331,6 +359,8 @@ export default function EditArticlePage() {
   async function saveArticle() {
     if (!validateTitle()) return;
     if (!validateContentForPublish()) return;
+    const tagError = validateArticleTags(tags);
+    if (tagError) { setEditorMessage(tagError); return; }
 
     const finalSlug = generateSlug(slug.trim()) || generateSlug(cleanTitle);
 
@@ -360,7 +390,7 @@ export default function EditArticlePage() {
         title: cleanTitle,
         slug: finalSlug,
         content: cleanContent,
-        tags,
+        tags: serializeArticleTags(tags),
         notes,
         visibility,
         edited_at: new Date().toISOString(),
@@ -598,7 +628,7 @@ export default function EditArticlePage() {
             <VisibilitySelector
               visibility={visibility}
               setVisibility={(value) => setVisibility(value as ArticleVisibility)}
-              options={visibilityOptions}
+              options={canSelectLinkVisibility(article?.visibility) ? [...visibilityOptions, legacyUnlistedOption] : visibilityOptions}
             />
           </div>
 
@@ -655,7 +685,7 @@ export default function EditArticlePage() {
         open={showVisibilityDialog}
         visibility={visibility}
         setVisibility={(value) => setVisibility(value as ArticleVisibility)}
-        options={visibilityOptions}
+        options={canSelectLinkVisibility(article?.visibility) ? [...visibilityOptions, legacyUnlistedOption] : visibilityOptions}
         title={isDraft ? "这篇草稿要发布到哪里？" : "这篇文章要保存成什么可见性？"}
         subtitle="选择可见性后，我就帮你把修改收好。"
         confirmText={isDraft ? "确定，发布文章" : "确定，保存修改"}

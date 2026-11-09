@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import MouseGlow from "@/components/MouseGlow";
@@ -9,6 +10,8 @@ import MailboxFilterTabs from "@/components/notifications/MailboxFilterTabs";
 import MailboxNotificationActions from "@/components/notifications/MailboxNotificationActions";
 import NotificationSectionTabs from "@/components/notifications/NotificationSectionTabs";
 import RelationshipNotificationCard from "@/components/notifications/RelationshipNotificationCard";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import type { ModernNotificationsProps } from "@/components/site-skins/modern-pixel/ModernNotificationsClient";
 import {
   acceptFollowRequest,
   rejectFollowRequest,
@@ -27,6 +30,11 @@ import {
 const LEGACY_NOTIFICATION_SELECT =
   "*, post:posts!notifications_post_id_fkey(id,title,type,slug), comment:comments!notifications_comment_id_fkey(id,content)";
 const RELATIONSHIP_NOTIFICATION_SELECT = `${LEGACY_NOTIFICATION_SELECT}, relationship:user_follows!notifications_relationship_id_fkey(id,follower_id,following_id,status,accepted_at)`;
+
+const ModernNotificationsClient = dynamic(
+  () => import("@/components/site-skins/modern-pixel/ModernNotificationsClient"),
+  { ssr: false }
+);
 
 function notifyNavbar() {
   window.dispatchEvent(new Event("notifications-updated"));
@@ -81,6 +89,7 @@ function getTypeIcon(type: string | null) {
 }
 
 export default function NotificationsPage() {
+  const { skin } = useRoomViewSkin();
   const [section, setSection] = useState<NotificationSection>("mailbox");
   const [tab, setTab] = useState<MailboxFilter>("unread");
   const [interactionFilter, setInteractionFilter] =
@@ -431,6 +440,35 @@ export default function NotificationsPage() {
     { key: "comment", label: "评论", count: filterInteractionNotifications(notifications, "comment").filter((item) => !item.deleted_at).length },
     { key: "reply", label: "回复", count: filterInteractionNotifications(notifications, "reply").filter((item) => !item.deleted_at).length },
   ] as const;
+
+  if (skin === "modern_pixel") {
+    const modernProps: ModernNotificationsProps = {
+      section,
+      tab,
+      interactionFilter,
+      mailboxFilterCounts,
+      interactionTabs: interactionTabs.map((item) => ({ ...item })),
+      interactionUnreadCount,
+      filteredNotifications,
+      visibleInteractions,
+      actorsById,
+      loading,
+      message,
+      onSectionChange: updateView,
+      onMailboxFilterChange: setTab,
+      onInteractionFilterChange: updateInteractionFilter,
+      onMarkRead: markAsRead,
+      onDelete: moveToTrash,
+      onRestore: restoreNotification,
+      onStar: toggleStarred,
+      onImportant: toggleImportant,
+      onAccept: handleAcceptFollowRequest,
+      onReject: rejectFollowRequest,
+      onRefresh: refreshNotifications,
+    };
+
+    return <ModernNotificationsClient key={`${section}-${tab}-${interactionFilter}`} {...modernProps} />;
+  }
 
   return (
     <main className="relative z-10 min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">

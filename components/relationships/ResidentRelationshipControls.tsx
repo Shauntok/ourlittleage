@@ -206,6 +206,7 @@ export default function ResidentRelationshipControls({
   return (
     <div
       data-testid="relationship-controls"
+      data-room-relationship-controls
       className="min-h-11 max-w-xl"
     >
       {loading ? (
@@ -221,6 +222,7 @@ export default function ResidentRelationshipControls({
           <div className="flex h-11 items-center gap-1 text-sm text-white/45">
             <button
               type="button"
+              data-room-relationship-count
               aria-label={`打开${username}的关注中名单`}
               aria-haspopup="dialog"
               aria-expanded={dialogKind === "following"}
@@ -228,10 +230,12 @@ export default function ResidentRelationshipControls({
               onClick={() => setDialogKind("following")}
               className="h-11 min-w-[88px] whitespace-nowrap rounded-lg px-2 text-left tabular-nums transition hover:bg-white/[0.045] hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:cursor-default"
             >
-              关注中 {summary?.followingCount ?? "--"}
+              <span data-room-relationship-label>关注中</span>
+              <span data-room-relationship-value>{summary?.followingCount ?? "--"}</span>
             </button>
             <button
               type="button"
+              data-room-relationship-count
               aria-label={`打开${username}的关注者名单`}
               aria-haspopup="dialog"
               aria-expanded={dialogKind === "followers"}
@@ -239,13 +243,15 @@ export default function ResidentRelationshipControls({
               onClick={() => setDialogKind("followers")}
               className="h-11 min-w-[88px] whitespace-nowrap rounded-lg px-2 text-left tabular-nums transition hover:bg-white/[0.045] hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:cursor-default"
             >
-              关注者 {summary?.followersCount ?? "--"}
+              <span data-room-relationship-label>关注者</span>
+              <span data-room-relationship-value>{summary?.followersCount ?? "--"}</span>
             </button>
           </div>
 
           {!readError && !isOwner ? (
             <button
               type="button"
+              data-room-follow-trigger
               aria-label={buttonLabel}
               onClick={handleRelationshipClick}
               disabled={mutationLoading}

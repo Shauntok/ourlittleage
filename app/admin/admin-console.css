@@ -1,0 +1,87 @@
+/* The management workspace shares one calm control-centre surface. These rules
+   translate legacy dark utility panels without changing their data or actions. */
+.admin-page-canvas:not(:has([data-admin-dashboard])) {
+  color: #193557;
+  font-size: 13px;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) > :first-child {
+  min-width: 0;
+  max-width: 100%;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(h1, h2, h3) {
+  color: #19375b;
+  line-height: 1.28;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(h1) {
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(h2) {
+  font-size: clamp(17px, 1.5vw, 21px);
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="bg-zinc-950"], [class~="bg-zinc-950/40"], [class~="bg-zinc-950/50"], [class~="bg-zinc-950/60"], [class~="bg-zinc-950/70"], [class~="bg-zinc-900"], [class~="bg-zinc-900/70"]):not(.fixed) {
+  background-color: #fff !important;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="bg-black"], [class~="bg-black/30"], [class~="bg-black/45"], [class~="bg-black/50"], [class~="bg-black/60"], [class~="bg-black/70"], [class~="bg-black/80"]):not(.fixed) {
+  background-color: #f8fafc !important;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="border-zinc-900"], [class~="border-zinc-800"], [class~="border-zinc-700"], [class~="border-zinc-600"], [class~="border-white/10"], [class~="border-white/15"]):not(.fixed) {
+  border-color: #dbe3ed !important;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-white"], [class~="text-zinc-100"], [class~="text-zinc-200"]):not(button):not(a):not(.fixed),
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-white/90"], [class~="text-white/80"], [class~="text-white/65"]):not(button):not(a):not(.fixed) {
+  color: #1c3d63 !important;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-zinc-300"], [class~="text-zinc-400"], [class~="text-zinc-500"], [class~="text-zinc-600"], [class~="text-white/45"], [class~="text-white/30"]):not(.fixed) {
+  color: #677f9c !important;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-blue-300"], [class~="text-blue-400"], [class~="text-sky-200"], [class~="text-cyan-200"]):not(.fixed) { color:#315f9b !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-green-300"], [class~="text-emerald-300"]):not(.fixed) { color:#237561 !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-red-300"], [class~="text-red-200"], [class~="text-rose-200"]):not(.fixed) { color:#a44b57 !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-yellow-300"], [class~="text-yellow-200"], [class~="text-amber-200"]):not(.fixed) { color:#926027 !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-amber-200/80"], [class~="text-amber-200/75"], [class~="text-amber-100/80"]):not(.fixed) { color:#926027 !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-red-100"], [class~="text-red-100/60"]):not(.fixed) { color:#a44b57 !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-violet-300"], [class~="text-violet-200"], [class~="text-purple-300"]):not(.fixed) { color:#6b57a1 !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="rounded-3xl"], [class~="rounded-2xl"]):not(.fixed) { border-radius: 9px !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(input, textarea, select) {
+  max-width: 100%;
+  color: #193557;
+  caret-color: #315f9b;
+}
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(input, textarea, select)::placeholder { color:#879bb3; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(a:not([class])) { color:#376aa6; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(a,button,input,select,textarea):focus-visible { outline:2px solid #5f8ec8;outline-offset:2px; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(table) { width:100%; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(th) { background:#f7f9fc;color:#6d839f; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(td) { border-color:#e6ecf3; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(.prose) { color:#365471; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where(.prose h1,.prose h2,.prose h3) { color:#19375b; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="bg-violet-600"]) { background-color:#3e6fa9 !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="bg-white"][class~="text-black"]):not(.fixed) { background:#3e6fa9 !important;color:#fff !important; }
+.admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="bg-zinc-950/50"], [class~="bg-zinc-950/70"], [class~="bg-zinc-900/70"]) { box-shadow:0 1px 3px #17365a0b; }
+.admin-page-canvas [data-admin-profile-preview] > [class~="bg-black/55"] { background:rgba(255,255,255,.84) !important; }
+@media (max-width: 700px) {
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="md:grid-cols-5"], [class~="md:grid-cols-4"], [class~="xl:grid-cols-5"], [class~="xl:grid-cols-6"], [class~="xl:grid-cols-8"], [aria-label="安全状态概览"]) {
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="md:grid-cols-5"], [class~="xl:grid-cols-5"], [aria-label="安全状态概览"]) > :last-child:nth-child(odd) {
+    grid-column:1/-1;
+  }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="md:grid-cols-3"]) {
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="md:grid-cols-3"]) > :last-child:nth-child(odd) {
+    grid-column:1/-1;
+  }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="p-8"], [class~="p-6"]) { padding:16px !important; }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="space-y-8"] > :not([hidden]) ~ :not([hidden])) { margin-top:20px; }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="text-4xl"]) { font-size:24px !important; }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="grid-cols-2"]):not([class*="md:grid-cols-2"]) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="max-w-5xl"]) { max-width:100%; }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="min-h-screen"]) { min-height:0; }
+  .admin-page-canvas:not(:has([data-admin-dashboard])) :where([class~="px-4"][class~="py-6"]) { padding:0 !important; }
+}
+@media (min-width:1024px) and (max-width:1450px) {
+  .admin-page-canvas:not(:has([data-admin-dashboard])) > [class*="lg:grid-cols-[minmax(680px"] { grid-template-columns:minmax(0,1fr) !important; }
+}

@@ -2,6 +2,7 @@
 
 import { pinyin } from "pinyin-pro";
 import { supabase } from "@/lib/supabase";
+import { canSelectLinkVisibility } from "@/lib/visibility/link-visibility";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import TranslatedMarkdown from "@/components/TranslatedMarkdown";
@@ -33,6 +34,7 @@ export default function EditPage() {
   const [status, setStatus] = useState("");
   const [editCount, setEditCount] = useState(0);
   const [visibility, setVisibility] = useState("public");
+  const [wasUnlisted, setWasUnlisted] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
@@ -381,6 +383,7 @@ export default function EditPage() {
       setPublishedAt(data.published_at || null);
       setEditCount(data.edit_count || 0);
       setVisibility(data.visibility || "public");
+      setWasUnlisted(data.visibility === "unlisted");
 
       setSavedContent(initialSnapshot);
       setLoaded(true);
@@ -410,7 +413,7 @@ export default function EditPage() {
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(680px,1.5fr)_minmax(420px,0.9fr)]">
       <section className="space-y-6">
-        <h1 className="text-4xl font-bold">编辑文章 ✍️</h1>
+        <h1 className="text-4xl font-bold">编辑文章</h1>
 
         <div className="text-sm">
           {autoSaving ? (
@@ -441,6 +444,7 @@ export default function EditPage() {
             {visibility === "public" && "🌍 Public"}
             {visibility === "hidden" && "🙈 Hidden"}
             {visibility === "unlisted" && "🔗 Unlisted"}
+            {visibility === "neighbors" && "🏠 Neighbors"}
             {visibility === "private" && "🔒 Private"}
           </span>
         </div>
@@ -546,8 +550,9 @@ export default function EditPage() {
               className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-4 outline-none focus:border-white"
             >
               <option value="public">🌍 Public（公开）</option>
+              <option value="neighbors">🏠 Neighbors（仅邻居可见，纯文字）</option>
               <option value="hidden">🙈 Hidden（隐藏）</option>
-              <option value="unlisted">🔗 Unlisted（仅链接可见）</option>
+              {canSelectLinkVisibility(wasUnlisted ? "unlisted" : null) && <option value="unlisted">🔗 Unlisted（仅链接可见{wasUnlisted ? "，旧作品" : ""}）</option>}
               <option value="private">🔒 Private（私密）</option>
             </select>
           </div>

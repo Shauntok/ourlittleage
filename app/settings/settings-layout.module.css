@@ -1,0 +1,54 @@
+.modern {
+  --day-scene-image: url('/images/pixel-room-day.webp');
+  --day-scene-base: #f1f6fc;
+  --day-scene-rgb: 241, 246, 252;
+  --day-scene-height: 980px;
+  --day-scene-top-opacity: .47;
+  --day-scene-middle-opacity: .72;
+  min-height: 100vh;
+  overflow-x: clip;
+  background: #f1f6fc;
+  color: #253252;
+}
+.changelogScene {
+  --day-scene-image: url('/images/changelog/sunny-archive-room.webp');
+  --day-scene-base: #f1f6fc;
+  --day-scene-rgb: 241, 246, 252;
+  --day-scene-height: 980px;
+  --day-scene-top-opacity: .32;
+  --day-scene-middle-opacity: .66;
+}
+.shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 18px; width: min(100% - 32px, 1540px); margin: 0 auto; padding: 22px 0 80px; }
+.sidebar { position: relative; align-self: start; min-width: 0; min-height: 690px; border: 1px solid #acc6e9; background: #fbfdff; box-shadow: 0 3px 0 #d3e3f4; padding: 18px 15px 20px; }
+.flowerBed { pointer-events: none; position: absolute; left: 0; bottom: 0; width: min(100%, 215px); height: 194px; background: url("/images/settings-flower-garden.webp") left bottom / contain no-repeat; image-rendering: pixelated; }
+.backLink { display: inline-flex; align-items: center; gap: 5px; margin: 0 8px 20px; color: #697d9f; text-decoration: none; font-size: 11px; font-weight: 700; }
+.backLink:hover { color: #604b8c; }
+.sidebarTitle { display: flex; align-items: center; gap: 11px; margin: 0 5px 18px; color: #4d6c9f; font-family: Arial, "Microsoft YaHei", sans-serif; font-size: 23px; font-weight: 700; line-height: 1.25; }
+.sidebarTitle img, .navLink img { flex: none; }
+.nav { display: grid; gap: 7px; }
+.navLink { position: relative; display: flex; align-items: center; gap: 12px; min-height: 49px; padding: 8px 12px; color: #5773a5; font-family: Arial, "Microsoft YaHei", sans-serif; font-size: 15px; font-weight: 650; line-height: 1.2; text-decoration: none; }
+.navLink:hover { background: #ecf3fd; color: #315b9a; }
+.navActive { background: #dceafd; color: #2e68b3; box-shadow: inset 0 0 0 1px #eaf4ff; }
+.navActive::before { position: absolute; left: 0; top: 4px; bottom: 4px; width: 4px; background: #78a7e2; content: ""; }
+.navActive::after { position: absolute; right: -2px; top: 4px; bottom: 4px; width: 3px; background: linear-gradient(#a1c5f1 0 6px, transparent 6px calc(100% - 6px), #a1c5f1 calc(100% - 6px)); content: ""; }
+.backLink:focus-visible, .navLink:focus-visible { outline: 2px solid #624987; outline-offset: 2px; }
+.content { min-width: 0; }
+.legacyContent { min-height: 690px; border: 1px solid #b2c9e9; background: #11131b; color: #fff; padding: 26px; }
+@media (max-width: 900px) { .shell { grid-template-columns: 1fr; gap: 16px; } .sidebar { position: static; min-height: 0; padding: 12px 14px; } .sidebarTitle, .backLink, .flowerBed { display: none; } .nav { display: flex; flex-wrap: wrap; gap: 3px; } .navLink { flex: 1 1 auto; justify-content: center; min-height: 44px; font-size: 15px; } .navLink img { width: 22px; height: 22px; } .legacyContent { min-height: 0; padding: 18px; } }
+@media (max-width: 540px) { .shell { width: min(100% - 24px, 1320px); padding-top: 14px; } .nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); } .navLink { font-size: 13px; gap: 5px; padding: 7px 3px; min-height: 38px; } .navLink img { width: 18px; height: 18px; } }
+@font-face {
+  font-family: "ArkPixelSettings";
+  src: url("/fonts/ark-pixel-settings.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+:global(body[data-pixel-time="evening"]) .modern { --moon-scene-image: url('/images/pixel-room-evening.webp'); --moon-scene-height: 980px; --moon-scene-top-opacity: .47; --moon-scene-middle-opacity: .72; background: #202943; color: #f2e9d9; }
+:global(body[data-pixel-time="evening"]) .changelogScene { --moon-scene-image: url('/images/changelog/evening-archive-room.webp'); --moon-scene-base: #2b3858; --moon-scene-height: 980px; --moon-scene-top-opacity: .38; --moon-scene-middle-opacity: .69; background: #2b3858; }
+:global(body[data-pixel-time="evening"]) .sidebar { border-color: #7689b0; background: #2c3859; box-shadow: 0 3px 0 #17203a; }
+:global(body[data-pixel-time="evening"]) .sidebarTitle,
+:global(body[data-pixel-time="evening"]) .navLink { color: #e3e8f6; }
+:global(body[data-pixel-time="evening"]) .navLink:hover { background: #3a4a71; color: #fff6df; }
+:global(body[data-pixel-time="evening"]) .navActive { background: #425e88; color: #fff7e5; box-shadow: inset 0 0 0 1px #6e8db8; }
+:global(body[data-pixel-time="evening"]) .backLink { color: #c1cdec; }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import PublicSquareModernClient from "@/components/PublicSquareModernClient";
 
 type ProfileInfo = {
   username: string | null;
@@ -33,7 +35,7 @@ function getExcerpt(content: string) {
   return content.trim().slice(0, 220);
 }
 
-export default function DiariesSpaceClient({
+function ClassicDiariesSpaceClient({
   initialPosts,
   initialLoadFailed = false,
 }: {
@@ -272,4 +274,14 @@ export default function DiariesSpaceClient({
       </div>
     </main>
   );
+}
+
+export default function DiariesSpaceClient(props: {
+  initialPosts: DiaryPost[];
+  initialLoadFailed?: boolean;
+}) {
+  const { skin } = useRoomViewSkin();
+  return skin === "classic"
+    ? <ClassicDiariesSpaceClient {...props} />
+    : <PublicSquareModernClient kind="diary" posts={props.initialPosts} initialLoadFailed={props.initialLoadFailed} />;
 }

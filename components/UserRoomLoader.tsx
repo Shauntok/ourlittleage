@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import UserRoomClient from "@/components/UserRoomClient";
+import RoomSkinClient from "@/components/RoomSkinClient";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
 
 function getResidentTitle(level: number) {
   if (level >= 50) return "小时代长老";
@@ -88,6 +89,7 @@ export default function UserRoomLoader({
   username: string;
   activeTab: "all" | "diary" | "article";
 }) {
+  const { skin: roomViewSkin } = useRoomViewSkin();
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [payload, setPayload] = useState<any>(null);
@@ -154,7 +156,7 @@ export default function UserRoomLoader({
         )
         .eq("author_id", profile.id)
         .eq("status", "published")
-        .eq("visibility", "public")
+        .in("visibility", ["public", "neighbors", "private"])
         .is("deleted_at", null)
         .order("published_at", { ascending: false }),
     ]);
@@ -209,8 +211,11 @@ export default function UserRoomLoader({
       );
     });
 
+    const { data: { user: roomViewer } } = await supabase.auth.getUser();
+
     setPayload({
       profile,
+      isOwnRoom: roomViewer?.id === profile.id,
       residentTitle,
       levelProgress,
       joinedDays,
@@ -228,8 +233,9 @@ export default function UserRoomLoader({
   }
 
   if (loading) {
+    const classic = roomViewSkin === "classic";
     return (
-      <main className="min-h-screen bg-black px-5 pt-16 text-white md:px-6 md:py-24">
+      <main className={`min-h-screen bg-black text-white ${classic ? "px-5 pb-24 pt-16 md:px-6 md:py-24" : "px-4 pb-20 pt-5 md:px-10 md:pb-24 md:pt-2"}`}>
         <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
         <div className="mx-auto max-w-6xl space-y-6">
           <Link
@@ -239,7 +245,7 @@ export default function UserRoomLoader({
             ← 回到深夜广场
           </Link>
 
-          <section className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-8 backdrop-blur-2xl md:rounded-[2.8rem] md:p-12">
+          <section className={`border border-white/10 p-8 backdrop-blur-2xl md:p-12 ${classic ? "rounded-[2rem] bg-white/[0.035] md:rounded-[2.8rem]" : "rounded-none bg-black/80"}`}>
             <div className="h-24 w-24 animate-pulse rounded-full bg-white/10" />
             <div className="mt-8 h-8 w-48 animate-pulse rounded-full bg-white/10" />
             <div className="mt-4 h-4 w-72 max-w-full animate-pulse rounded-full bg-white/10" />
@@ -272,5 +278,11 @@ export default function UserRoomLoader({
     );
   }
 
-  return <UserRoomClient {...payload} activeTab={activeTab} />;
+  return (
+    <RoomSkinClient
+      {...payload}
+      activeTab={activeTab}
+      skin={roomViewSkin}
+    />
+  );
 }

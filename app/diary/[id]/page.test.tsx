@@ -11,6 +11,9 @@ const state = vi.hoisted(() => ({
   exists: true,
   push: vi.fn(),
 }));
+vi.mock("@/components/RoomViewSkinProvider", () => ({
+  useRoomViewSkin: () => ({ skin: "classic" }),
+}));
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "131" }),
   useRouter: () => ({ push: state.push }),
@@ -87,6 +90,15 @@ describe("diary sharing action layouts", () => {
     state.status = "draft";
     render(<DiaryDetailPage />);
     expect(await screen.findByRole("button", { name: "公开后可分享" })).toBeDisabled();
+  });
+  it("lets a database-authorized neighbor read without enabling public sharing", async () => {
+    state.userId = "visitor";
+    state.visibility = "neighbors";
+    render(<DiaryDetailPage />);
+    expect(await screen.findByTestId("diary-actions")).toBeInTheDocument();
+    expect(screen.getByText("一页日记")).toBeInTheDocument();
+    expect(screen.getByTestId("comments")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "分享" })).not.toBeInTheDocument();
   });
 });
 

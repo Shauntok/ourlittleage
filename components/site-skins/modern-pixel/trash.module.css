@@ -1,0 +1,262 @@
+.page {
+  position: relative;
+  isolation: isolate;
+  min-height: calc(100vh - 104px);
+  padding: 14px 24px 170px;
+  overflow: hidden;
+  color: #273052;
+  background: transparent;
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  width: min(80%, 1330px);
+  margin: 0 auto;
+}
+
+.backLink {
+  display: inline-block;
+  color: #544d84;
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.backLink:focus-visible, .restore:focus-visible {
+  outline: 3px solid #6b56a5;
+  outline-offset: 3px;
+}
+
+.intro {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-height: 154px;
+  padding: 12px 10px 18px;
+}
+
+.trashIcon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 95px;
+  width: 95px;
+  height: 100px;
+  color: #5b518b;
+  background: #e7e3f7;
+  border: 4px solid #7771aa;
+  box-shadow: inset -6px -6px #d1cbe9, 6px 6px 0 #ffffff7a;
+  clip-path: polygon(12% 0, 88% 0, 88% 8%, 100% 8%, 100% 93%, 92% 93%, 92% 100%, 8% 100%, 8% 93%, 0 93%, 0 8%, 12% 8%);
+}
+
+.introCopy { min-width: 0; }
+.intro h1 {
+  margin: 0 0 6px;
+  font-size: clamp(30px, 3vw, 46px);
+  font-weight: 800;
+  line-height: 1.15;
+}
+.introCopy p {
+  margin: 0;
+  color: #5b6081;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.introCopy strong { color: #ef4861; font-weight: 800; }
+.drawers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
+}
+.drawer { min-width: 0; }
+.drawerHeader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: clamp(54px, 5vw, 76px);
+  padding: 0 23px;
+  background: url("/images/trash-wood-front.webp") center / 100% 100% no-repeat;
+}
+.drawerHeader h2 {
+  margin: 0;
+  color: #fff8e9;
+  font-size: 27px;
+  font-weight: 800;
+  text-shadow: 2px 2px #774530;
+}
+.count {
+  color: #fff6e5;
+  font-size: 13px;
+  text-shadow: 1px 1px #784735;
+}
+.papers { display: grid; align-content: start; gap: 14px; padding: 16px 10px 0; }
+.paper, .emptyPaper {
+  position: relative;
+  min-width: 0;
+  min-height: 208px;
+  background:
+    radial-gradient(circle at 10% 15%, #fffef4 0, transparent 36%),
+    repeating-linear-gradient(0deg, transparent 0 24px, #b6a68b12 24px 25px),
+    #fff9e9;
+  border: 1px solid #dcc7a8;
+  box-shadow: 4px 5px 0 #a78d8a8c, 0 8px 12px #6e5d7466;
+  clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 6px) 0, calc(100% - 6px) 4px, 100% 4px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+}
+.paper {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 17px;
+  padding: 24px 18px 16px 36px;
+}
+.paper::before, .emptyPaper::before {
+  content: "";
+  position: absolute;
+  top: 23px;
+  bottom: 20px;
+  left: 11px;
+  width: 11px;
+  background: radial-gradient(circle, #ccbba7 3px, transparent 4px) center top / 11px 25px repeat-y;
+}
+.thumb {
+  width: 110px;
+  height: 111px;
+  margin-top: 7px;
+  border: 3px solid #e3d6b8;
+  background-position: center;
+  background-size: cover;
+  image-rendering: pixelated;
+}
+.diaryThumb { background-image: url("/images/space-diary-courtyard.webp"); }
+.articleThumb { background-image: url("/images/space-article-reading.webp"); }
+.paperBody { min-width: 0; display: flex; flex-direction: column; }
+.paper h3 {
+  margin: 1px 23px 6px 0;
+  color: #283257;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.flower { position: absolute; top: 21px; right: 18px; color: #87a852; font-size: 22px; }
+.preview {
+  display: -webkit-box;
+  margin: 0 0 16px;
+  overflow: hidden;
+  color: #666b81;
+  font-size: 13px;
+  line-height: 1.65;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+.paperFooter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 13px;
+  margin-top: auto;
+  color: #67708d;
+  font-size: 11px;
+}
+.deletedAt { display: inline-flex; align-items: center; gap: 5px; }
+.remaining { color: #e93f5d; font-weight: 800; }
+.restore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 40px;
+  margin-left: auto;
+  padding: 5px 9px;
+  color: #24675d;
+  font-size: 12px;
+  font-weight: 800;
+  border: 2px solid #a7cbb3;
+  border-radius: 2px;
+  background: #e1efd8;
+  cursor: pointer;
+}
+.restore:disabled { opacity: .55; cursor: wait; }
+.emptyPaper {
+  min-height: 190px;
+  display: grid;
+  place-content: center;
+  padding: 24px 30px;
+  color: #71718c;
+  text-align: center;
+  font-size: 13px;
+}
+.emptyPaper p { margin: 7px 0 0; }
+.emptyFlower { color: #b18ab4; font-size: 25px; }
+.alert, .error {
+  padding: 14px 22px;
+  border: 2px solid #b69bc1;
+  background: #fff9ec;
+}
+.alert { margin-bottom: 18px; color: #a8324a; }
+.error { min-height: 170px; }
+.error h2 { margin: 0 0 8px; font-size: 22px; }
+.error p { margin: 0; color: #69708a; }
+.cat {
+  position: absolute;
+  z-index: 2;
+  bottom: 34px;
+  left: 8px;
+  width: 156px;
+  height: 105px;
+  pointer-events: none;
+  background: url("/images/trash-cat-8frame.webp") left center / 800% 100% no-repeat;
+  image-rendering: pixelated;
+  animation: catSequence 10s steps(1, end) infinite;
+}
+@keyframes catSequence {
+  0%, 31% { background-position: 0% center; }
+  32%, 39% { background-position: 14.2857% center; }
+  40%, 47% { background-position: 28.5714% center; }
+  48%, 55% { background-position: 42.8571% center; }
+  56%, 63% { background-position: 57.1429% center; }
+  64%, 71% { background-position: 71.4286% center; }
+  72%, 79% { background-position: 85.7143% center; }
+  80%, 100% { background-position: 100% center; }
+}
+
+@media (max-width: 850px) {
+  .page {
+    padding: 14px 18px 180px;
+    background-position: center -72px;
+    background-size: 100% calc(100% + 72px);
+  }
+  .shell { width: 100%; }
+  .intro { min-height: 130px; gap: 16px; }
+  .trashIcon { flex-basis: 72px; width: 72px; height: 77px; }
+  .drawers { grid-template-columns: 1fr; gap: 26px; }
+  .cat { bottom: 22px; left: 28px; }
+}
+@media (max-width: 520px) {
+  .page { padding: 14px 12px 170px; }
+  .intro { padding: 12px 0 22px; }
+  .intro h1 { font-size: 30px; }
+  .introCopy p { font-size: 12px; }
+  .drawerHeader { height: 65px; padding: 0 13px; }
+  .drawerHeader h2 { font-size: 21px; }
+  .papers { padding: 13px 0 0; }
+  .paper { grid-template-columns: 75px minmax(0, 1fr); gap: 11px; min-height: 212px; padding: 21px 11px 13px 29px; }
+  .thumb { width: 75px; height: 79px; }
+  .paper h3 { font-size: 15px; }
+  .preview { font-size: 12px; }
+  .paperFooter { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cat { animation: none; }
+}
+
+:global(body[data-pixel-time="evening"]) .page { background: transparent; color: #f5e8e0; }
+:global(body[data-pixel-time="evening"]) .backLink,
+:global(body[data-pixel-time="evening"]) .introCopy p { color: #f5e8e0; }
+:global(body[data-pixel-time="evening"]) .trashIcon { background: #d8dbef; color: #4b568d; }
+@media (max-width: 520px) {
+  .intro { border: 1px solid rgba(111,107,157,.42); background: rgba(241,235,253,.89); padding: 10px; }
+  :global(body[data-pixel-time="evening"]) .intro { background: rgba(32,42,76,.9); border-color: #8b91bc; }
+  :global(body[data-pixel-time="evening"]) .intro h1 { color: #fff2dc; }
+}

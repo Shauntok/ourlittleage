@@ -57,4 +57,4 @@ describe("DiaryPage draft lifecycle", () => {
   });
 });
 
-import DiaryPage from "./page";
+import DiaryPage from "@/components/room-skins/classic/ClassicDiaryClient";

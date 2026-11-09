@@ -1,10 +1,11 @@
 "use client";
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { Camera, LoaderCircle } from "lucide-react";
+import { Camera, LoaderCircle, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/lib/supabase";
+import styles from "./UserRoomClient.module.css";
 
 const MAX_AVATAR_SIZE = 8 * 1024 * 1024;
 
@@ -95,37 +96,33 @@ export default function RoomAvatarEditor({
     <img
       src={avatarUrl}
       alt={`${username}的头像`}
-      className="h-full w-full object-cover"
+      className={`${styles.avatarImage} h-full w-full object-cover`}
     />
   ) : (
-    <div
-      className="flex h-full w-full items-center justify-center text-3xl text-white/25 md:text-5xl"
-      aria-label={`${username}的头像`}
-      role="img"
-    >
-      👤
+    <div className="flex h-full w-full items-center justify-center text-white/35" aria-label={`${username}的头像`} role="img">
+      <UserRound aria-hidden="true" className="h-9 w-9 md:h-14 md:w-14" strokeWidth={1.3} />
     </div>
   );
 
   if (!isOwner) {
     return (
-      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_55px_rgba(255,255,255,0.12)] md:h-32 md:w-32">
-        {avatar}
+      <div data-room-skin-avatar-frame className={styles.avatarFrame}>
+        <div className={styles.avatarButton}>{avatar}</div>
       </div>
     );
   }
 
   return (
-    <div className="relative h-20 w-20 shrink-0 md:h-32 md:w-32">
+    <div data-room-skin-avatar-frame className={styles.avatarFrame}>
       <button
         type="button"
         aria-label="更换头像"
         title="更换头像"
         disabled={uploading}
         onClick={() => inputRef.current?.click()}
-        className="group relative h-full w-full overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-[0_0_55px_rgba(255,255,255,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:cursor-wait"
+        className={`${styles.avatarButton} group disabled:cursor-wait`}
       >
-        {avatar}
+        <span className="absolute inset-0">{avatar}</span>
         <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/45 group-hover:opacity-100 group-focus-visible:bg-black/45 group-focus-visible:opacity-100">
           {uploading ? (
             <LoaderCircle className="h-6 w-6 animate-spin" aria-hidden="true" />

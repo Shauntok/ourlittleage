@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import MarkdownPreview from "@/components/editor/MarkdownPreview";
 import VisibilitySelector from "@/components/editor/VisibilitySelector";
@@ -18,19 +19,18 @@ import {
   getWritingBlockMessage,
 } from "@/lib/editor/writingGuard";
 import { getCurrentWritingUser } from "@/lib/editor/getCurrentWritingUser";
+import { neighborVisibilityError, NEIGHBOR_IMAGE_MESSAGE } from "@/lib/visibility/neighbors";
+import { canSelectLinkVisibility } from "@/lib/visibility/link-visibility";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+
+const ModernWritingPage = dynamic(() => import("@/components/editor/ModernWritingPage"), { ssr: false });
 
 const MIN_DIARY_LENGTH = 11;
 const DAILY_DIARY_LIMIT = 3;
 
-type DiaryVisibility = "private" | "public" | "hidden" | "unlisted";
+type DiaryVisibility = "private" | "public" | "hidden" | "unlisted" | "neighbors";
 
 const visibilityOptions = [
-  {
-    key: "private",
-    icon: "🔒",
-    title: "只给自己看",
-    desc: "这一天只放在自己的房间里。",
-  },
   {
     key: "public",
     icon: "🌍",
@@ -38,16 +38,23 @@ const visibilityOptions = [
     desc: "让其他居民也能读见这一刻。",
   },
   {
+    key: "private",
+    icon: "🔒",
+    title: "只给自己看",
+    desc: "这一天只放在自己的房间里。",
+  },
+  {
+    key: "neighbors",
+    icon: "🏠",
+    title: "仅邻居可见",
+    desc: "互关居民可读，目前只支持纯文字。",
+  },
+  ...(canSelectLinkVisibility() ? [{ key: "unlisted", icon: "🔗", title: "仅链接可见", desc: "知道链接的人才能进入。" }] : []),
+  {
     key: "hidden",
     icon: "🙈",
     title: "隐藏日记",
     desc: "不会出现在公开列表。",
-  },
-  {
-    key: "unlisted",
-    icon: "🔗",
-    title: "仅链接可见",
-    desc: "知道链接的人才能进入。",
   },
 ];
 
@@ -108,6 +115,7 @@ function getTodayRange() {
 
 export default function NewDiaryPage() {
   const router = useRouter();
+  const { skin } = useRoomViewSkin();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const today = new Date();
@@ -194,6 +202,10 @@ export default function NewDiaryPage() {
 
     const file = e.target.files?.[0];
     if (!file) return;
+    if (visibility === "neighbors") {
+      setEditorMessage(NEIGHBOR_IMAGE_MESSAGE);
+      return;
+    }
 
     setEditorMessage("");
     setUploading(true);
@@ -216,6 +228,11 @@ export default function NewDiaryPage() {
 
     if (!content.trim()) {
       setEditorMessage("先写几句话，我帮你放进草稿箱。");
+      return;
+    }
+    const imageError = neighborVisibilityError(visibility, content);
+    if (imageError) {
+      setEditorMessage(imageError);
       return;
     }
 
@@ -255,6 +272,11 @@ export default function NewDiaryPage() {
       setEditorMessage(
         `再写几句话吧，至少留下 ${MIN_DIARY_LENGTH} 个字，让今天更完整一些。`
       );
+      return;
+    }
+    const imageError = neighborVisibilityError(visibility, content);
+    if (imageError) {
+      setEditorMessage(imageError);
       return;
     }
 
@@ -324,12 +346,39 @@ export default function NewDiaryPage() {
       return;
     }
 
-    if (window.innerWidth < 1024) {
+    if ((skin !== "modern_pixel" && window.innerWidth < 1024) || (skin === "modern_pixel" && window.innerWidth <= 560)) {
       setShowVisibilityDialog(true);
       return;
     }
 
     publishDiary();
+  }
+
+  if (skin === "modern_pixel") {
+    return <ModernWritingPage
+      kind="diary"
+      content={content}
+      setContent={setContent}
+      textareaRef={textareaRef}
+      insertTextAtCursor={insertTextAtCursor}
+      uploadImage={uploadImage}
+      uploading={uploading}
+      visibility={visibility}
+      setVisibility={setVisibility}
+      remainingCount={remainingCount}
+      message={editorMessage}
+      saving={draftSaving}
+      publishing={publishing}
+      saveDraft={saveDraft}
+      publish={handlePublishClick}
+      confirmPublish={publishDiary}
+      visibilityDialogOpen={showVisibilityDialog}
+      closeVisibilityDialog={() => setShowVisibilityDialog(false)}
+      discard={() => router.push("/diary")}
+      diaryDate={formatDate(today)}
+      diaryWeekday={formatWeekday(today)}
+      timeWarning={timeWarning}
+    />;
   }
 
   return (

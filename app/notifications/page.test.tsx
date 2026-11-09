@@ -20,6 +20,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/components/MouseGlow", () => ({ default: () => null }));
+vi.mock("@/components/RoomViewSkinProvider", () => ({
+  useRoomViewSkin: () => ({ skin: "classic" }),
+}));
 
 vi.mock("@/app/actions/relationships", () => ({
   acceptFollowRequest: mocks.acceptFollowRequest,

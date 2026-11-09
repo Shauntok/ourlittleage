@@ -489,7 +489,7 @@ export default function AdminBroadcastPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <div>
-        <h1 className="text-4xl font-bold">📬 全站信件</h1>
+        <h1 className="text-4xl font-bold">全站信件</h1>
 
         <p className="mt-2 text-zinc-500">
           给居民发送系统来信、活动通知、奖励通知或私人信件。

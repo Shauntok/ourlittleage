@@ -1,0 +1,392 @@
+.loaded {
+  display: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-shell]) {
+  max-width: 1152px;
+  gap: 24px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-back-link]) {
+  margin-bottom: 0;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-panel]) {
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(24px);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-cover]) {
+  border: 0;
+  border-radius: 28px 28px 0 0;
+  clip-path: none;
+  height: 112px !important;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-profile-body]) {
+  padding: 0 20px 24px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-intro]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "avatar" "details" "relationship";
+  align-items: start;
+  gap: 0;
+  margin-top: -36px;
+  padding-bottom: 20px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-intro] > :first-child) {
+  grid-area: avatar;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-details]) {
+  grid-area: details;
+  padding-top: 0;
+  margin-top: 16px;
+  transform: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-details] > h1) {
+  margin-top: 0;
+  font-size: 36px;
+  font-weight: 300;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-details] > p:first-of-type svg) {
+  display: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-intro] [data-room-relationship-controls]) {
+  grid-area: relationship;
+  width: auto;
+  max-width: 100%;
+  margin-top: 8px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-avatar-frame]) {
+  width: 104px;
+  height: 104px;
+  padding: 0;
+  border: 4px solid rgba(8, 8, 10, 0.98);
+  border-radius: 50%;
+  background: #0a0a0c;
+  clip-path: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-stat]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-badge]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-meta]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-tab]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-story]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-empty]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-load-more]) {
+  border-radius: 16px;
+  clip-path: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-stat]) {
+  width: auto;
+  min-height: 0;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+  clip-path: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-stat] > svg) {
+  display: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-stat] strong) {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: inherit;
+  font-weight: 400;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-pixel-corner]) {
+  display: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-progress-track]) {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-progress-fill]) {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8b5cf6, #d946ef);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-stats]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-growth]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-badges]) {
+  background-image: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-stats]::before),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-stats]::after),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-growth]::before),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-growth]::after),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-badges]::before),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-badges]::after) {
+  display: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-stats]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 16px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-growth]) {
+  max-width: 576px;
+  padding: 0 0 18px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-badges]) {
+  display: block;
+  padding: 12px 0 0;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-badge]) {
+  width: auto;
+  min-height: 0;
+  flex-direction: row;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-nav-shell]) {
+  width: auto;
+  max-width: 1152px;
+  padding: 10px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(8, 8, 12, 0.78);
+  box-shadow: 0 0 60px rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(24px);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-nav-shell])::before {
+  display: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-menu-frame]) {
+  display: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-nav-shell] > *),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-nav-shell] [data-room-account]) {
+  position: static;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-nav]) {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-brand-house]) {
+  width: 32px;
+  height: 32px;
+  background: #d9d5f3;
+  clip-path: polygon(50% 0, 100% 42%, 88% 54%, 88% 100%, 12% 100%, 12% 54%, 0 42%);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-brand-door]) {
+  clip-path: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-primary-nav]) {
+  gap: 28px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-nav-link]) {
+  min-height: 0;
+  border-bottom: 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-my-space=""]) {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-nav-shell] [data-room-account]) {
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 4px 10px 4px 4px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-account] > div) {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-account] > span:last-child) {
+  display: inline;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-search]) {
+  border-right: 0;
+  padding-right: 0;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-menu][aria-label="居民账号菜单"]) {
+  border-color: rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background: rgba(9, 9, 13, 0.95);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-status-trigger]) {
+  width: min(220px, 52vw);
+  height: 72px;
+  border: 1px solid rgba(214, 187, 205, 0.3);
+  border-radius: 16px;
+  background: rgba(8, 8, 12, 0.78);
+  filter: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-status-heart-grid]) {
+  display: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-status-heart-content]) {
+  max-width: 90%;
+  transform: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-status-heart-content] > span) {
+  color: rgba(245, 237, 242, 0.82) !important;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-status-dialog]) {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-status-dialog]::before) {
+  display: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-status-header]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-status-footer]) {
+  background-image: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] .room-status-mood-option),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] .room-status-custom-emoji),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] .room-status-action) {
+  border-radius: 12px;
+  clip-path: none;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-relationship-controls] button[aria-haspopup="dialog"]) {
+  height: 56px;
+  border-left-color: rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-relationship-label]) {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-relationship-value]) {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-follow-trigger]) {
+  height: 44px;
+  border-color: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-relationship-controls] button[aria-label^="关注"]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-relationship-controls] button[aria-label^="取消对"]),
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-relationship-controls] button[aria-label^="取消关注"]) {
+  border-radius: 999px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-relationship-dialog]) {
+  clip-path: none;
+  border-radius: 20px;
+}
+
+:global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-relationship-dialog] li) {
+  border-radius: 12px;
+}
+
+@media (max-width: 767px) {
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-nav-shell]) {
+    padding: 8px 14px;
+  }
+
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-nav-shell] [data-room-account]) {
+    padding: 2px;
+  }
+
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-account] > div) {
+    width: 36px;
+    height: 36px;
+  }
+
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-cover]) {
+    height: 112px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-shell]) {
+    gap: 48px;
+  }
+
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-cover]) {
+    height: 300px !important;
+  }
+
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-profile-body]) {
+    padding: 0 32px 40px;
+  }
+
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-intro]) {
+    margin-top: -64px;
+    padding-bottom: 24px;
+  }
+
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-avatar-frame]) {
+    width: 128px;
+    height: 128px;
+  }
+
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-details] > h1) {
+    font-size: 60px;
+  }
+
+  :global(body[data-resident-room-page][data-room-view-skin="classic"] [data-room-skin-stats]) {
+    gap: 12px;
+    padding-bottom: 20px;
+  }
+}

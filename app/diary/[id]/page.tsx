@@ -10,6 +10,8 @@ import ReportButton from "@/components/ReportButton";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/share/ShareButton";
 import PostViewTracker from "@/components/views/PostViewTracker";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import reading from "@/components/reading/ReadingPage.module.css";
 import { getCanonicalShareUrl, getShareTitle, getShareVersion } from "@/lib/sharing/model";
 
 type ProfileInfo = {
@@ -54,6 +56,8 @@ function getVisibilityLabel(visibility: string) {
       return "🌍 已公开";
     case "unlisted":
       return "🔗 链接可见";
+    case "neighbors":
+      return "🏠 仅邻居可见";
     case "hidden":
       return "🙈 隐藏";
     case "private":
@@ -66,6 +70,8 @@ function getVisibilityLabel(visibility: string) {
 export default function DiaryDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { skin } = useRoomViewSkin();
+  const modern = skin === "modern_pixel";
   const id = String(params.id);
 
   const [loading, setLoading] = useState(true);
@@ -95,7 +101,7 @@ export default function DiaryDetailPage() {
       const canView =
         isOwner ||
         (data.status === "published" &&
-          (data.visibility === "public" || data.visibility === "unlisted"));
+          (data.visibility === "public" || data.visibility === "unlisted" || data.visibility === "neighbors"));
 
       if (!canView) {
         router.push("/diary");
@@ -143,7 +149,7 @@ export default function DiaryDetailPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-black text-white">
+      <main data-nav-scene={modern ? "diary" : undefined} data-reading-skin={modern ? "modern_pixel" : undefined} className={`flex min-h-screen items-center justify-center bg-black text-white ${modern ? reading.loading : ""}`}>
         <p className="text-sm tracking-[0.3em] text-white/35">
           正在翻开那一天...
         </p>
@@ -158,8 +164,9 @@ export default function DiaryDetailPage() {
     diary.status === "published" &&
     diary.visibility === "public" &&
     (diary.deleted_at === null || diary.deleted_at === undefined);
+  const isPublic = diary.visibility === "public" && diary.status === "published";
   const canComment =
-    diary.visibility === "public" && diary.status === "published";
+    (diary.visibility === "public" || diary.visibility === "neighbors") && diary.status === "published";
   const shareSource = {
     id: Number(diary.id), type: "diary" as const, slug: null,
     title: diary.title, content: diary.content, createdAt: diary.created_at,
@@ -172,21 +179,23 @@ export default function DiaryDetailPage() {
     : null;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
+    <main data-nav-scene={modern ? "diary" : undefined} data-reading-skin={modern ? "modern_pixel" : undefined} className={`min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24 ${modern ? reading.page : ""}`}>
       <PostViewTracker postId={postId} eligible={trackingEligible} />
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[560px] md:w-[560px]" />
+      {!modern && <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />}
+      {!modern && <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[560px] md:w-[560px]" />}
 
-      <article className="mx-auto max-w-3xl min-w-0 overflow-hidden">
+      {modern && <div className={reading.hero}><p>街角阅览室 / 日记</p><h2>慢慢读完一篇故事</h2><span>让场景先出现，阅读时再走进一张宽阔的纸。</span></div>}
+
+      <article className={`mx-auto max-w-3xl min-w-0 overflow-hidden ${modern ? reading.layout : ""}`}>
         <button
           type="button"
           onClick={() => router.push("/space/diaries")}
-          className="mb-6 text-sm text-white/35 transition hover:text-white/70 md:mb-10"
+          className={`mb-6 text-sm text-white/35 transition hover:text-white/70 md:mb-10 ${modern ? reading.back : ""}`}
         >
           ← 回到日记广场
         </button>
 
-        <header className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_80px_rgba(255,255,255,0.045)] md:rounded-[2.3rem] md:p-9">
+        <header className={`min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl shadow-[0_0_80px_rgba(255,255,255,0.045)] md:rounded-[2.3rem] md:p-9 ${modern ? reading.paperHead : ""}`}>
           <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.38em]">
             那一刻记录下的记忆
           </p>
@@ -250,9 +259,9 @@ export default function DiaryDetailPage() {
           </div>
         </header>
 
-        <section className="mt-6 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl md:mt-10 md:rounded-[2.3rem] md:p-9">
+        <section className={`mt-6 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl md:mt-10 md:rounded-[2.3rem] md:p-9 ${modern ? reading.paperBody : ""}`}>
           <article
-            className="
+            className={`
               prose prose-invert max-w-none
               overflow-hidden break-words
               text-[16px] leading-[2]
@@ -274,13 +283,13 @@ export default function DiaryDetailPage() {
               md:prose-p:leading-[2.3]
               [&_*]:break-words
               [&_*]:[overflow-wrap:anywhere]
-            "
+            ${modern ? reading.prose : ""}`}
           >
             <TranslatedMarkdown content={diary.content || ""} />
           </article>
         </section>
 
-        <footer className="mt-6 space-y-5 md:mt-10 md:space-y-6">
+        <footer className={`mt-6 space-y-5 md:mt-10 md:space-y-6 ${modern ? reading.footer : ""}`}>
           <div className="safe-pre rounded-[1.7rem] border border-white/10 bg-white/[0.025] p-5 text-sm leading-7 text-white/35 backdrop-blur-2xl md:rounded-[2rem] md:p-6">
             {diary.edited_at ? (
               <>
@@ -299,7 +308,7 @@ export default function DiaryDetailPage() {
             <div
               data-testid="diary-actions"
               className={`grid gap-2 md:flex md:flex-wrap md:gap-3 ${
-                diary.isOwner || !canComment ? "grid-cols-2" : "grid-cols-3"
+                diary.isOwner || !isPublic ? "grid-cols-2" : "grid-cols-3"
               }`}
             >
               <LikeButton
@@ -309,14 +318,14 @@ export default function DiaryDetailPage() {
                 mobileFullWidth
               />
 
-              {(canComment || diary.isOwner) && (
+              {(isPublic || diary.isOwner) && (
                 <ShareButton
                   postId={diary.id}
                   postType="diary"
                   title={getShareTitle(shareSource)}
                   canonicalUrl={getCanonicalShareUrl(shareSource)}
                   version={getShareVersion(shareSource)}
-                  isPublic={canComment}
+                  isPublic={isPublic}
                   isOwner={diary.isOwner}
                   mobileFullWidth
                 />
@@ -354,7 +363,7 @@ export default function DiaryDetailPage() {
 
         {canComment && (
           <section id="comments" className="mt-10 md:mt-14">
-            <PostComments postId={diary.id} />
+            <PostComments postId={diary.id} modernPixel={modern} />
           </section>
         )}
       </article>

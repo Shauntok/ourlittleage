@@ -8,15 +8,21 @@ import {
   LogOut,
   Mail,
   MessageCircle,
+  MapPin,
   MoonStar,
   NotebookPen,
   PenLine,
+  Search,
   Settings,
   ShieldCheck,
   Trash2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import { getRoomViewSkin } from "@/lib/room-view-skin";
+import { getPixelRoomTime } from "@/lib/pixel-room-theme";
 
 const menuItemClass =
   "grid w-full grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 text-left transition hover:bg-white/[0.05]";
@@ -24,6 +30,9 @@ const menuIconClass =
   "h-[18px] w-[18px] shrink-0 justify-self-center text-current";
 
 export default function Navbar() {
+  const pathname = usePathname();
+  const currentPath = pathname ?? "";
+  const { skin, setSkin, setPixelTime, clearSkinPreference } = useRoomViewSkin();
   const [profile, setProfile] = useState<any>(null);
   const [currentRole, setCurrentRole] = useState("user");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -55,7 +64,10 @@ export default function Navbar() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        clearSkinPreference();
+        return;
+      }
 
       const { data } = await supabase
         .from("profiles")
@@ -83,6 +95,10 @@ export default function Navbar() {
 
       setProfile(data);
       setCurrentRole(data?.role || "user");
+      if (data && Object.prototype.hasOwnProperty.call(data, "room_view_skin")) {
+        setSkin(getRoomViewSkin(data.room_view_skin));
+      }
+      if (data?.theme) setPixelTime(getPixelRoomTime(data.theme));
     }
 
     getProfile();
@@ -100,7 +116,7 @@ export default function Navbar() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [clearSkinPreference, setSkin, setPixelTime]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -140,15 +156,16 @@ export default function Navbar() {
 
   return (
     
-    <header className="sticky top-0 z-50 overflow-visible bg-transparent px-4 py-3 md:px-6 md:py-4">
+    <header data-room-nav data-room-nav-skin={skin} className="sticky top-0 z-50 overflow-visible bg-transparent px-4 py-3 md:px-6 md:py-4">
       <div
         ref={navRef}
+        data-room-nav-shell
         className="
           relative mx-auto flex max-w-6xl items-center justify-between
           overflow-visible
-          rounded-full border border-white/10 bg-white/[0.045]
+          rounded-full
           px-4 py-2.5 shadow-[0_0_60px_rgba(255,255,255,0.035)]
-          backdrop-blur-2xl md:px-6 md:py-3
+          md:px-6 md:py-3
         "
       >
         <div className="relative">
@@ -181,17 +198,23 @@ export default function Navbar() {
           {/* Desktop：原本 Logo */}
           <Link
             href="/home"
-            className="
-              hidden text-sm font-semibold tracking-wide
-              text-white/85 transition hover:text-white
-              md:inline-flex
-            "
+            data-room-brand
+            className="hidden items-center gap-4 text-white/90 transition hover:text-white"
           >
-            小时代
+            <span data-room-brand-icon>
+              <span data-room-brand-house aria-hidden="true">
+                <span data-room-brand-door />
+              </span>
+            </span>
+            <span className="flex flex-col items-start leading-tight">
+              <strong className="text-xl font-semibold">小时代</strong>
+              <span className="text-xs tracking-wide text-white/65">Our Little Age</span>
+            </span>
           </Link>
 
           {worldMenuOpen && (
             <nav
+              data-room-menu
               aria-label="手机居民菜单"
               className="fixed left-4 top-[76px] z-[100] w-64 overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:hidden"
             >
@@ -211,8 +234,8 @@ export default function Navbar() {
                 </Link>
 
                 <Link href="/space" onClick={closeMenus} className={`${menuItemClass} text-sm text-white/70 hover:text-white`}>
-                  <MoonStar aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
-                  <span>深夜广场</span>
+                  <MapPin aria-hidden="true" className={menuIconClass} strokeWidth={1.7} />
+                  <span>广场</span>
                 </Link>
 
                 <div className="my-1 border-t border-white/10" />
@@ -248,35 +271,52 @@ export default function Navbar() {
           )}
         </div>
 
-        <nav className="hidden items-center gap-7 text-sm text-white/45 md:flex">
-          <Link href="/home" className="transition hover:text-white">
+        <nav data-room-primary-nav className="hidden items-center gap-7 text-sm text-white/45 md:flex">
+          <Link data-room-nav-link data-room-nav-current={currentPath === "/home" ? "" : undefined} href="/home" className="transition hover:text-white">
             首页
           </Link>
 
-          <Link href="/space" className="transition hover:text-white">
+          <Link data-room-nav-link data-room-nav-current={currentPath.startsWith("/space") ? "" : undefined} href="/space" className="transition hover:text-white">
             广场
           </Link>
 
-          <Link href="/diary" className="transition hover:text-white">
+          <Link data-room-nav-link data-room-nav-current={currentPath.startsWith("/diary") ? "" : undefined} href="/diary" className="transition hover:text-white">
             日记
           </Link>
 
-          <Link href="/articles" className="transition hover:text-white">
+          <Link data-room-nav-link data-room-nav-current={currentPath.startsWith("/articles") ? "" : undefined} href="/articles" className="transition hover:text-white">
             文章
           </Link>
 
           {profile && (
-            <Link href={profileHref} className="transition hover:text-white">
+            <Link
+              data-room-nav-link
+              data-room-my-space={currentPath === profileHref ? "" : undefined}
+              data-room-nav-current={currentPath === profileHref ? "" : undefined}
+              href={profileHref}
+              className="transition hover:text-white"
+            >
               我的房间
             </Link>
           )}
         </nav>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/search"
+            data-room-search
+            aria-label="搜索"
+            title="搜索"
+            className="hidden h-11 w-11 items-center justify-center text-white/65 transition hover:text-white"
+          >
+            <Search aria-hidden="true" className="h-6 w-6" strokeWidth={1.7} />
+          </Link>
+
           {profile ? (
             <div className="relative">
               <button
                 type="button"
+                data-room-account
                 onClick={() => {
                   setMenuOpen(!menuOpen);
                   setWorldMenuOpen(false);
@@ -303,16 +343,35 @@ export default function Navbar() {
                   </span>
                 )}
 
-                <span className="hidden max-w-[120px] truncate text-xs text-white/45 lg:inline">
+                <span data-room-account-name className="hidden max-w-[120px] truncate text-xs text-white/45 lg:inline">
                   {profile.username || "居民"}
                 </span>
               </button>
 
               {menuOpen && (
                 <nav
+                  data-room-menu
                   aria-label="居民账号菜单"
                   className="fixed right-4 top-[76px] z-[100] max-h-[calc(100vh-112px)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl border border-white/10 bg-zinc-950/95 shadow-2xl shadow-black/50 backdrop-blur-2xl md:right-8 md:top-[96px]"
                 >
+                  <div data-room-menu-frame aria-hidden="true">
+                    <span data-room-frame-part="corner-top-left" />
+                    <span data-room-frame-part="corner-top-right" />
+                    <span data-room-frame-part="corner-bottom-left" />
+                    <span data-room-frame-part="corner-bottom-right" />
+                    <span data-room-frame-part="top-left" />
+                    <span data-room-frame-part="top-center" />
+                    <span data-room-frame-part="top-right" />
+                    <span data-room-frame-part="bottom-left" />
+                    <span data-room-frame-part="bottom-center" />
+                    <span data-room-frame-part="bottom-right" />
+                    <span data-room-frame-part="left-upper" />
+                    <span data-room-frame-part="left-middle" />
+                    <span data-room-frame-part="left-lower" />
+                    <span data-room-frame-part="right-upper" />
+                    <span data-room-frame-part="right-middle" />
+                    <span data-room-frame-part="right-lower" />
+                  </div>
                   <div className="border-b border-white/10 px-5 py-5">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
@@ -431,6 +490,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/"
+              data-room-login
               className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition hover:border-white/25 hover:text-white"
             >
               登录

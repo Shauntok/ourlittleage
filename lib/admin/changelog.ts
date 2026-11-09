@@ -23,6 +23,56 @@ export type AdminChangelogEntry = {
 
 const adminChangelogEntries: readonly AdminChangelogEntry[] = [
   {
+    date: "2026-11-09",
+    phase: "Release 1.0.0",
+    title: "现代像素皮肤发布与权限上线检查",
+    category: "Operations",
+    scope: "居民日夜皮肤、手机写作页、仅邻居可见与一次性皮肤提醒",
+    status: "待验证",
+    summary:
+      "已为正式版 1.0.0 准备居民公开更新日志，并在正式库补齐皮肤偏好、一次性提醒回执及仅邻居可见权限；另修正邻居纯文字约束的图片匹配。自动测试与本地构建通过，完整手机设备、双账号权限及上线后业务回归仍待完成。邻居动态页面尚未加入本版本。",
+  },
+  {
+    date: "2026-11-08",
+    phase: "Mobile Visual Pass",
+    title: "继续修整现代像素皮肤手机端",
+    category: "Internal Fix",
+    scope: "信箱、广场与各页日间／夜晚背景",
+    status: "待验证",
+    summary:
+      "本地延长手机端专属场景的可见范围，按原比例缩放图片并同步延长渐变，避免信箱等页面出现明显的背景截断；缩短广场标题上方空白，并柔化信箱标题的浅色底。桌面前台未改；尚未发布。",
+  },
+  {
+    date: "2026-11-03",
+    phase: "Admin Console 03",
+    title: "后台各子页沿用控制中心版式",
+    category: "Admin",
+    scope: "后台共用侧栏、顶栏、子页卡片与手机布局",
+    status: "待验证",
+    summary:
+      "本地统一后台导航和浅色工作台样式，顶栏显示当前授权账号的完整用户名及角色；未保存修改时，刷新前先确认。主要后台入口已做窄屏检查，尚未部署及完成全部角色的业务验收。",
+  },
+  {
+    date: "2026-11-03",
+    phase: "Article Tags",
+    title: "接通文章标签与公开搜索筛选",
+    category: "Operations",
+    scope: "文章新建／编辑、公开文章标签与搜索页",
+    status: "待验证",
+    summary:
+      "复用现有 posts.tags：标签保存时规范化，公开文章可按标签进入搜索筛选。负责人已看过当前页面并接受功能；标签视觉设计约定在其他页面完成后再重做，尚未正式发布。",
+  },
+  {
+    date: "2026-11-02",
+    phase: "Neighbor Visibility",
+    title: "准备仅邻居可见的访问规则",
+    category: "RLS",
+    scope: "文章、日记、互相关注关系及互动权限",
+    status: "待验证",
+    summary:
+      "本地已准备仅双方接受关注后可读的规则、纯文字限制与权限测试；现有仅链接可见作品保留旧链接，但新增入口默认关闭。正式库迁移尚未应用，线上邻居可见权限尚未启用，须按迁移顺序及真实账号复核后发布。",
+  },
+  {
     date: "2026-09-24",
     phase: "Security Center Phase 2A",
     title: "建立人工流量防护与审计流程",

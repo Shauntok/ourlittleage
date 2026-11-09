@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import FeedbackPage from "@/app/feedback/page";
+import FeedbackForm from "@/components/FeedbackForm";
+import ModernFeedbackClient from "@/components/site-skins/modern-pixel/ModernFeedbackClient";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -12,7 +13,7 @@ vi.mock("@/lib/supabase", () => ({
 
 describe("feedback and sponsorship form", () => {
   it("keeps the existing feedback fields by default", () => {
-    render(<FeedbackPage />);
+    render(<FeedbackForm />);
 
     expect(screen.getByRole("heading", { name: "意见反馈" })).toBeInTheDocument();
     expect(screen.getByLabelText("反馈标题")).toBeInTheDocument();
@@ -20,7 +21,7 @@ describe("feedback and sponsorship form", () => {
   });
 
   it("shows cooperation-specific fields and copy when sponsorship is selected", () => {
-    render(<FeedbackPage />);
+    render(<FeedbackForm />);
 
     fireEvent.change(screen.getByLabelText("提交类型"), {
       target: { value: "sponsorship" },
@@ -40,5 +41,16 @@ describe("feedback and sponsorship form", () => {
     expect(
       screen.getByRole("button", { name: "提交合作申请" })
     ).toBeInTheDocument();
+  });
+
+  it("uses the same fields in the modern pixel form without night-themed options", () => {
+    const { container } = render(<ModernFeedbackClient />);
+
+    expect(container.querySelector('[data-feedback-skin="modern_pixel"]')).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "意见反馈" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "使用体验" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("提交类型"), { target: { value: "sponsorship" } });
+    expect(screen.getByLabelText("联系 Email")).toBeRequired();
+    expect(screen.getByRole("button", { name: "提交合作申请" })).toBeInTheDocument();
   });
 });

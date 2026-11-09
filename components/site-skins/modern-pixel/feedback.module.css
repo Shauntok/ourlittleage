@@ -1,0 +1,118 @@
+.page {
+  --day-scene-image: url('/images/page-backgrounds/feedback-day.webp');
+  --day-scene-height: 730px;
+  --day-scene-top-opacity: .2;
+  --day-scene-middle-opacity: .55;
+  min-height: 100vh;
+  overflow-x: clip;
+  background: #eef0fa;
+  padding: 28px 20px 96px;
+  color: #282e4e;
+}
+
+.shell { width: min(100%, 900px); margin-inline: auto; }
+
+.header {
+  position: relative;
+  display: flex;
+  min-height: 184px;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  background: transparent;
+  padding: 24px 32px;
+  image-rendering: pixelated;
+}
+
+.header::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #e9f3ff 0%, rgba(233, 243, 255, .96) 32%, rgba(233, 243, 255, .38) 70%, transparent 100%);
+  content: "";
+}
+
+.eyebrow, .title, .intro { position: relative; z-index: 1; }
+.eyebrow { margin: 0; color: #647396; font-size: 11px; font-weight: 700; }
+.title { margin: 8px 0 0; color: #263451; font-size: 30px; font-weight: 750; line-height: 1.25; }
+.intro { max-width: 470px; margin: 10px 0 0; color: #526482; font-size: 13px; line-height: 1.65; }
+
+.success { margin-top: 18px; border: 1px solid #9ac2ae; border-bottom: 3px solid #69a98c; background: #f4fcf6; padding: 17px 20px; }
+.successTitle { margin: 0; color: #315a46; font-size: 14px; font-weight: 700; }
+.successBody { margin: 6px 0 0; color: #4f6c5b; font-size: 12px; line-height: 1.6; }
+
+.form {
+  position: relative;
+  display: grid;
+  gap: 19px;
+  margin-top: 20px;
+  border: 1px solid #b9afd0;
+  border-bottom: 3px solid #e4b34d;
+  background: #fbfcff;
+  padding: 26px 30px 30px;
+}
+
+.form::before, .form::after { position: absolute; width: 8px; height: 8px; background: #a99bc7; content: ""; pointer-events: none; }
+.form::before { top: -4px; left: -4px; }
+.form::after { right: -4px; bottom: -5px; }
+
+.label { display: block; margin-bottom: 7px; color: #4c5876; font-size: 12px; font-weight: 700; }
+.input, .select, .textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #b9afd0;
+  border-radius: 0;
+  background: #fffefa;
+  padding: 11px 13px;
+  color: #282e4e;
+  font: inherit;
+  font-size: 13px;
+}
+
+.input, .select { min-height: 44px; }
+.input::placeholder, .textarea::placeholder { color: #929ab0; }
+.input:focus, .select:focus, .textarea:focus { outline: 2px solid #8572a7; outline-offset: 1px; }
+.textarea { min-height: 164px; resize: vertical; line-height: 1.7; white-space: pre-wrap; }
+.helper { margin: 7px 0 0; color: #65728e; font-size: 11px; line-height: 1.5; }
+.twoColumns, .phoneColumns { display: grid; gap: 17px; }
+.twoColumns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.phoneColumns { grid-template-columns: .8fr 1.2fr; }
+
+.submit {
+  min-height: 48px;
+  border: 2px solid #823742;
+  border-radius: 0;
+  background: #b84d55;
+  padding: 11px 22px;
+  color: #fffaf1;
+  box-shadow: 3px 3px 0 #e4b34d;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit:hover { background: #a9404b; }
+.submit:focus-visible { outline: 2px solid #3c4c83; outline-offset: 4px; }
+.submit:disabled { cursor: default; opacity: .6; }
+
+@media (max-width: 600px) {
+  .page { padding: 16px 16px 76px; }
+  .header { min-height: 172px; background-position: 68% center; padding: 20px; }
+  .header::before { background: linear-gradient(90deg, rgba(233, 243, 255, .98), rgba(233, 243, 255, .84) 75%, rgba(233, 243, 255, .38)); }
+  .title { font-size: 25px; }
+  .intro { font-size: 12px; }
+  .form { gap: 16px; padding: 20px 17px 23px; }
+  .twoColumns, .phoneColumns { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
+
+:global(body[data-pixel-time="evening"]) .page { --moon-scene-image: url('/images/page-backgrounds/feedback-evening.webp'); --moon-scene-height: 730px; --moon-scene-top-opacity: .27; --moon-scene-middle-opacity: .56; background: #202943; color: #f5eddf; }
+:global(body[data-pixel-time="evening"]) .header { background-image: none; background-color: transparent; }
+:global(body[data-pixel-time="evening"]) .header::before { background: linear-gradient(90deg,rgba(30,42,78,.97),rgba(30,42,78,.88) 35%,rgba(30,42,78,.08) 85%); }
+:global(body[data-pixel-time="evening"]) .title,
+:global(body[data-pixel-time="evening"]) .intro,
+:global(body[data-pixel-time="evening"]) .eyebrow { color: #fff0dc; }
+:global(body[data-pixel-time="evening"]) .form { background: #edf1fa; color: #253453; border-color: #8997bb; }
+@media (max-width: 600px) {
+  :global(body[data-pixel-time="evening"]) .header::before { background: linear-gradient(90deg,rgba(30,42,78,.97),rgba(30,42,78,.74) 70%,rgba(30,42,78,.28)); }
+}

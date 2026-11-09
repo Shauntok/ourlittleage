@@ -176,7 +176,7 @@ export default function SponsorCenterClient() {
   ).length;
 
   return (
-    <div className="space-y-5 pt-12 lg:pt-0">
+    <div className="space-y-5">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-amber-200/80">

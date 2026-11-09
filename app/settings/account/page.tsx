@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import PasswordInput from "@/components/ui/PasswordInput";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import ModernAccountSettings from "@/components/site-skins/modern-pixel/ModernAccountSettings";
 
 export default function AccountSettingsPage() {
   const router = useRouter();
+  const { skin } = useRoomViewSkin();
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
@@ -23,22 +26,18 @@ export default function AccountSettingsPage() {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   useEffect(() => {
-    loadAccount();
-  }, []);
-
-  async function loadAccount() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.push("/");
-      return;
-    }
-
-    setEmail(user.email || "");
-    setLoading(false);
-  }
+    let active = true;
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!active) return;
+      if (!user) {
+        router.push("/");
+        return;
+      }
+      setEmail(user.email || "");
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, [router]);
 
   function showMessage(text: string) {
     setMessage(text);
@@ -148,10 +147,48 @@ export default function AccountSettingsPage() {
 
   if (loading) {
     return (
-      <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-7 text-sm text-white/40">
+      <div className={skin === "modern_pixel" ? "border border-[#acc6e9] bg-white p-7 text-sm text-[#5773a5]" : "rounded-[2rem] border border-white/10 bg-white/[0.03] p-7 text-sm text-white/40"}>
         正在读取账号资料...
       </div>
     );
+  }
+
+  if (skin === "modern_pixel") {
+    return <>
+      <ModernAccountSettings
+        email={email}
+        currentPassword={currentPassword}
+        setCurrentPassword={setCurrentPassword}
+        newPassword={newPassword}
+        setNewPassword={setNewPassword}
+        confirmPassword={confirmPassword}
+        setConfirmPassword={setConfirmPassword}
+        saving={saving}
+        message={message}
+        onUpdatePassword={updatePassword}
+        onSignOut={signOut}
+      />
+      <ConfirmDialog
+        open={showPasswordDialog}
+        title="修改密码？"
+        description="修改完成后，下次登录需要使用新密码。"
+        confirmText="确认修改"
+        cancelText="取消"
+        loading={saving}
+        onClose={() => setShowPasswordDialog(false)}
+        onConfirm={confirmUpdatePassword}
+      />
+      <ConfirmDialog
+        open={showLogoutDialog}
+        title="登出小时代？"
+        description="登出后，需要重新输入账号密码才能回来。"
+        confirmText="登出"
+        cancelText="取消"
+        danger
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={confirmSignOut}
+      />
+    </>;
   }
 
   return (

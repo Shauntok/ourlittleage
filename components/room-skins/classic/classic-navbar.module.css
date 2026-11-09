@@ -1,0 +1,114 @@
+.loaded {
+  display: none;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-nav-shell]) {
+  width: auto;
+  max-width: 1152px;
+  padding: 10px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: 0 0 60px rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(24px);
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-nav-shell])::before {
+  display: none;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-menu-frame]) {
+  display: none;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-nav-shell] > *),
+:global(header[data-room-nav-skin="classic"] [data-room-account]) {
+  position: static;
+}
+
+:global(header[data-room-nav-skin="classic"]) {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-brand-icon]),
+:global(header[data-room-nav-skin="classic"] [data-room-search]) {
+  display: none;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-brand]) {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-brand] strong) {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-brand] span span) {
+  display: none;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-primary-nav]) {
+  gap: 28px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-nav-link]) {
+  min-height: 0;
+  border-bottom: 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-my-space=""]) {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-nav-shell] [data-room-account]) {
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 4px 10px 4px 4px;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-account] > div) {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-account] > span:last-child) {
+  display: inline;
+}
+
+:global(header[data-room-nav-skin="classic"] [data-room-menu][aria-label="居民账号菜单"]) {
+  border-color: rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background: rgba(9, 9, 13, 0.95);
+}
+
+@media (max-width: 767px) {
+  :global(header[data-room-nav-skin="classic"] [data-room-nav-shell]) {
+    padding: 8px 14px;
+  }
+
+  :global(header[data-room-nav-skin="classic"] [data-room-nav-shell] [data-room-account]) {
+    padding: 2px;
+  }
+
+  :global(header[data-room-nav-skin="classic"] [data-room-account] > div) {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (min-width: 768px) {
+  :global(header[data-room-nav-skin="classic"] [data-room-brand]) {
+    display: inline-flex;
+    min-width: 0;
+  }
+}

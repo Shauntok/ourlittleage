@@ -10,20 +10,16 @@ import EditorTextarea from "@/components/editor/EditorTextarea";
 import MobileVisibilityDialog from "@/components/editor/MobileVisibilityDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { uploadEditorImage } from "@/components/editor/editorImageUpload";
+import { neighborVisibilityError, NEIGHBOR_IMAGE_MESSAGE } from "@/lib/visibility/neighbors";
+import { canSelectLinkVisibility } from "@/lib/visibility/link-visibility";
 import { insertEditorText } from "@/components/editor/editorTextUtils";
 import { trashPost } from "@/app/actions/trash";
 
-type DiaryVisibility = "private" | "public" | "hidden" | "unlisted";
+type DiaryVisibility = "private" | "public" | "hidden" | "unlisted" | "neighbors";
 
 const MIN_DIARY_LENGTH = 11;
 
 const visibilityOptions = [
-  {
-    key: "private",
-    icon: "🔒",
-    title: "只给自己看",
-    desc: "这一天只放在自己的房间里。",
-  },
   {
     key: "public",
     icon: "🌍",
@@ -31,18 +27,31 @@ const visibilityOptions = [
     desc: "让其他居民也能读见这一刻。",
   },
   {
+    key: "private",
+    icon: "🔒",
+    title: "只给自己看",
+    desc: "这一天只放在自己的房间里。",
+  },
+  {
+    key: "neighbors",
+    icon: "🏠",
+    title: "仅邻居可见",
+    desc: "互关居民可读，目前只支持纯文字。",
+  },
+  {
     key: "hidden",
     icon: "🙈",
     title: "隐藏日记",
     desc: "不会出现在公开列表。",
   },
-  {
-    key: "unlisted",
-    icon: "🔗",
-    title: "仅链接可见",
-    desc: "知道链接的人才能进入。",
-  },
 ];
+
+const legacyUnlistedOption = {
+  key: "unlisted",
+  icon: "🔗",
+  title: "仅链接可见（旧作品）",
+  desc: "保留原有链接访问。",
+};
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -66,6 +75,8 @@ function getVisibilityLabel(visibility: DiaryVisibility) {
       return "🙈 隐藏";
     case "unlisted":
       return "🔗 链接可见";
+    case "neighbors":
+      return "🏠 仅邻居可见";
     case "private":
     default:
       return "🔒 私密";
@@ -181,6 +192,11 @@ export default function EditDiaryPage() {
       setEditorMessage("写一点点就好，我帮你先收进草稿箱。");
       return false;
     }
+    const imageError = neighborVisibilityError(visibility, cleanContent);
+    if (imageError) {
+      setEditorMessage(imageError);
+      return false;
+    }
 
     return true;
   }
@@ -194,6 +210,11 @@ export default function EditDiaryPage() {
       );
       return false;
     }
+    const imageError = neighborVisibilityError(visibility, cleanContent);
+    if (imageError) {
+      setEditorMessage(imageError);
+      return false;
+    }
 
     return true;
   }
@@ -201,6 +222,10 @@ export default function EditDiaryPage() {
   async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (visibility === "neighbors") {
+      setEditorMessage(NEIGHBOR_IMAGE_MESSAGE);
+      return;
+    }
 
     setUploading(true);
 
@@ -546,7 +571,7 @@ export default function EditDiaryPage() {
             <VisibilitySelector
               visibility={visibility}
               setVisibility={(value) => setVisibility(value as DiaryVisibility)}
-              options={visibilityOptions}
+              options={canSelectLinkVisibility(diary?.visibility) ? [...visibilityOptions, legacyUnlistedOption] : visibilityOptions}
             />
           </div>
 
@@ -636,7 +661,7 @@ export default function EditDiaryPage() {
         open={showVisibilityDialog}
         visibility={visibility}
         setVisibility={(value) => setVisibility(value as DiaryVisibility)}
-        options={visibilityOptions}
+        options={canSelectLinkVisibility(diary?.visibility) ? [...visibilityOptions, legacyUnlistedOption] : visibilityOptions}
         title={isDraft ? "这篇草稿要放在哪里？" : "这篇日记要保存成什么可见性？"}
         subtitle="选择可见性后，我就帮你把这一页收好。"
         confirmText={isDraft ? "确定，留下今天" : "确定，保存修改"}

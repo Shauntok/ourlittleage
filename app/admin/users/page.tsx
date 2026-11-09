@@ -89,7 +89,7 @@ export default function AdminUsersPage() {
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
           <h1 className="text-4xl font-bold">
-            居民管理 👥
+            居民管理
           </h1>
 
           <p className="mt-2 text-zinc-500">

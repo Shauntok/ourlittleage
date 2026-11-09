@@ -531,7 +531,7 @@ export default function SponsorCampaignForm({
   }
 
   return (
-    <div className="space-y-5 pt-12 lg:pt-0">
+    <div className="space-y-5">
       <ConfirmDialog
         open={weightHelpOpen}
         title="什么是投放权重？"

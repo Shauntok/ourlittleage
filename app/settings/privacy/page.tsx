@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { setFollowMode } from "@/app/actions/relationships";
 import { supabase } from "@/lib/supabase";
 import type { FollowMode } from "@/lib/relationships/service";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import ModernPrivacySettings from "@/components/site-skins/modern-pixel/ModernPrivacySettings";
 
 type PrivacySettings = {
   showLevel: boolean;
@@ -52,6 +54,7 @@ async function readSettings(): Promise<PrivacySettings | null> {
 }
 
 export default function PrivacySettingsPage() {
+  const { skin } = useRoomViewSkin();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -140,10 +143,22 @@ export default function PrivacySettingsPage() {
 
   if (loading) {
     return (
-      <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-7 text-sm text-white/40">
+      <div className={skin === "modern_pixel" ? "p-7 text-sm text-[#63799e]" : "rounded-[2rem] border border-white/10 bg-white/[0.03] p-7 text-sm text-white/40"}>
         正在读取隐私设置...
       </div>
     );
+  }
+
+  if (skin === "modern_pixel") {
+    return <ModernPrivacySettings
+      showLevel={showLevel} setShowLevel={setShowLevel}
+      showExp={showExp} setShowExp={setShowExp}
+      showTrust={showTrust} setShowTrust={setShowTrust}
+      showBadges={showBadges} setShowBadges={setShowBadges}
+      showJoinedDays={showJoinedDays} setShowJoinedDays={setShowJoinedDays}
+      followMode={followMode} setFollowMode={setCurrentFollowMode}
+      saving={saving} message={message} onSave={saveSettings}
+    />;
   }
 
   return (

@@ -10,6 +10,9 @@ import ReportButton from "@/components/ReportButton";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/share/ShareButton";
 import PostViewTracker from "@/components/views/PostViewTracker";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
+import reading from "@/components/reading/ReadingPage.module.css";
+import { articleTagHref, uniqueArticleTags } from "@/lib/posts/tags";
 import {
   getCanonicalShareUrl,
   getShareTitle,
@@ -41,6 +44,8 @@ function getVisibilityLabel(visibility: string) {
       return "🙈 隐藏";
     case "unlisted":
       return "🔗 链接可见";
+    case "neighbors":
+      return "🏠 仅邻居可见";
     case "private":
       return "🔒 私密";
     default:
@@ -55,6 +60,8 @@ export default function ArticleDetailClient({
 }) {
   const params = useParams();
   const router = useRouter();
+  const { skin } = useRoomViewSkin();
+  const modern = skin === "modern_pixel";
   const slug = String(params.slug);
 
   const [loading, setLoading] = useState(!initialArticle);
@@ -102,7 +109,7 @@ export default function ArticleDetailClient({
       const canView =
         isAuthor ||
         (data.status === "published" &&
-          (data.visibility === "public" || data.visibility === "unlisted"));
+          (data.visibility === "public" || data.visibility === "unlisted" || data.visibility === "neighbors"));
 
       if (!canView) {
         router.push("/space/articles");
@@ -153,7 +160,7 @@ export default function ArticleDetailClient({
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-black text-white">
+      <main data-nav-scene={modern ? "articles" : undefined} data-reading-skin={modern ? "modern_pixel" : undefined} className={`flex min-h-screen items-center justify-center bg-black text-white ${modern ? reading.loading : ""}`}>
         <p className="text-sm tracking-[0.3em] text-white/35">
           正在打开这篇文章...
         </p>
@@ -163,7 +170,7 @@ export default function ArticleDetailClient({
 
   if (!article) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-black text-white">
+      <main data-nav-scene={modern ? "articles" : undefined} data-reading-skin={modern ? "modern_pixel" : undefined} className={`flex min-h-screen items-center justify-center bg-black text-white ${modern ? reading.loading : ""}`}>
         <p className="text-sm tracking-[0.3em] text-white/35">
           这篇文章暂时无法查看。
         </p>
@@ -181,6 +188,8 @@ export default function ArticleDetailClient({
   const isAuthor = article.isAuthor || article.author_id === currentUserId;
   const isPublic =
     article.status === "published" && article.visibility === "public";
+  const canComment = article.status === "published" &&
+    (article.visibility === "public" || article.visibility === "unlisted" || article.visibility === "neighbors");
   const shareSource = {
     id: Number(article.id),
     type: "article" as const,
@@ -203,21 +212,23 @@ export default function ArticleDetailClient({
     : null;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24">
+    <main data-nav-scene={modern ? "articles" : undefined} data-reading-skin={modern ? "modern_pixel" : undefined} className={`min-h-screen overflow-x-hidden bg-black px-5 pb-24 pt-16 text-white md:px-6 md:py-24 ${modern ? reading.page : ""}`}>
       <PostViewTracker postId={postId} eligible={trackingEligible} />
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />
-      <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[560px] md:w-[560px]" />
+      {!modern && <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-zinc-950 to-black" />}
+      {!modern && <div className="pointer-events-none fixed left-1/2 top-1/3 -z-10 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl md:h-[560px] md:w-[560px]" />}
 
-      <article className="mx-auto w-full max-w-3xl min-w-0 overflow-hidden">
+      {modern && <div className={reading.hero}><p>街角阅览室 / 文章</p><h2>慢慢读完一篇故事</h2><span>让场景先出现，阅读时再走进一张宽阔的纸。</span></div>}
+
+      <article className={`mx-auto w-full max-w-3xl min-w-0 overflow-hidden ${modern ? reading.layout : ""}`}>
         <button
           type="button"
           onClick={() => router.push("/space/articles")}
-          className="mb-6 text-sm text-white/35 transition hover:text-white/70 md:mb-10"
+          className={`mb-6 text-sm text-white/35 transition hover:text-white/70 md:mb-10 ${modern ? reading.back : ""}`}
         >
           ← 回到文章广场
         </button>
 
-        <header className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:rounded-[2.4rem] md:p-9">
+        <header className={`min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-2xl md:rounded-[2.4rem] md:p-9 ${modern ? reading.paperHead : ""}`}>
           <p className="text-xs tracking-[0.35em] text-white/25 md:tracking-[0.38em]">
             发表的故事文章
           </p>
@@ -279,25 +290,18 @@ export default function ArticleDetailClient({
 
           {article.tags && (
             <div className="mt-5 flex flex-wrap gap-2 md:mt-6">
-              {article.tags
-                .split(",")
-                .map((tag: string) => tag.trim())
-                .filter(Boolean)
-                .map((tag: string) => (
-                  <span
-                    key={tag}
-                    className="safe-text max-w-full rounded-full bg-white/[0.05] px-3 py-1 text-xs text-white/35"
-                  >
-                    #{tag}
-                  </span>
-                ))}
+              {uniqueArticleTags(article.tags).map((tag) => article.visibility === "public" && article.status === "published" ? (
+                <Link key={tag} href={articleTagHref(tag)} className="safe-text max-w-full rounded-full bg-white/[0.05] px-3 py-1 text-xs text-white/60 transition hover:bg-white/10 hover:text-white">#{tag}</Link>
+              ) : (
+                <span key={tag} className="safe-text max-w-full rounded-full bg-white/[0.05] px-3 py-1 text-xs text-white/35">#{tag}</span>
+              ))}
             </div>
           )}
         </header>
 
-        <section className="mt-6 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl md:mt-10 md:rounded-[2.4rem] md:p-9">
+        <section className={`mt-6 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl md:mt-10 md:rounded-[2.4rem] md:p-9 ${modern ? reading.paperBody : ""}`}>
           <article
-            className="
+            className={`
               prose prose-invert max-w-none
               overflow-hidden break-words
               prose-p:break-words
@@ -315,14 +319,14 @@ export default function ArticleDetailClient({
               md:prose-p:leading-[2.2]
               [&_*]:break-words
               [&_*]:[overflow-wrap:anywhere]
-            "
+            ${modern ? reading.prose : ""}`}
           >
             <TranslatedMarkdown content={article.content || ""} />
           </article>
         </section>
 
         {isAuthor && article.notes && (
-          <section className="safe-pre mt-6 rounded-[2rem] border border-yellow-500/15 bg-yellow-500/[0.05] p-5 text-sm leading-8 text-yellow-100/60 md:mt-8 md:p-6">
+          <section className={`safe-pre mt-6 rounded-[2rem] border border-yellow-500/15 bg-yellow-500/[0.05] p-5 text-sm leading-8 text-yellow-100/60 md:mt-8 md:p-6 ${modern ? reading.authorNote : ""}`}>
             <p className="mb-3 text-xs tracking-[0.3em] text-yellow-100/35">
               作者私密笔记
             </p>
@@ -330,7 +334,7 @@ export default function ArticleDetailClient({
           </section>
         )}
 
-        <footer className="mt-6 space-y-5 md:mt-10 md:space-y-6">
+        <footer className={`mt-6 space-y-5 md:mt-10 md:space-y-6 ${modern ? reading.footer : ""}`}>
           <div className="safe-pre rounded-[1.7rem] border border-white/10 bg-white/[0.025] p-5 text-sm leading-7 text-white/35 backdrop-blur-2xl md:rounded-[2rem] md:p-6">
             {article.edited_at ? (
               <>
@@ -402,9 +406,9 @@ export default function ArticleDetailClient({
           </div>
         </footer>
 
-        <div className="mt-10 md:mt-14">
-          <PostComments postId={article.id} />
-        </div>
+        {canComment && <div className="mt-10 md:mt-14">
+          <PostComments postId={article.id} modernPixel={modern} />
+        </div>}
       </article>
     </main>
   );

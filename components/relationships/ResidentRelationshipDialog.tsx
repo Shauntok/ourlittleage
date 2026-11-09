@@ -19,6 +19,7 @@ import {
   unfollowUser,
 } from "@/app/actions/relationships";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useRoomViewSkin } from "@/components/RoomViewSkinProvider";
 import type {
   PublicRelationshipItem,
   PublicRelationshipKind,
@@ -66,6 +67,8 @@ export default function ResidentRelationshipDialog({
   onClose,
   onChanged,
 }: ResidentRelationshipDialogProps) {
+  const { skin, pixelTime } = useRoomViewSkin();
+  const modernPixel = skin === "modern_pixel";
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -205,7 +208,7 @@ export default function ResidentRelationshipDialog({
   const ownerActionLabel = kind === "following" ? "取消关注" : "移除关注者";
 
   return createPortal(
-    <div className="fixed inset-0 z-[9000] flex items-center justify-center px-4 py-6 sm:px-6">
+    <div data-room-relationship-overlay={modernPixel ? pixelTime : undefined} className="fixed inset-0 z-[9000] flex items-center justify-center px-4 py-6 sm:px-6">
       <button
         type="button"
         tabIndex={-1}
@@ -216,13 +219,20 @@ export default function ResidentRelationshipDialog({
 
       <section
         ref={dialogRef}
+        data-room-relationship-dialog
+        data-room-relationship-modern={modernPixel ? "" : undefined}
+        data-pixel-time={modernPixel ? pixelTime : undefined}
         role="dialog"
         aria-modal="true"
         aria-labelledby="resident-relationship-dialog-title"
         className="relative z-10 flex max-h-[min(760px,calc(100dvh-48px))] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 text-white shadow-[0_24px_90px_rgba(0,0,0,0.65)]"
       >
+        {modernPixel && (["top-left", "top-right", "bottom-right", "bottom-left"] as const).map((corner) => (
+          <span key={corner} data-relationship-painted-corner={corner} aria-hidden="true" />
+        ))}
         <header className="flex min-h-16 items-center justify-between gap-4 border-b border-white/10 px-5 sm:px-6">
           <div className="min-w-0">
+            {modernPixel && <p data-relationship-eyebrow>ROOM NEIGHBORS / {kind === "followers" ? "FOLLOWERS" : "FOLLOWING"}</p>}
             <h2
               id="resident-relationship-dialog-title"
               className="truncate text-lg font-medium text-white/90"

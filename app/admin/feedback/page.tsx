@@ -311,7 +311,7 @@ export default function AdminFeedbackPage() {
 
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
-          <h1 className="text-4xl font-bold">反馈中心 💌</h1>
+          <h1 className="text-4xl font-bold">反馈中心</h1>
 
           <p className="mt-2 text-zinc-500">
             查看、追踪和处理居民提交的反馈。
