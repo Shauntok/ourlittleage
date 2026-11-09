@@ -28,6 +28,29 @@ const statusText: Record<SaveState, string> = {
   error: "房间时间保存失败，请再试一次。",
 };
 
+const cabinetArtwork: Record<PixelRoomTime, Record<RoomViewSkin, Record<PixelRoomTime, string>>> = {
+  day: {
+    modern_pixel: {
+      day: "/images/skin/wardrobe-cutout-day.webp",
+      evening: "/images/skin/wardrobe-day-modern-night.webp",
+    },
+    classic: {
+      day: "/images/skin/wardrobe-day-classic-day.webp",
+      evening: "/images/skin/wardrobe-day-classic-night.webp",
+    },
+  },
+  evening: {
+    modern_pixel: {
+      day: "/images/skin/wardrobe-cutout-evening.webp",
+      evening: "/images/skin/wardrobe-evening-modern-night.webp",
+    },
+    classic: {
+      day: "/images/skin/wardrobe-evening-classic-day.webp",
+      evening: "/images/skin/wardrobe-evening-classic-night.webp",
+    },
+  },
+};
+
 export default function ModernSkinSettings({
   selectedSkin,
   selectedTime,
@@ -44,7 +67,7 @@ export default function ModernSkinSettings({
       <PixelCornerMarks />
       <div className={styles.wardrobe}>
         <Image
-          src={appliedTime === "evening" ? "/images/skin/wardrobe-cutout-evening.webp" : "/images/skin/wardrobe-cutout-day.webp"}
+          src={cabinetArtwork[appliedTime][selectedSkin][selectedTime]}
           alt=""
           width={1536}
           height={1025}
@@ -53,16 +76,6 @@ export default function ModernSkinSettings({
           priority
           aria-hidden="true"
         />
-        {selectedTime === "evening" && (
-          <Image
-            src="/images/skin/wardrobe-night-controls.webp"
-            alt=""
-            width={338}
-            height={74}
-            className={styles.nightControlsArt}
-            aria-hidden="true"
-          />
-        )}
         <header className={styles.canopy}>
           <Image
             src="/images/skin/wardrobe-canopy.webp"

@@ -20,7 +20,6 @@
 }
 
 .referenceArt { display: none; }
-.nightControlsArt { display: none; }
 
 .canopy {
   position: relative;
@@ -224,16 +223,6 @@
     top: -14.7%;
     pointer-events: none;
   }
-  .nightControlsArt {
-    position: absolute;
-    z-index: 1;
-    top: 70%;
-    left: 15.28%;
-    display: block;
-    width: 27.98%;
-    height: 8.57%;
-    pointer-events: none;
-  }
   .canopy { display: none; }
   .cabinet { position: absolute; inset: 0; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
   .doors { position: absolute; inset: 0; display: block; }
@@ -241,17 +230,19 @@
   .door:first-child { left: 9.1%; width: 39.4%; }
   .door:nth-child(2) { left: 49.2%; width: 43.4%; }
   .doorSelected { filter: none; }
-  .door:first-child:not(.doorSelected)::after,
-  .door:nth-child(2).doorSelected::after {
+  .doorSelect:focus-visible { outline: none; }
+  .doorSelect:focus-visible::after {
     position: absolute;
-    z-index: 1;
-    inset: 2.6% 2.5% 1.5%;
-    border: clamp(3px, .4vw, 5px) solid #e4c59e;
-    border-radius: 14px;
+    top: 6%;
+    right: 6.8%;
+    width: clamp(24px, 2.8vw, 38px);
+    aspect-ratio: 1;
+    border: 2px solid #245dbe;
+    border-radius: 50%;
     content: "";
     pointer-events: none;
   }
-  .door:nth-child(2).doorSelected::after { border-color: #5598e7; }
+  .door:nth-child(2) .doorSelect:focus-visible::after { right: 11.3%; }
   .doorSelect:hover .preview { border-color: #80aee9; }
   .preview {
     top: 10.6%;
@@ -277,8 +268,7 @@
   .door:nth-child(2) .preview { clip-path: polygon(3% 0, 97% 0, 100% 4%, 100% 96%, 97% 100%, 3% 100%, 0 96%, 0 4%); }
   .glassPreview .previewImage { object-position: left center; }
   .doorCopy { display: none; }
-  .choiceMark { top: 6.1%; right: 7%; width: clamp(21px, 2.5vw, 34px); height: clamp(21px, 2.5vw, 34px); }
-  .door:nth-child(2) .choiceMark { right: 11.5%; }
+  .choiceMark { display: none; }
   .timeChoices { bottom: 7.9%; left: 17%; width: 67%; height: 10.5%; gap: 2px; }
   .timeChoices button {
     position: relative;
