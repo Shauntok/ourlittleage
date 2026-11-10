@@ -62,9 +62,9 @@ describe("skin settings wardrobe", () => {
     state.setPixelTime.mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: "夜晚" }));
-    expect(screen.getByAltText("现代像素夜晚房间实景")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "夜晚" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: "日间" }).getAttribute("aria-pressed")).toBe("false");
-    expect(document.querySelector('img[src*="wardrobe-day-modern-night.webp"]')).not.toBeNull();
+    expect(document.querySelector('img[src*="wardrobe-evening-modern-night.webp"]')).not.toBeNull();
     expect(document.querySelector('img[src*="wardrobe-night-controls.webp"]')).toBeNull();
     expect(state.setPixelTime).not.toHaveBeenCalled();
 
@@ -73,7 +73,7 @@ describe("skin settings wardrobe", () => {
     fireEvent.click(screen.getByRole("button", { name: "夜晚" }));
     expect(state.updates).toHaveLength(0);
     expect(state.setPixelTime).not.toHaveBeenCalled();
-    expect(document.querySelector('img[src*="wardrobe-day-modern-night.webp"]')).not.toBeNull();
+    expect(document.querySelector('img[src*="wardrobe-evening-modern-night.webp"]')).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /保存选择/ }));
     await waitFor(() => expect(state.updates).toContainEqual({ theme: "midnight" }));
@@ -85,6 +85,6 @@ describe("skin settings wardrobe", () => {
     expect(document.querySelector('img[src*="wardrobe-evening-classic-night.webp"]')).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "日间" }));
     fireEvent.click(screen.getByRole("button", { name: /经典玻璃/ }));
-    expect(document.querySelector('img[src*="wardrobe-evening-classic-day.webp"]')).not.toBeNull();
+    expect(document.querySelector('img[src*="wardrobe-day-classic-day.webp"]')).not.toBeNull();
   });
 });

@@ -123,7 +123,6 @@ export default function SkinSettingsPage() {
     return <ModernSkinSettings
       selectedSkin={draftSkin}
       selectedTime={draftTime}
-      appliedTime={roomTime}
       saveState={saveState}
       onSelectSkin={(nextSkin) => { setDraftSkin(nextSkin); setSaveState("idle"); }}
       onSelectTime={(nextTime) => { setDraftSkin("modern_pixel"); setDraftTime(nextTime); setTimeTouched(true); setSaveState("idle"); }}

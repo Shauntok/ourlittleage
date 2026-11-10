@@ -130,6 +130,34 @@
 .detailBody { color: #4e5264; font-size: 14px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
 .detailFooter { margin-top: 56px; border-top: 1px solid #dbcbaa; padding-top: 15px; color: #967366; font-size: 11px; text-align: right; }
 
+@media (min-width: 761px) {
+  .boardDetail .boardInner {
+    position: absolute;
+    top: 14%;
+    right: 14.8%;
+    bottom: 21%;
+    left: 14.8%;
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    margin: 0;
+    overflow: hidden;
+  }
+  .boardDetail .sectionLine { flex: none; margin-bottom: 9px; }
+  .boardDetail .detailPaper {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    margin-top: 0;
+    overflow: hidden;
+    padding: 20px clamp(18px, 4vw, 42px);
+  }
+  .boardDetail .detailPaper h2 { margin: 10px 0 12px; font-size: clamp(21px, 2.5vw, 28px); }
+  .boardDetail .detailBody { min-height: 0; flex: 1; overflow-y: auto; font-size: 13px; line-height: 1.7; }
+  .boardDetail .detailFooter { flex: none; margin-top: 12px; padding-top: 9px; }
+}
+
 @media (max-width: 760px) {
   .page { padding: 15px 14px 55px; }
   .shell { width: 100%; }

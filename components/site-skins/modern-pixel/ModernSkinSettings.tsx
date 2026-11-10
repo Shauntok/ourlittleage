@@ -13,7 +13,6 @@ type SaveState = "idle" | "saving" | "saved" | "local-only" | "error";
 type Props = {
   selectedSkin: RoomViewSkin;
   selectedTime: PixelRoomTime;
-  appliedTime: PixelRoomTime;
   saveState: SaveState;
   onSelectSkin: (skin: RoomViewSkin) => void;
   onSelectTime: (time: PixelRoomTime) => void;
@@ -28,33 +27,20 @@ const statusText: Record<SaveState, string> = {
   error: "房间时间保存失败，请再试一次。",
 };
 
-const cabinetArtwork: Record<PixelRoomTime, Record<RoomViewSkin, Record<PixelRoomTime, string>>> = {
-  day: {
-    modern_pixel: {
-      day: "/images/skin/wardrobe-cutout-day.webp",
-      evening: "/images/skin/wardrobe-day-modern-night.webp",
-    },
-    classic: {
-      day: "/images/skin/wardrobe-day-classic-day.webp",
-      evening: "/images/skin/wardrobe-day-classic-night.webp",
-    },
+const cabinetArtwork: Record<RoomViewSkin, Record<PixelRoomTime, string>> = {
+  modern_pixel: {
+    day: "/images/skin/wardrobe-cutout-day.webp",
+    evening: "/images/skin/wardrobe-evening-modern-night.webp",
   },
-  evening: {
-    modern_pixel: {
-      day: "/images/skin/wardrobe-cutout-evening.webp",
-      evening: "/images/skin/wardrobe-evening-modern-night.webp",
-    },
-    classic: {
-      day: "/images/skin/wardrobe-evening-classic-day.webp",
-      evening: "/images/skin/wardrobe-evening-classic-night.webp",
-    },
+  classic: {
+    day: "/images/skin/wardrobe-day-classic-day.webp",
+    evening: "/images/skin/wardrobe-evening-classic-night.webp",
   },
 };
 
 export default function ModernSkinSettings({
   selectedSkin,
   selectedTime,
-  appliedTime,
   saveState,
   onSelectSkin,
   onSelectTime,
@@ -67,7 +53,7 @@ export default function ModernSkinSettings({
       <PixelCornerMarks />
       <div className={styles.wardrobe}>
         <Image
-          src={cabinetArtwork[appliedTime][selectedSkin][selectedTime]}
+          src={cabinetArtwork[selectedSkin][selectedTime]}
           alt=""
           width={1536}
           height={1025}
@@ -109,14 +95,6 @@ export default function ModernSkinSettings({
                     sizes="(max-width: 650px) 75vw, 380px"
                     className={`${styles.previewImage} ${styles.mobilePreviewImage}`}
                     aria-hidden="true"
-                  />
-                  <Image
-                    src={selectedTime === "day" ? "/images/skin/wardrobe-reference.webp" : "/images/skin/wardrobe-reference-evening.webp"}
-                    alt={selectedTime === "day" ? "现代像素日间房间实景" : "现代像素夜晚房间实景"}
-                    width={1536}
-                    height={1025}
-                    sizes="(max-width: 650px) 1px, (max-width: 1600px) 100vw, 1300px"
-                    className={styles.previewSceneArt}
                   />
                 </span>
                 <span className={styles.doorCopy}>

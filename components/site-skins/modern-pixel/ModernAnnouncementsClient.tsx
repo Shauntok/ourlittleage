@@ -138,7 +138,7 @@ export default function ModernAnnouncementsClient() {
   return (
     <main data-announcements-skin="modern_pixel" className={styles.page}>
       <div className={styles.shell}>
-        <section className={styles.board} aria-label="街区公告栏">
+        <section className={`${styles.board} ${view === "detail" ? styles.boardDetail : ""}`} aria-label="街区公告栏">
           <div className={styles.boardHeader}>
             <h1>街区公告</h1>
             <span className={styles.boardCount}>{total} 则公告</span>

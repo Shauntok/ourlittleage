@@ -91,7 +91,6 @@
 }
 .glassPreview { background: #08080a; }
 .previewImage { object-fit: cover; object-position: center; }
-.previewSceneArt { display: none; }
 .glassPreview .previewImage { object-position: left center; }
 .doorCopy {
   position: absolute;
@@ -254,16 +253,6 @@
     box-shadow: none;
   }
   .mobilePreviewImage { display: none; }
-  .previewSceneArt {
-    position: absolute;
-    display: block;
-    width: 387.4%;
-    max-width: none;
-    height: 355.7%;
-    left: -114.2%;
-    top: -128.7%;
-    pointer-events: none;
-  }
   .door:nth-child(2) .preview { top: 10.6%; left: 10.2%; width: 76%; height: 54.2%; }
   .door:nth-child(2) .preview { clip-path: polygon(3% 0, 97% 0, 100% 4%, 100% 96%, 97% 100%, 3% 100%, 0 96%, 0 4%); }
   .glassPreview .previewImage { object-position: left center; }
@@ -283,11 +272,19 @@
   }
   .timeChoices .timeActive { border: 0; background: transparent; color: transparent; box-shadow: none; }
   .timeChoices button svg { display: none; }
-  .timeChoices button:hover { background: rgba(255, 255, 255, .1); }
+  .timeChoices button:hover { background: transparent; }
   .timeChoices button:focus-visible {
     outline: none;
-    border-radius: 8px;
-    box-shadow: inset 0 -3px 0 #376cb2;
+    box-shadow: none;
+  }
+  .timeChoices button:focus-visible::after {
+    position: absolute;
+    right: 45%;
+    bottom: -6px;
+    width: 10px;
+    height: 3px;
+    background: #245dbe;
+    content: "";
   }
   .drawer { position: absolute; top: 84%; left: 31.3%; display: block; width: 36.1%; height: 7.5%; min-height: 0; margin: 0; border: 0; background: transparent; box-shadow: none; }
   .drawerHandle { display: none; }
